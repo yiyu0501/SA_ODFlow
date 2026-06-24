@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from core.constants import EVALUATION_ITEMS
 from core.database import DEFAULT_DB_PATH, initialize_database
+from core.evaluation_service import get_evaluation_summary
+from core.settings_service import get_club_settings
 
 
 st.set_page_config(
@@ -13,39 +14,65 @@ st.set_page_config(
 )
 
 initialize_database()
+settings = get_club_settings()
+summary = get_evaluation_summary()
 
-st.title("ODFlow / SA_ODFlow")
+st.title("ODFlow")
 st.caption("學生社團 ODF 文件流與評鑑整理系統")
 
-left_col, right_col = st.columns((2, 1))
-
-with left_col:
-    st.subheader("Task 1 目前完成")
+hero_col, status_col = st.columns((2, 1))
+with hero_col:
+    st.subheader("比賽展示定位")
     st.markdown(
         """
-        - Streamlit 多頁面骨架
-        - SQLite schema 初始化
-        - 七大社團評鑑項目常數與 seed
-        - AI / 匯出模組骨架
+        - ODF 文件生成工具
+        - 學生社團評鑑資料整理工具
+        - ODF 原始檔保存與 PDF 上傳包輸出流程
+        """
+    )
+    st.write(
+        "ODFlow 讓社團在平時就把會議與活動資料整理成可保存的 ODF 原始檔，"
+        "評鑑前再一鍵輸出 PDF 上傳包，降低臨時補件與分類整理成本。"
+    )
+
+with status_col:
+    st.subheader("目前展示資料")
+    st.metric("社團名稱", settings["club_name"])
+    st.metric("學年度 / 校區", f"{settings['academic_year']} / {settings['campus']}")
+    st.metric("資料完整度", f"{summary['overall_completion_percentage']}%")
+
+flow_col1, flow_col2 = st.columns(2)
+with flow_col1:
+    st.subheader("完整 demo 流程")
+    st.markdown(
+        """
+        1. 到 Settings 設定社團基本資料
+        2. 建立示範資料
+        3. 到 Generate 產生會議紀錄
+        4. 到 Files 管理版本並匯出 ODT / PDF
+        5. 到 Dashboard 查看評鑑完整度
+        6. 到 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
         """
     )
 
-    st.subheader("後續任務")
+with flow_col2:
+    st.subheader("目前已完成")
     st.markdown(
         """
-        - Task 2：文件生成、儲存、文件庫與版本管理
-        - Task 3：ODF / PDF 匯出
-        - Task 4：評鑑完整度儀表板
-        - Task 5：評鑑 ZIP 匯出
+        - 會議紀錄生成與編輯
+        - 文件版本管理與狀態切換
+        - ODT / PDF 匯出與下載
+        - 評鑑完整度 Dashboard
+        - PDF 評鑑 ZIP 與 ODF 原始檔備份 ZIP
+        - 社團基本資料設定與示範資料建立
         """
     )
 
-with right_col:
-    st.subheader("系統狀態")
-    st.metric("資料庫", "已初始化")
-    st.code(str(DEFAULT_DB_PATH), language="text")
+st.subheader("導覽建議")
+st.info(
+    "第一次展示建議從 Settings 開始，先設定社團基本資料並建立示範資料，"
+    "之後依序前往 Generate、Files、Dashboard、Evaluation。"
+)
 
-st.subheader("七大社團評鑑項目")
-st.table(EVALUATION_ITEMS)
-
-st.info("請從左側頁面導覽列進入各功能頁。Task 1 只提供骨架與說明，不包含正式業務功能。")
+st.subheader("系統狀態")
+st.code(str(DEFAULT_DB_PATH), language="text")

@@ -4,13 +4,23 @@ import streamlit as st
 
 from core.database import initialize_database
 from core.evaluation_service import get_evaluation_summary
+from core.settings_service import get_club_settings
 
 
 initialize_database()
+settings = get_club_settings()
 summary = get_evaluation_summary()
 
 st.title("Dashboard")
 st.caption("社團評鑑資料完整度儀表板")
+
+info_col1, info_col2, info_col3 = st.columns(3)
+with info_col1:
+    st.metric("社團名稱", settings["club_name"])
+with info_col2:
+    st.metric("學年度", settings["academic_year"])
+with info_col3:
+    st.metric("校區", settings["campus"])
 
 metric_col1, metric_col2, metric_col3 = st.columns(3)
 with metric_col1:

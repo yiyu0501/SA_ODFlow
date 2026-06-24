@@ -6,13 +6,11 @@ import streamlit as st
 
 from core.database import initialize_database
 from core.export_service import (
-    DEFAULT_ACADEMIC_YEAR,
-    DEFAULT_CAMPUS,
-    DEFAULT_CLUB_NAME,
     build_odf_backup_package,
     build_pdf_evaluation_package,
 )
 from core.evaluation_service import get_evaluation_summary
+from core.settings_service import get_evaluation_export_defaults
 
 
 def _resolve_download_path(path_value: str | None) -> Path | None:
@@ -33,6 +31,13 @@ def _store_export_result(session_key: str, result: dict) -> None:
         "index_csv_path": str(result["index_csv_path"]),
         "failed_report_path": str(result["failed_report_path"]),
     }
+
+
+def _initialize_export_form_state() -> None:
+    defaults = get_evaluation_export_defaults()
+    st.session_state.setdefault("evaluation_form_academic_year", defaults["academic_year"])
+    st.session_state.setdefault("evaluation_form_campus", defaults["campus"])
+    st.session_state.setdefault("evaluation_form_club_name", defaults["club_name"])
 
 
 def _render_export_result(title: str, session_key: str, download_label: str, mime: str) -> None:
@@ -98,6 +103,7 @@ def _render_export_result(title: str, session_key: str, download_label: str, mim
 
 
 initialize_database()
+_initialize_export_form_state()
 summary = get_evaluation_summary()
 
 st.title("Evaluation")
@@ -181,15 +187,17 @@ else:
     st.success("目前沒有缺漏文件。")
 
 st.subheader("匯出評鑑上傳包")
-st.caption("Settings 頁的社團基本資料尚未落地儲存，目前先在這裡輸入本次匯出資訊。")
+st.caption("預設值會讀取 Settings 的社團基本資料，但你仍可在此頁面暫時調整本次匯出名稱。")
 
 field_col1, field_col2, field_col3 = st.columns(3)
 with field_col1:
-    academic_year = st.text_input("學年度", value=DEFAULT_ACADEMIC_YEAR)
+    academic_year = st.text_input("學年度", key="evaluation_form_academic_year")
 with field_col2:
-    campus = st.selectbox("校區", options=["天母校區", "博愛校區"], index=0)
+    current_campus = st.session_state.get("evaluation_form_campus", "天母校區")
+    campus_options = list(dict.fromkeys([current_campus, "天母校區", "博愛校區"]))
+    campus = st.selectbox("校區", options=campus_options, key="evaluation_form_campus")
 with field_col3:
-    club_name = st.text_input("社團名稱", value=DEFAULT_CLUB_NAME)
+    club_name = st.text_input("社團名稱", key="evaluation_form_club_name")
 
 action_col1, action_col2 = st.columns(2)
 with action_col1:

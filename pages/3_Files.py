@@ -17,6 +17,7 @@ from core.document_service import (
 )
 from core.meeting_minutes import normalize_meeting_minutes_content, people_list_to_text
 from core.evaluation_service import COMPLETED_STATUSES, IN_PROGRESS_STATUSES
+from core.settings_service import get_club_settings
 from generators.odt_generator import generate_meeting_minutes_odt
 from generators.pdf_generator import generate_meeting_minutes_pdf
 
@@ -79,6 +80,7 @@ if files_message:
     st.success(files_message)
 
 documents = list_documents()
+club_settings = get_club_settings()
 
 if not documents:
     st.info("目前尚無文件。請先到 Generate 頁面建立會議紀錄。")
@@ -114,6 +116,7 @@ else:
     }
     selected_label = st.selectbox("選擇要管理的文件", options=list(labels.keys()))
     selected_document = get_document_with_current_version(labels[selected_label])
+    export_document = {**selected_document, "club_name": club_settings["club_name"]}
     versions = get_document_versions(selected_document["id"])
     current_version = selected_document["current_version_data"]
     current_content = (
@@ -299,7 +302,7 @@ else:
                 if st.button("產生 / 更新 ODT", key=f"generate_odt_{selected_document['id']}"):
                     try:
                         output_path = generate_meeting_minutes_odt(
-                            selected_document,
+                            export_document,
                             current_version,
                         )
                         update_version_file_paths(
@@ -326,7 +329,7 @@ else:
                 if st.button("產生 / 更新 PDF", key=f"generate_pdf_{selected_document['id']}"):
                     try:
                         output_path = generate_meeting_minutes_pdf(
-                            selected_document,
+                            export_document,
                             current_version,
                         )
                         update_version_file_paths(
