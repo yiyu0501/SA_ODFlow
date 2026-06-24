@@ -10,6 +10,26 @@ EVALUATION_CATEGORIES = [
     "7.社團活動_服務學習",
 ]
 
+MEETING_MINUTES_EVALUATION_CATEGORIES = [
+    "2.社團行政_管理運作",
+    "3.社團行政_社團資料保存",
+]
+
+DOCUMENT_STATUSES = [
+    "草稿",
+    "待審",
+    "正式版",
+    "已歸檔",
+]
+
+MEETING_TYPE_OPTIONS = [
+    "幹部會議",
+    "社員大會",
+    "活動籌備會",
+    "活動檢討會",
+    "其他",
+]
+
 WEIGHTS = {
     "1.社團行政_組織章程": 5,
     "2.社團行政_管理運作": 10,
