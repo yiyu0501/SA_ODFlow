@@ -40,6 +40,16 @@ def _version_label(version_number: int) -> str:
     return f"v{version_number}" if version_number > 0 else "-"
 
 
+def _normalize_version_row(version_row: dict | None) -> dict | None:
+    if version_row is None:
+        return None
+
+    version = _row_to_dict(version_row)
+    version["content_json"] = _load_content_json(version["content_json"])
+    version["version_label"] = _version_label(version["version_number"])
+    return version
+
+
 def create_document(
     title: str,
     document_type: str,
@@ -160,10 +170,7 @@ def create_document_version(
             (document_id, next_version),
         ).fetchone()
 
-    version = _row_to_dict(version_row)
-    version["content_json"] = _load_content_json(version["content_json"])
-    version["version_label"] = _version_label(version["version_number"])
-    return version
+    return _normalize_version_row(version_row)
 
 
 def list_documents(db_path: Path | str = DEFAULT_DB_PATH) -> list[dict]:
@@ -218,6 +225,51 @@ def get_document(document_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> dic
     return document
 
 
+def get_current_version(
+    document_id: int,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> dict | None:
+    initialize_database(db_path)
+
+    with closing(get_connection(db_path)) as connection:
+        document_row = connection.execute(
+            "SELECT current_version FROM documents WHERE id = ?",
+            (document_id,),
+        ).fetchone()
+        if document_row is None:
+            raise ValueError(f"找不到文件: {document_id}")
+
+        version_number = document_row["current_version"]
+        if version_number <= 0:
+            return None
+
+        version_row = connection.execute(
+            """
+            SELECT *
+            FROM document_versions
+            WHERE document_id = ? AND version_number = ?
+            """,
+            (document_id, version_number),
+        ).fetchone()
+
+    if version_row is None:
+        raise ValueError(f"文件 {document_id} 的目前版本不存在")
+
+    return _normalize_version_row(version_row)
+
+
+def get_document_with_current_version(
+    document_id: int,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> dict:
+    document = get_document(document_id, db_path=db_path)
+    if document is None:
+        raise ValueError(f"找不到文件: {document_id}")
+
+    document["current_version_data"] = get_current_version(document_id, db_path=db_path)
+    return document
+
+
 def get_document_versions(
     document_id: int,
     db_path: Path | str = DEFAULT_DB_PATH,
@@ -237,12 +289,60 @@ def get_document_versions(
 
     versions = []
     for row in rows:
-        version = _row_to_dict(row)
-        version["content_json"] = _load_content_json(version["content_json"])
-        version["version_label"] = _version_label(version["version_number"])
-        versions.append(version)
+        versions.append(_normalize_version_row(row))
 
     return versions
+
+
+def update_version_file_paths(
+    document_id: int,
+    version_number: int,
+    odf_path: str | None = None,
+    pdf_path: str | None = None,
+    db_path: Path | str = DEFAULT_DB_PATH,
+) -> dict:
+    initialize_database(db_path)
+
+    if odf_path is None and pdf_path is None:
+        raise ValueError("至少要更新 odf_path 或 pdf_path 其中一項")
+
+    with closing(get_connection(db_path)) as connection:
+        cursor = connection.cursor()
+        existing_row = cursor.execute(
+            """
+            SELECT *
+            FROM document_versions
+            WHERE document_id = ? AND version_number = ?
+            """,
+            (document_id, version_number),
+        ).fetchone()
+        if existing_row is None:
+            raise ValueError(f"找不到文件 {document_id} 的版本 v{version_number}")
+
+        next_odf_path = odf_path if odf_path is not None else existing_row["odf_path"]
+        next_pdf_path = pdf_path if pdf_path is not None else existing_row["pdf_path"]
+
+        cursor.execute(
+            """
+            UPDATE document_versions
+            SET odf_path = ?,
+                pdf_path = ?
+            WHERE document_id = ? AND version_number = ?
+            """,
+            (next_odf_path, next_pdf_path, document_id, version_number),
+        )
+        connection.commit()
+
+        updated_row = cursor.execute(
+            """
+            SELECT *
+            FROM document_versions
+            WHERE document_id = ? AND version_number = ?
+            """,
+            (document_id, version_number),
+        ).fetchone()
+
+    return _normalize_version_row(updated_row)
 
 
 def update_document_status(

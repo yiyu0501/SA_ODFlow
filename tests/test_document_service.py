@@ -8,9 +8,12 @@ from core.document_service import (
     create_document,
     create_document_version,
     get_document,
+    get_document_with_current_version,
+    get_current_version,
     get_document_versions,
     list_documents,
     set_current_version,
+    update_version_file_paths,
     update_document_status,
     validate_document_status,
     validate_evaluation_category,
@@ -165,6 +168,71 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
 
         self.assertEqual(updated_document["status"], "待審")
+
+    def test_get_current_version_returns_current_version_row(self):
+        document = create_document(
+            title="第 3 次幹部會議",
+            document_type="會議紀錄",
+            evaluation_category="2.社團行政_管理運作",
+            db_path=self.db_path,
+        )
+        create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_content(title="版本一"),
+            db_path=self.db_path,
+        )
+
+        current_version = get_current_version(document["id"], db_path=self.db_path)
+
+        self.assertEqual(current_version["version_number"], 1)
+        self.assertEqual(current_version["content_json"]["meeting_title"], "版本一")
+
+    def test_update_version_file_paths_persists_paths(self):
+        document = create_document(
+            title="第 3 次幹部會議",
+            document_type="會議紀錄",
+            evaluation_category="2.社團行政_管理運作",
+            db_path=self.db_path,
+        )
+        create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_content(),
+            db_path=self.db_path,
+        )
+
+        updated_version = update_version_file_paths(
+            document_id=document["id"],
+            version_number=1,
+            odf_path="/tmp/demo.odt",
+            pdf_path="/tmp/demo.pdf",
+            db_path=self.db_path,
+        )
+
+        self.assertEqual(updated_version["odf_path"], "/tmp/demo.odt")
+        self.assertEqual(updated_version["pdf_path"], "/tmp/demo.pdf")
+
+    def test_get_document_with_current_version_returns_current_version_data(self):
+        document = create_document(
+            title="第 3 次幹部會議",
+            document_type="會議紀錄",
+            evaluation_category="2.社團行政_管理運作",
+            db_path=self.db_path,
+        )
+        create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_content(title="版本一"),
+            db_path=self.db_path,
+        )
+
+        document_with_version = get_document_with_current_version(
+            document["id"],
+            db_path=self.db_path,
+        )
+
+        self.assertEqual(
+            document_with_version["current_version_data"]["content_json"]["meeting_title"],
+            "版本一",
+        )
 
 
 if __name__ == "__main__":

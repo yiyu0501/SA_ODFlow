@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 
 from core.constants import EVALUATION_CATEGORIES
@@ -18,7 +19,7 @@ class DatabaseInitializationTestCase(unittest.TestCase):
 
             self.assertTrue(db_path.exists())
 
-            with sqlite3.connect(db_path) as connection:
+            with closing(sqlite3.connect(db_path)) as connection:
                 tables = {
                     row[0]
                     for row in connection.execute(
