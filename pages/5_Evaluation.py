@@ -1,9 +1,100 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import streamlit as st
 
 from core.database import initialize_database
+from core.export_service import (
+    DEFAULT_ACADEMIC_YEAR,
+    DEFAULT_CAMPUS,
+    DEFAULT_CLUB_NAME,
+    build_odf_backup_package,
+    build_pdf_evaluation_package,
+)
 from core.evaluation_service import get_evaluation_summary
+
+
+def _resolve_download_path(path_value: str | None) -> Path | None:
+    if not path_value:
+        return None
+
+    path = Path(path_value)
+    if path.exists() and path.is_file():
+        return path
+    return None
+
+
+def _store_export_result(session_key: str, result: dict) -> None:
+    st.session_state[session_key] = {
+        **result,
+        "zip_path": str(result["zip_path"]),
+        "index_pdf_path": str(result["index_pdf_path"]),
+        "index_csv_path": str(result["index_csv_path"]),
+        "failed_report_path": str(result["failed_report_path"]),
+    }
+
+
+def _render_export_result(title: str, session_key: str, download_label: str, mime: str) -> None:
+    result = st.session_state.get(session_key)
+    if not result:
+        return
+
+    zip_path = _resolve_download_path(result.get("zip_path"))
+    st.markdown(f"**{title}**")
+
+    metric_col1, metric_col2, metric_col3 = st.columns(3)
+    metric_col1.metric("成功輸出", str(result["exported_count"]))
+    metric_col2.metric("未輸出", str(result["failed_count"]))
+    metric_col3.metric("ZIP 檔名", result["zip_name"])
+
+    categories = result.get("exported_categories") or []
+    st.write(f"輸出分類：{'、'.join(categories) if categories else '本次沒有成功輸出的分類'}")
+
+    st.download_button(
+        download_label,
+        data=zip_path.read_bytes() if zip_path is not None else b"",
+        file_name=zip_path.name if zip_path is not None else result["zip_name"],
+        mime=mime,
+        disabled=zip_path is None,
+        key=f"download_{session_key}",
+    )
+
+    with st.expander("查看本次輸出摘要", expanded=False):
+        st.dataframe(
+            [
+                {
+                    "文件名稱": row["title"],
+                    "文件類型": row["document_type"],
+                    "評鑑分類": row["evaluation_category"],
+                    "狀態": row["status"],
+                    "版本": row["current_version_label"],
+                    "輸出檔名": row["output_filename"],
+                    "是否成功輸出": "是" if row["exported"] else "否",
+                    "備註": row["note"],
+                }
+                for row in result["documents"]
+            ],
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    if result["failed_documents"]:
+        with st.expander("查看未輸出文件", expanded=False):
+            st.dataframe(
+                [
+                    {
+                        "文件名稱": row["title"],
+                        "文件類型": row["document_type"],
+                        "評鑑分類": row["evaluation_category"],
+                        "狀態": row["status"],
+                        "未輸出原因": row["reason"],
+                    }
+                    for row in result["failed_documents"]
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
 
 
 initialize_database()
@@ -88,3 +179,55 @@ if summary["missing_requirements"]:
     )
 else:
     st.success("目前沒有缺漏文件。")
+
+st.subheader("匯出評鑑上傳包")
+st.caption("Settings 頁的社團基本資料尚未落地儲存，目前先在這裡輸入本次匯出資訊。")
+
+field_col1, field_col2, field_col3 = st.columns(3)
+with field_col1:
+    academic_year = st.text_input("學年度", value=DEFAULT_ACADEMIC_YEAR)
+with field_col2:
+    campus = st.selectbox("校區", options=["天母校區", "博愛校區"], index=0)
+with field_col3:
+    club_name = st.text_input("社團名稱", value=DEFAULT_CLUB_NAME)
+
+action_col1, action_col2 = st.columns(2)
+with action_col1:
+    if st.button("產生 PDF 評鑑上傳包", use_container_width=True):
+        try:
+            result = build_pdf_evaluation_package(
+                academic_year=academic_year,
+                campus=campus,
+                club_name=club_name,
+            )
+        except (RuntimeError, ValueError) as exc:
+            st.error(str(exc))
+        else:
+            _store_export_result("evaluation_pdf_export", result)
+            st.success(f"已建立 PDF 評鑑上傳包：{result['zip_name']}")
+
+with action_col2:
+    if st.button("產生 ODF 原始檔備份包", use_container_width=True):
+        try:
+            result = build_odf_backup_package(
+                academic_year=academic_year,
+                club_name=club_name,
+            )
+        except (RuntimeError, ValueError) as exc:
+            st.error(str(exc))
+        else:
+            _store_export_result("evaluation_odf_export", result)
+            st.success(f"已建立 ODF 原始檔備份包：{result['zip_name']}")
+
+_render_export_result(
+    "PDF 評鑑上傳包",
+    "evaluation_pdf_export",
+    "下載 PDF 評鑑 ZIP",
+    "application/zip",
+)
+_render_export_result(
+    "ODF 原始檔備份包",
+    "evaluation_odf_export",
+    "下載 ODF 備份 ZIP",
+    "application/zip",
+)
