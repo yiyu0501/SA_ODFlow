@@ -2,7 +2,7 @@
 
 學生社團 ODF 文件流與評鑑整理系統。
 
-目前完成到 Task 2：會議紀錄生成與文件庫最小可用流程。這個版本提供可本機執行的 Streamlit 多頁面骨架、SQLite 資料庫初始化、mock 會議紀錄草稿生成、文件儲存、文件狀態與版本管理。ODF/PDF 匯出與評鑑 ZIP 輸出仍屬後續任務。
+目前完成到 Task 3：會議紀錄生成、版本管理與 ODT/PDF 基本匯出。這個版本提供可本機執行的 Streamlit 多頁面骨架、SQLite 資料庫初始化、mock 會議紀錄草稿生成、文件儲存、文件狀態與版本管理，以及目前版本的 ODT / PDF 產出與下載。
 
 ## 目前功能
 
@@ -11,6 +11,7 @@
 - 文字／逐字稿轉會議紀錄草稿
 - 會議紀錄編輯與 SQLite 儲存
 - Files 頁面的文件列表、狀態管理與版本管理
+- Files 頁面的 ODT / PDF 產生與下載
 - 七大社團評鑑分類與權重常數
 - AI、文件匯出、文件服務的可替換模組骨架
 - 本機安裝與 AI 使用邊界文件
@@ -21,7 +22,6 @@
 - 音檔轉文字
 - Google Drive API
 - 登入系統與多人權限
-- ODF / PDF 實際輸出
 - 評鑑 ZIP 匯出
 
 ## 專案結構
@@ -61,3 +61,11 @@ SA_ODFlow/
 - 開發規格書：[docs/product_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/product_spec.md)
 - 安裝說明：[docs/setup_guide.md](/Users/yiyu/Documents/SA_OPFlow/docs/setup_guide.md)
 - AI 使用聲明：[docs/ai_usage_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_statement.md)
+
+## ODT / PDF 支援說明
+
+- 目前只支援「會議紀錄」文件的目前版本匯出
+- ODT 會輸出到 `data/generated/`
+- PDF 會輸出到 `data/generated/`
+- 檔案路徑會回寫到 `document_versions.odf_path` / `pdf_path`
+- 評鑑 ZIP 匯出仍不在目前範圍內
