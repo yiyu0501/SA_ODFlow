@@ -25,7 +25,7 @@ class DocumentRecord:
     title: str
     document_type: str
     evaluation_category: str
-    status: str = "draft"
+    status: str = "草稿"
     current_version: int = 1
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 
 from core.constants import EVALUATION_ITEMS
@@ -31,7 +32,7 @@ SCHEMA_STATEMENTS = [
         document_type TEXT NOT NULL,
         evaluation_category TEXT NOT NULL,
         project_id INTEGER,
-        status TEXT NOT NULL DEFAULT 'draft',
+        status TEXT NOT NULL DEFAULT '草稿',
         current_version INTEGER NOT NULL DEFAULT 1,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -96,7 +97,7 @@ def initialize_database(db_path: Path | str = DEFAULT_DB_PATH) -> Path:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with get_connection(db_path) as connection:
+    with closing(get_connection(db_path)) as connection:
         cursor = connection.cursor()
 
         for statement in SCHEMA_STATEMENTS:
