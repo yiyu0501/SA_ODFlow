@@ -12,6 +12,12 @@ from core.document_service import (
     update_version_file_paths,
 )
 from core.filename import sanitize_filename_component
+from core.settings_service import (
+    DEFAULT_ACADEMIC_YEAR,
+    DEFAULT_CAMPUS,
+    DEFAULT_CLUB_NAME,
+    get_club_settings,
+)
 from generators.odt_generator import generate_meeting_minutes_odt
 from generators.pdf_generator import generate_meeting_minutes_pdf
 from generators.zip_generator import (
@@ -23,9 +29,6 @@ from generators.zip_generator import (
 
 
 PDF_EXPORTABLE_STATUSES = {"正式版", "已歸檔"}
-DEFAULT_ACADEMIC_YEAR = "114"
-DEFAULT_CAMPUS = "天母校區"
-DEFAULT_CLUB_NAME = "ODFlow示範社團"
 EXPORTS_DIR = DATA_DIR / "generated" / "exports"
 
 
@@ -41,6 +44,7 @@ def build_evaluation_folder_name(
 
 
 def collect_exportable_documents(db_path: Path | str = DEFAULT_DB_PATH) -> list[dict]:
+    club_settings = get_club_settings(db_path=db_path)
     records = []
     for document in list_documents(db_path=db_path):
         version = None
@@ -52,7 +56,7 @@ def collect_exportable_documents(db_path: Path | str = DEFAULT_DB_PATH) -> list[
 
         records.append(
             {
-                "document": document,
+                "document": {**document, "club_name": club_settings["club_name"]},
                 "version": version,
                 "document_id": document["id"],
                 "title": document["title"],
