@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from core.constants import EVALUATION_CATEGORIES, EVALUATION_ITEMS, WEIGHTS
+from core.constants import (
+    EVALUATION_CATEGORIES,
+    EVALUATION_ITEMS,
+    EVALUATION_REQUIRED_DOCUMENTS,
+    WEIGHTS,
+)
 
 
 class EvaluationConstantsTestCase(unittest.TestCase):
@@ -14,6 +19,9 @@ class EvaluationConstantsTestCase(unittest.TestCase):
 
     def test_items_match_categories(self):
         self.assertEqual(len(EVALUATION_ITEMS), len(EVALUATION_CATEGORIES))
+
+    def test_required_document_rules_cover_all_categories(self):
+        self.assertEqual(set(EVALUATION_REQUIRED_DOCUMENTS), set(EVALUATION_CATEGORIES))
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from core.document_service import (
     update_document_status,
 )
 from core.meeting_minutes import normalize_meeting_minutes_content, people_list_to_text
+from core.evaluation_service import COMPLETED_STATUSES, IN_PROGRESS_STATUSES
 from generators.odt_generator import generate_meeting_minutes_odt
 from generators.pdf_generator import generate_meeting_minutes_pdf
 
@@ -90,6 +91,13 @@ else:
                 "文件類型": document["document_type"],
                 "對應評鑑項目": document["evaluation_category"],
                 "狀態": document["status"],
+                "評鑑計入狀態": (
+                    "已完成"
+                    if document["status"] in COMPLETED_STATUSES
+                    else "進行中"
+                    if document["status"] in IN_PROGRESS_STATUSES
+                    else "未計入"
+                ),
                 "目前版本": document["current_version_label"],
                 "建立時間": document["created_at"],
                 "修改時間": document["updated_at"],
