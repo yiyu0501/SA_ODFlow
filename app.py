@@ -48,10 +48,11 @@ with flow_col1:
         """
         1. 到 Settings 設定社團基本資料
         2. 建立示範資料
-        3. 到 Generate 產生會議紀錄
-        4. 到 Files 管理版本並匯出 ODT / PDF
-        5. 到 Dashboard 查看評鑑完整度
-        6. 到 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
+        3. 到 Templates 產生與下載 ODT / ODS 範本
+        4. 到 Generate 產生會議紀錄
+        5. 到 Files 管理版本並匯出 ODT / PDF
+        6. 到 Dashboard 查看評鑑完整度
+        7. 到 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
         """
     )
 
@@ -62,6 +63,7 @@ with flow_col2:
         - 會議紀錄生成與編輯
         - 文件版本管理與狀態切換
         - ODT / PDF 匯出與下載
+        - ODF Templates 範本庫最小展示版
         - 評鑑完整度 Dashboard
         - PDF 評鑑 ZIP 與 ODF 原始檔備份 ZIP
         - 社團基本資料設定與示範資料建立
