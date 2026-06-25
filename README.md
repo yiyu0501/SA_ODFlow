@@ -178,3 +178,12 @@ python3 -m venv .venv
 - 提交前檢查表：[docs/submission_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/submission_checklist.md)
 - 比賽定位說明：[docs/competition_positioning.md](/Users/yiyu/Documents/SA_OPFlow/docs/competition_positioning.md)
 - AI 使用聲明：[docs/ai_usage_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_statement.md)
+
+## 參賽展示素材
+
+- 7 分鐘簡報大綱：[docs/presentation_outline_7min.md](/Users/yiyu/Documents/SA_OPFlow/docs/presentation_outline_7min.md)
+- 7 分鐘簡報逐字稿：[docs/presentation_script_7min.md](/Users/yiyu/Documents/SA_OPFlow/docs/presentation_script_7min.md)
+- 操作影片腳本：[docs/demo_video_script.md](/Users/yiyu/Documents/SA_OPFlow/docs/demo_video_script.md)
+- 評審 Q&A：[docs/judge_qna.md](/Users/yiyu/Documents/SA_OPFlow/docs/judge_qna.md)
+- AI 使用聲明比賽版：[docs/ai_usage_competition_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_competition_statement.md)
+- 最終提交檢查表：[docs/final_submission_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/final_submission_checklist.md)
