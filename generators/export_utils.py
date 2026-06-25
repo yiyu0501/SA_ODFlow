@@ -7,13 +7,14 @@ from core.filename import build_versioned_filename
 from core.document_schemas import (
     derive_document_title,
     get_document_primary_date,
-    get_document_storage_keys,
     normalize_document_content,
 )
 
 
 DEFAULT_GENERATED_DIR = ROOT_DIR / "data" / "generated"
 DEFAULT_CLUB_NAME = "未設定社團"
+
+
 def validate_export_payload(document: dict, version: dict) -> tuple[dict, dict]:
     if not document:
         raise ValueError("文件不存在")
@@ -24,13 +25,6 @@ def validate_export_payload(document: dict, version: dict) -> tuple[dict, dict]:
     content_json = version.get("content_json")
     if not isinstance(content_json, dict):
         raise ValueError("content_json 格式不完整")
-    required_keys = set(get_document_storage_keys(document_type))
-    missing_keys = required_keys.difference(content_json)
-    if missing_keys:
-        raise ValueError(
-            "content_json 格式不完整，缺少欄位："
-            + ", ".join(sorted(missing_keys))
-        )
 
     normalized_content = normalize_document_content(document_type, content_json)
     normalized_version = {**version, "content_json": normalized_content}

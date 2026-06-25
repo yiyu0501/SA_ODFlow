@@ -10,11 +10,13 @@ from core.document_schemas import (
 
 
 class DocumentSchemasTestCase(unittest.TestCase):
-    def test_list_supported_document_types_returns_five_types(self):
+    def test_list_supported_document_types_returns_seven_types(self):
         self.assertEqual(
             list_supported_document_types(),
             [
                 "會議紀錄",
+                "開會通知",
+                "會議議程",
                 "活動企劃書",
                 "活動成果報告",
                 "活動檢討會紀錄",
@@ -24,7 +26,7 @@ class DocumentSchemasTestCase(unittest.TestCase):
 
     def test_list_document_schemas_contains_all_supported_types(self):
         schemas = list_document_schemas()
-        self.assertEqual(len(schemas), 5)
+        self.assertEqual(len(schemas), 7)
         self.assertEqual(
             {schema["document_type"] for schema in schemas},
             set(list_supported_document_types()),

@@ -82,7 +82,7 @@ st.write(
 )
 st.info(
     "下載空白範本不需要先填資料，也不需要先建立文件。"
-    "其中 5 個核心 ODT 範本另外提供「使用此範本建立文件」入口。"
+    "其中 7 個核心 ODT 範本另外提供「使用此範本建立文件」入口。"
 )
 
 category_tabs = st.tabs(TEMPLATE_LIBRARY_CATEGORIES)

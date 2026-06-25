@@ -12,6 +12,11 @@ EMPTY_MEETING_MINUTES_CONTENT = {
     "recorder": "",
     "attendees": [],
     "absentees": [],
+    "observers": [],
+    "opening_remarks": "",
+    "reports": "",
+    "motions": "",
+    "adjournment_time": "",
     "agenda_items": [
         {
             "title": "",
@@ -99,11 +104,16 @@ def normalize_meeting_minutes_content(content: dict | None) -> dict:
         "recorder",
         "next_meeting_time",
         "notes",
+        "opening_remarks",
+        "reports",
+        "motions",
+        "adjournment_time",
     ):
         normalized[field] = str(content.get(field, "")).strip()
 
     normalized["attendees"] = split_people_text(content.get("attendees"))
     normalized["absentees"] = split_people_text(content.get("absentees"))
+    normalized["observers"] = split_people_text(content.get("observers"))
     normalized["agenda_items"] = normalize_agenda_items(content.get("agenda_items"))
     normalized["action_items"] = normalize_action_items(content.get("action_items"))
 
