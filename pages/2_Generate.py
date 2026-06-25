@@ -49,7 +49,7 @@ def _initialize_state() -> None:
         if requested_document_type != current_type:
             _reset_generate_state(requested_document_type)
         st.session_state["generate_message"] = (
-            f"已從 Templates 帶入「{requested_document_type}」建立流程。"
+            f"已從「空白範本」帶入「{requested_document_type}」建立流程。"
         )
 
 
@@ -123,8 +123,8 @@ _initialize_state()
 
 generate_message = st.session_state.pop("generate_message", "")
 
-st.title("Generate")
-st.caption("多文件類型生成與草稿儲存")
+st.title("生成文件")
+st.caption("建立五種核心社團文件，並儲存為可持續編輯的草稿與版本")
 
 if generate_message:
     st.success(generate_message)

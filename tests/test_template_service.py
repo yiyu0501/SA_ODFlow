@@ -25,11 +25,15 @@ class TemplateServiceTestCase(unittest.TestCase):
         template_service.DEFAULT_TEMPLATE_OUTPUT_DIR = self.original_output_dir
         self.temp_dir.cleanup()
 
-    def test_list_template_definitions_returns_three_library_categories(self):
+    def test_list_template_definitions_returns_expected_library_categories(self):
         definitions = list_template_definitions()
         categories = {definition["library_category"] for definition in definitions}
 
         self.assertEqual(categories, set(TEMPLATE_LIBRARY_CATEGORIES))
+        self.assertEqual(
+            categories,
+            {"日常行政", "活動專案", "社團評鑑", "財務與清冊"},
+        )
 
     def test_template_count_is_at_least_twenty_two(self):
         definitions = list_template_definitions()
