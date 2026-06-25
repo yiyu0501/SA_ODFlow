@@ -18,8 +18,8 @@ from core.settings_service import (
     DEFAULT_CLUB_NAME,
     get_club_settings,
 )
-from generators.odt_generator import generate_meeting_minutes_odt
-from generators.pdf_generator import generate_meeting_minutes_pdf
+from generators.odt_generator import generate_document_odt
+from generators.pdf_generator import generate_document_pdf
 from generators.zip_generator import (
     copy_file_to_category,
     create_package_workspace,
@@ -341,7 +341,7 @@ def _ensure_pdf_path(
         return None, "", "找不到 content_json"
 
     try:
-        output_path = generate_meeting_minutes_pdf(record["document"], record["version"])
+        output_path = generate_document_pdf(record["document"], record["version"])
         updated_version = update_version_file_paths(
             document_id=record["document_id"],
             version_number=record["version"]["version_number"],
@@ -373,7 +373,7 @@ def _ensure_odf_path(
         return None, "", "找不到 content_json"
 
     try:
-        output_path = generate_meeting_minutes_odt(record["document"], record["version"])
+        output_path = generate_document_odt(record["document"], record["version"])
         updated_version = update_version_file_paths(
             document_id=record["document_id"],
             version_number=record["version"]["version_number"],

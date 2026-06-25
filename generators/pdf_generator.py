@@ -2,17 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from core.document_schemas import build_document_preview_blocks, derive_document_title
 from generators.export_utils import prepare_output_path, validate_export_payload
 
 
-def generate_meeting_minutes_pdf(
-    document: dict,
-    version: dict,
-    output_dir: Path | str | None = None,
-) -> Path:
-    validated_document, validated_version = validate_export_payload(document, version)
-    output_path = prepare_output_path(validated_document, validated_version, "pdf", output_dir)
-
+def _load_reportlab():
     try:
         from reportlab.lib.enums import TA_LEFT
         from reportlab.lib.pagesizes import A4
@@ -25,79 +19,91 @@ def generate_meeting_minutes_pdf(
             "缺少 reportlab，請先執行 `pip install -r requirements.txt`。"
         ) from exc
 
-    registerFont(UnicodeCIDFont("STSong-Light"))
+    return {
+        "TA_LEFT": TA_LEFT,
+        "A4": A4,
+        "ParagraphStyle": ParagraphStyle,
+        "getSampleStyleSheet": getSampleStyleSheet,
+        "UnicodeCIDFont": UnicodeCIDFont,
+        "registerFont": registerFont,
+        "Paragraph": Paragraph,
+        "SimpleDocTemplate": SimpleDocTemplate,
+        "Spacer": Spacer,
+    }
 
-    styles = getSampleStyleSheet()
-    base_style = ParagraphStyle(
-        "MeetingBody",
+
+def generate_document_pdf(
+    document: dict,
+    version: dict,
+    output_dir: Path | str | None = None,
+) -> Path:
+    validated_document, validated_version = validate_export_payload(document, version)
+    output_path = prepare_output_path(validated_document, validated_version, "pdf", output_dir)
+
+    reportlab = _load_reportlab()
+    reportlab["registerFont"](reportlab["UnicodeCIDFont"]("STSong-Light"))
+
+    styles = reportlab["getSampleStyleSheet"]()
+    base_style = reportlab["ParagraphStyle"](
+        "DocumentBody",
         parent=styles["BodyText"],
         fontName="STSong-Light",
         fontSize=11,
         leading=17,
-        alignment=TA_LEFT,
+        alignment=reportlab["TA_LEFT"],
     )
-    title_style = ParagraphStyle(
-        "MeetingTitle",
+    title_style = reportlab["ParagraphStyle"](
+        "DocumentTitle",
         parent=styles["Title"],
         fontName="STSong-Light",
         fontSize=18,
         leading=24,
     )
-    heading_style = ParagraphStyle(
-        "MeetingHeading",
+    heading_style = reportlab["ParagraphStyle"](
+        "DocumentHeading",
         parent=styles["Heading2"],
         fontName="STSong-Light",
         fontSize=13,
         leading=20,
     )
 
-    content_json = validated_version["content_json"]
-    story = [
-        Paragraph("會議紀錄", title_style),
-        Spacer(1, 12),
-        Paragraph(f"會議名稱：{content_json['meeting_title']}", base_style),
-        Paragraph(f"會議日期：{content_json['meeting_date']}", base_style),
-        Paragraph(f"會議時間：{content_json['meeting_time']}", base_style),
-        Paragraph(f"會議地點：{content_json['location']}", base_style),
-        Paragraph(f"主席：{content_json['chair']}", base_style),
-        Paragraph(f"紀錄：{content_json['recorder']}", base_style),
-        Paragraph(f"出席人員：{'、'.join(content_json['attendees'])}", base_style),
-        Paragraph(f"請假人員：{'、'.join(content_json['absentees'])}", base_style),
-        Spacer(1, 10),
-        Paragraph("討論事項與決議", heading_style),
-    ]
-
-    for index, item in enumerate(content_json["agenda_items"], start=1):
-        story.extend(
-            [
-                Paragraph(f"{index}. 議題：{item['title']}", base_style),
-                Paragraph(f"討論：{item['discussion']}", base_style),
-                Paragraph(f"決議：{item['decision']}", base_style),
-                Spacer(1, 6),
-            ]
-        )
-
-    story.append(Paragraph("待辦事項", heading_style))
-    for index, item in enumerate(content_json["action_items"], start=1):
-        story.append(
-            Paragraph(
-                f"{index}. 待辦：{item['task']} / 負責人：{item['owner']} / "
-                f"期限：{item['deadline']} / 備註：{item['note']}",
-                base_style,
-            )
-        )
-
-    story.extend(
-        [
-            Spacer(1, 10),
-            Paragraph(f"下次會議時間：{content_json['next_meeting_time']}", base_style),
-            Paragraph(f"備註：{content_json['notes']}", base_style),
-        ]
+    blocks = build_document_preview_blocks(
+        validated_document["document_type"],
+        validated_version["content_json"],
+        title_override=derive_document_title(
+            validated_document["document_type"],
+            validated_version["content_json"],
+            fallback=validated_document.get("title"),
+        ),
     )
 
-    pdf = SimpleDocTemplate(
+    story = []
+    for block in blocks:
+        kind = block["kind"]
+        if kind == "title":
+            story.extend(
+                [
+                    reportlab["Paragraph"](block["text"], title_style),
+                    reportlab["Spacer"](1, 12),
+                ]
+            )
+        elif kind == "heading":
+            story.extend(
+                [
+                    reportlab["Paragraph"](block["text"], heading_style),
+                    reportlab["Spacer"](1, 6),
+                ]
+            )
+        elif kind == "paragraph":
+            story.append(reportlab["Paragraph"](block["text"], base_style))
+        elif kind == "bullet_list":
+            for item in block["items"]:
+                story.append(reportlab["Paragraph"](f"• {item}", base_style))
+            story.append(reportlab["Spacer"](1, 6))
+
+    pdf = reportlab["SimpleDocTemplate"](
         str(output_path),
-        pagesize=A4,
+        pagesize=reportlab["A4"],
         leftMargin=48,
         rightMargin=48,
         topMargin=48,
@@ -105,3 +111,11 @@ def generate_meeting_minutes_pdf(
     )
     pdf.build(story)
     return output_path
+
+
+def generate_meeting_minutes_pdf(
+    document: dict,
+    version: dict,
+    output_dir: Path | str | None = None,
+) -> Path:
+    return generate_document_pdf(document=document, version=version, output_dir=output_dir)

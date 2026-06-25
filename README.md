@@ -20,8 +20,14 @@ ODFlow 的核心價值不是做完整專案管理平台，而是把社團最常�
 - 社團基本資料設定
 - 示範資料建立
 - Templates ODF 範本庫最小可展示版
-- 文字／逐字稿轉會議紀錄草稿
-- 會議紀錄編輯、版本管理、狀態管理
+- 五種日常社團文件生成：
+  - 會議紀錄
+  - 活動企劃書
+  - 活動成果報告
+  - 活動檢討會紀錄
+  - 年度計畫
+- 會議紀錄 mock parser 與其他文件表單式草稿生成
+- 多文件編輯、版本管理、狀態管理
 - Files 頁面的 ODT / PDF 匯出與下載
 - Dashboard 評鑑完整度儀表板
 - Evaluation 七大項目檢核、PDF 評鑑 ZIP 匯出、ODF 原始檔備份 ZIP 匯出
@@ -30,8 +36,8 @@ ODFlow 的核心價值不是做完整專案管理平台，而是把社團最常�
 
 1. 到 [pages/7_Settings.py](/Users/yiyu/Documents/SA_OPFlow/pages/7_Settings.py) 建立社團基本資料
 2. 在 Settings 按「建立示範資料」
-3. 到 [pages/6_Templates.py](/Users/yiyu/Documents/SA_OPFlow/pages/6_Templates.py) 產生並下載 ODT / ODS 範本
-4. 到 [pages/2_Generate.py](/Users/yiyu/Documents/SA_OPFlow/pages/2_Generate.py) 產生一份會議紀錄
+3. 到 [pages/6_Templates.py](/Users/yiyu/Documents/SA_OPFlow/pages/6_Templates.py) 產生並下載 ODT / ODS 範本，或用核心範本直接進入 Generate 建立文件
+4. 到 [pages/2_Generate.py](/Users/yiyu/Documents/SA_OPFlow/pages/2_Generate.py) 選擇文件類型，建立會議紀錄、活動企劃書、活動成果報告、活動檢討會紀錄或年度計畫
 5. 到 [pages/3_Files.py](/Users/yiyu/Documents/SA_OPFlow/pages/3_Files.py) 管理版本，匯出 ODT / PDF
 6. 到 [pages/1_Dashboard.py](/Users/yiyu/Documents/SA_OPFlow/pages/1_Dashboard.py) 查看完整度與缺漏
 7. 到 [pages/5_Evaluation.py](/Users/yiyu/Documents/SA_OPFlow/pages/5_Evaluation.py) 產生 PDF 評鑑 ZIP 與 ODF 原始檔備份 ZIP
@@ -72,7 +78,7 @@ python3 -m venv .venv
 2. 在 Settings 確認社團基本資料
 3. 點擊建立示範資料
 4. 在 Templates 產生一份 ODT / ODS 範本
-5. 在 Generate 產生一份會議紀錄
+5. 在 Generate 產生一份會議紀錄或其他社團文件
 6. 在 Files 匯出 ODT / PDF
 7. 在 Dashboard 看完整度
 8. 在 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
@@ -85,14 +91,15 @@ Templates 頁提供三大類 ODF 範本，讓社團平時就能以 ODT / ODS 開
 - 專案活動型
 - 社團評鑑型
 
-目前支援會議通知、會議議程、會議紀錄、出席簽到表、幹部名冊、社員名冊、交接清冊、收支帳冊、活動企劃書、活動流程表、活動預算表、活動成果報告、社團評鑑資料檢核表、年度計畫、年度行事曆、年度收支總表等 ODT / ODS 範本。
+目前支援 22 個 ODT / ODS 範本，包含會議通知、會議議程、會議紀錄、出席簽到表、幹部名冊、社員名冊、交接清冊、收支帳冊、活動企劃書、活動流程表、活動預算表、活動成果報告、社團評鑑資料檢核表、年度計畫、年度行事曆、年度收支總表等。
 
 使用方式：
 
 1. 進入 Templates 頁
 2. 選擇範本分類
-3. 點擊「產生範本」
-4. 點擊「下載範本」
+3. 點擊「產生範本」取得空白 ODT / ODS 範本
+4. 或對 5 個核心 ODT 範本點擊「使用此範本建立文件」，直接進入 Generate 填表
+5. 需要空白檔時再點擊「下載範本」
 
 目前 Templates 仍屬最小可展示版，後續可再增加更多範本、版型樣式與欄位配置。
 
@@ -103,6 +110,7 @@ Templates 頁提供三大類 ODF 範本，讓社團平時就能以 ODT / ODS 開
 - 目前 MVP 使用 `ai/mock_parser.py` 做會議紀錄草稿整理
 - 尚未串接 OpenAI API
 - 尚未實作音檔轉文字
+- 其他文件類型目前以表單式生成為主，不需依賴 OpenAI 即可完成 ODF / PDF / ZIP 流程
 - 若未來導入 AI，範圍會限定在文字整理與會議紀錄草稿生成
 - ODF / PDF / ZIP 匯出流程目前仍由系統規則與既有 generator 產生
 
@@ -116,7 +124,7 @@ Templates 頁提供三大類 ODF 範本，讓社團平時就能以 ODT / ODS 開
 - 登入系統與多使用者權限
 - Projects 頁完整活動管理
 - Templates 頁更完整的範本樣式、更多格式與可編輯範本管理
-- 非會議紀錄類型文件的更完整產生流程
+- 更多文件類型與更細緻的欄位驗證
 
 這些目前都不在展示版 MVP 範圍內，README 與頁面會誠實保留為後續擴充方向。
 

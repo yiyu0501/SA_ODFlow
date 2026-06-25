@@ -22,6 +22,19 @@ def _resolve_download_path(path_value: str | None) -> Path | None:
     return None
 
 
+def _route_to_generate(definition: dict) -> None:
+    linked_document_type = definition.get("linked_document_type")
+    if not linked_document_type:
+        return
+
+    st.session_state["generate_requested_document_type"] = linked_document_type
+    st.session_state["generate_message"] = (
+        f"已選擇核心範本「{definition['name']}」，可直接建立 {linked_document_type}。"
+    )
+    if hasattr(st, "switch_page"):
+        st.switch_page("pages/2_Generate.py")
+
+
 initialize_database()
 st.session_state.setdefault("template_downloads", {})
 
@@ -30,7 +43,7 @@ st.caption("ODF 範本庫最小可展示版")
 
 st.write(
     "這一頁展示學生社團常用的 ODF 範本，分成日常行政型、專案活動型、社團評鑑型。"
-    "目前提供最小可展示版 ODT / ODS 產生與下載，後續可再擴充更多樣式與內容。"
+    "目前支援 22 個 ODT / ODS 範本，其中 5 個核心 ODT 範本可直接進入 Generate 建立文件。"
 )
 
 category_tabs = st.tabs(TEMPLATE_LIBRARY_CATEGORIES)
@@ -50,16 +63,38 @@ for category_name, tab in zip(TEMPLATE_LIBRARY_CATEGORIES, category_tabs):
                         f"對應評鑑分類：{definition['evaluation_category'] or '-'}"
                     )
                     st.write(f"使用情境：{definition['usage_description']}")
+                    if definition.get("linked_document_type"):
+                        st.caption(
+                            f"可直接建立文件：{definition['linked_document_type']}"
+                        )
 
                 with action_col:
-                    if st.button("產生範本", key=f"generate_{definition['id']}", use_container_width=True):
+                    if st.button(
+                        "產生範本",
+                        key=f"generate_{definition['id']}",
+                        use_container_width=True,
+                    ):
                         try:
                             output_path = generate_template_file(definition["id"])
                         except ValueError as exc:
                             st.error(str(exc))
                         else:
-                            st.session_state["template_downloads"][definition["id"]] = str(output_path)
+                            st.session_state["template_downloads"][definition["id"]] = str(
+                                output_path
+                            )
                             st.success(f"已產生：{output_path.name}")
+
+                    if definition.get("linked_document_type"):
+                        if st.button(
+                            "使用此範本建立文件",
+                            key=f"use_template_{definition['id']}",
+                            use_container_width=True,
+                        ):
+                            _route_to_generate(definition)
+                            if not hasattr(st, "switch_page"):
+                                st.success(
+                                    "已帶入 Generate 建立流程，請前往 Generate 頁繼續。"
+                                )
 
                     download_path = _resolve_download_path(
                         st.session_state["template_downloads"].get(definition["id"])
