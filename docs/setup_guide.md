@@ -2,7 +2,7 @@
 
 ## 目的
 
-這份文件說明如何在本機啟動目前可展示的 ODFlow MVP。
+這份文件說明如何在本機啟動目前可展示的 ODFlow ODF 競賽展示版 MVP。
 
 ## 環境需求
 
@@ -40,10 +40,11 @@ python3 -m venv .venv
 
 1. 進入 Settings，填入社團基本資料
 2. 點擊「建立示範資料」
-3. 到 Generate 產生一份會議紀錄
-4. 到 Files 管理版本與匯出 ODT / PDF
-5. 到 Dashboard 查看完整度
-6. 到 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
+3. 到 Templates 產生 ODT / ODS 範本
+4. 到 Generate 產生一份會議紀錄
+5. 到 Files 管理版本與匯出 ODT / PDF
+6. 到 Dashboard 查看社團評鑑資料完整度
+7. 到 Evaluation 輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
 
 ## 測試方式
 
@@ -56,5 +57,6 @@ python3 -m venv .venv
 - 尚未串接 OpenAI API
 - 尚未支援音檔轉文字
 - 尚未實作登入系統與多人權限
-- Projects / Templates 仍屬後續擴充骨架
-- 目前最完整的可展示文件流程以會議紀錄為主
+- Projects 仍屬未來擴充頁面
+- 目前是本機 ZIP 下載，不是雲端自動上傳
+- 最完整的文件生成流程仍以會議紀錄為主

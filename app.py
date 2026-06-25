@@ -27,19 +27,19 @@ with hero_col:
         """
         - ODF 文件生成工具
         - 學生社團評鑑資料整理工具
-        - ODF 原始檔保存與 PDF 上傳包輸出流程
+        - ODF 原始檔保存與 PDF 評鑑上傳包輸出流程
         """
     )
     st.write(
         "ODFlow 讓社團在平時就把會議與活動資料整理成可保存的 ODF 原始檔，"
-        "評鑑前再一鍵輸出 PDF 上傳包，降低臨時補件與分類整理成本。"
+        "評鑑前再一鍵輸出 PDF 評鑑上傳包，降低臨時補件與分類整理成本。"
     )
 
 with status_col:
     st.subheader("目前展示資料")
     st.metric("社團名稱", settings["club_name"])
     st.metric("學年度 / 校區", f"{settings['academic_year']} / {settings['campus']}")
-    st.metric("資料完整度", f"{summary['overall_completion_percentage']}%")
+    st.metric("社團評鑑資料完整度", f"{summary['overall_completion_percentage']}%")
 
 flow_col1, flow_col2 = st.columns(2)
 with flow_col1:
@@ -51,8 +51,8 @@ with flow_col1:
         3. 到 Templates 產生與下載 ODT / ODS 範本
         4. 到 Generate 產生會議紀錄
         5. 到 Files 管理版本並匯出 ODT / PDF
-        6. 到 Dashboard 查看評鑑完整度
-        7. 到 Evaluation 輸出 PDF 評鑑 ZIP 與 ODF 備份 ZIP
+        6. 到 Dashboard 查看社團評鑑資料完整度
+        7. 到 Evaluation 輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
         """
     )
 
@@ -63,9 +63,9 @@ with flow_col2:
         - 會議紀錄生成與編輯
         - 文件版本管理與狀態切換
         - ODT / PDF 匯出與下載
-        - ODF Templates 範本庫最小展示版
-        - 評鑑完整度 Dashboard
-        - PDF 評鑑 ZIP 與 ODF 原始檔備份 ZIP
+        - ODF 範本庫最小展示版
+        - 社團評鑑資料完整度 Dashboard
+        - PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
         - 社團基本資料設定與示範資料建立
         """
     )
