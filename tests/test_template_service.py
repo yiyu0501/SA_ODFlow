@@ -46,9 +46,13 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(definition["suggested_format"], "ODT")
 
     def test_core_odt_templates_can_link_to_generate_flow(self):
-        definition = get_template_definition("activity_proposal_odt")
+        proposal_definition = get_template_definition("activity_proposal_odt")
+        notice_definition = get_template_definition("meeting_notice_odt")
+        agenda_definition = get_template_definition("meeting_agenda_odt")
 
-        self.assertEqual(definition["linked_document_type"], "活動企劃書")
+        self.assertEqual(proposal_definition["linked_document_type"], "活動企劃書")
+        self.assertEqual(notice_definition["linked_document_type"], "開會通知")
+        self.assertEqual(agenda_definition["linked_document_type"], "會議議程")
 
     def test_generate_template_file_creates_odt(self):
         output_path = generate_template_file("meeting_notice_odt")
@@ -79,6 +83,16 @@ class TemplateServiceTestCase(unittest.TestCase):
 
         self.assertEqual(output_path.parent, self.output_dir)
         self.assertTrue(output_path.parent.exists())
+
+    def test_all_twenty_two_templates_remain_generatable(self):
+        for definition in list_template_definitions():
+            output_path = generate_template_file(definition["id"])
+            self.assertTrue(output_path.exists(), definition["id"])
+            self.assertEqual(
+                output_path.parent,
+                self.output_dir,
+                definition["id"],
+            )
 
     def test_unsupported_template_format_raises_clear_error(self):
         original_definition = template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"]

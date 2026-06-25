@@ -124,7 +124,7 @@ _initialize_state()
 generate_message = st.session_state.pop("generate_message", "")
 
 st.title("生成文件")
-st.caption("建立五種核心社團文件，並儲存為可持續編輯的草稿與版本")
+st.caption("建立七種核心社團文件，並儲存為可持續編輯的草稿與版本")
 
 if generate_message:
     st.success(generate_message)

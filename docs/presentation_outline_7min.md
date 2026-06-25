@@ -33,7 +33,7 @@
 
 ## 投影片 4：ODFlow 解法
 
-- Generate：建立五種核心社團文件
+- Generate：建立七種核心社團文件
 - Files：管理版本、狀態、ODT / PDF 匯出
 - Dashboard：查看社團評鑑資料完整度
 - Evaluation：輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
@@ -83,7 +83,7 @@
 
 ## 投影片 8：創新與實用性
 
-- 不只產生會議紀錄，已支援五種核心社團文件
+- 不只產生會議紀錄，已支援七種核心社團文件
 - 22 個 ODT / ODS 範本可做日常行政、活動與評鑑整理
 - 核心範本可直接帶入 Generate 建立文件
 - Dashboard 與 Evaluation 讓文件累積變成可檢查、可輸出的成果

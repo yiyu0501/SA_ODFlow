@@ -79,6 +79,7 @@ TEMPLATE_DEFINITIONS = {
             ["會議目的", "討論主題", "會前提醒"],
             ["請於寄送前補齊聯絡人與報到資訊。"],
             "2.社團行政_管理運作",
+            linked_document_type="開會通知",
         ),
         _odt_template(
             "meeting_agenda_odt",
@@ -89,6 +90,7 @@ TEMPLATE_DEFINITIONS = {
             ["報告事項", "討論事項", "臨時動議"],
             ["建議會前先編號各議案，方便會後整理紀錄。"],
             "2.社團行政_管理運作",
+            linked_document_type="會議議程",
         ),
         _odt_template(
             "meeting_minutes_template_odt",
