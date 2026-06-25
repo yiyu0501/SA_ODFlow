@@ -37,13 +37,17 @@ def _route_to_generate(definition: dict) -> None:
 
 initialize_database()
 st.session_state.setdefault("template_downloads", {})
+template_count = len(list_template_definitions())
 
 st.title("Templates")
-st.caption("ODF 範本庫最小可展示版")
+st.caption("ODFlow ODF 範本庫最小可展示版")
 
 st.write(
     "這一頁展示學生社團常用的 ODF 範本，分成日常行政型、專案活動型、社團評鑑型。"
-    "目前支援 22 個 ODT / ODS 範本，其中 5 個核心 ODT 範本可直接進入 Generate 建立文件。"
+    f"目前支援 {template_count} 個最小可展示版 ODT / ODS 範本，"
+    "可直接產生與下載 ODF 原始檔。"
+    "其中 5 個核心 ODT 範本可直接進入 Generate 建立文件，"
+    "後續可再接到 Files 匯出 ODT / PDF，並納入 PDF 評鑑上傳包流程。"
 )
 
 category_tabs = st.tabs(TEMPLATE_LIBRARY_CATEGORIES)

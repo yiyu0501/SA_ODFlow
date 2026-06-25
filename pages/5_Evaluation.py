@@ -107,7 +107,7 @@ _initialize_export_form_state()
 summary = get_evaluation_summary()
 
 st.title("Evaluation")
-st.caption("七大評鑑項目檢核表")
+st.caption("七大評鑑項目檢核與社團評鑑資料完整度管理")
 
 st.subheader("七大評鑑項目檢核")
 st.dataframe(
@@ -186,7 +186,7 @@ if summary["missing_requirements"]:
 else:
     st.success("目前沒有缺漏文件。")
 
-st.subheader("匯出評鑑上傳包")
+st.subheader("匯出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP")
 st.caption("預設值會讀取 Settings 的社團基本資料，但你仍可在此頁面暫時調整本次匯出名稱。")
 
 field_col1, field_col2, field_col3 = st.columns(3)
@@ -230,12 +230,12 @@ with action_col2:
 _render_export_result(
     "PDF 評鑑上傳包",
     "evaluation_pdf_export",
-    "下載 PDF 評鑑 ZIP",
+    "下載 PDF 評鑑上傳包 ZIP",
     "application/zip",
 )
 _render_export_result(
     "ODF 原始檔備份包",
     "evaluation_odf_export",
-    "下載 ODF 備份 ZIP",
+    "下載 ODF 原始檔備份 ZIP",
     "application/zip",
 )

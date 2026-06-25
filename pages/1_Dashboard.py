@@ -24,7 +24,7 @@ with info_col3:
 
 metric_col1, metric_col2, metric_col3 = st.columns(3)
 with metric_col1:
-    st.metric("整體資料完整度", f"{summary['overall_completion_percentage']}%")
+    st.metric("整體社團評鑑資料完整度", f"{summary['overall_completion_percentage']}%")
 with metric_col2:
     st.metric(
         "已完成文件數 / 必要文件數",
