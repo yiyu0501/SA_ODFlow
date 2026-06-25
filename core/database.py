@@ -87,17 +87,33 @@ SCHEMA_STATEMENTS = [
 ]
 
 
-def get_connection(db_path: Path | str = DEFAULT_DB_PATH) -> sqlite3.Connection:
-    connection = sqlite3.connect(db_path)
+def resolve_db_path(db_path: Path | str | None = None) -> Path:
+    if db_path is None:
+        resolved_path = DEFAULT_DB_PATH
+    elif isinstance(db_path, Path):
+        resolved_path = db_path
+    else:
+        resolved_path = Path(db_path)
+
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+    return resolved_path
+
+
+def get_default_db_path() -> Path:
+    return resolve_db_path()
+
+
+def get_connection(db_path: Path | str | None = DEFAULT_DB_PATH) -> sqlite3.Connection:
+    resolved_db_path = resolve_db_path(db_path)
+    connection = sqlite3.connect(resolved_db_path)
     connection.row_factory = sqlite3.Row
     return connection
 
 
-def initialize_database(db_path: Path | str = DEFAULT_DB_PATH) -> Path:
-    db_path = Path(db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+def initialize_database(db_path: Path | str | None = DEFAULT_DB_PATH) -> Path:
+    resolved_db_path = resolve_db_path(db_path)
 
-    with closing(get_connection(db_path)) as connection:
+    with closing(get_connection(resolved_db_path)) as connection:
         cursor = connection.cursor()
 
         for statement in SCHEMA_STATEMENTS:
@@ -126,4 +142,4 @@ def initialize_database(db_path: Path | str = DEFAULT_DB_PATH) -> Path:
 
         connection.commit()
 
-    return db_path
+    return resolved_db_path
