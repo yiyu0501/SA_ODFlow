@@ -117,8 +117,8 @@ initialize_database()
 
 files_message = st.session_state.pop("files_message", "")
 
-st.title("Files")
-st.caption("文件庫、版本管理與 ODT/PDF 匯出")
+st.title("檔案庫")
+st.caption("文件列表、版本管理、狀態切換與 ODF / PDF 匯出")
 
 if files_message:
     st.success(files_message)
@@ -127,7 +127,7 @@ documents = list_documents()
 club_settings = get_club_settings()
 
 if not documents:
-    st.info("目前尚無文件。請先到 Generate 頁面建立文件。")
+    st.info("目前尚無文件。請先到「生成文件」頁面建立文件。")
 else:
     st.dataframe(
         [

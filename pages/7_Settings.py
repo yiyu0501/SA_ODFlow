@@ -16,8 +16,8 @@ def _sync_evaluation_export_state(settings: dict) -> None:
 initialize_database()
 settings = get_club_settings()
 
-st.title("Settings")
-st.caption("社團基本資料與展示用示範資料")
+st.title("社團設定")
+st.caption("社團基本資料、評鑑匯出預設值與展示用示範資料")
 
 settings_message = st.session_state.pop("settings_message", "")
 if settings_message:
