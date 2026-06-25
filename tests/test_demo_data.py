@@ -28,7 +28,6 @@ class DemoDataTestCase(unittest.TestCase):
 
         self.assertEqual(result["created_count"], len(DEMO_DOCUMENT_SPECS))
         self.assertEqual(len(documents), len(DEMO_DOCUMENT_SPECS))
-        self.assertTrue(all(title.startswith("示範資料_") for title in result["created_titles"]))
 
     def test_create_demo_data_does_not_duplicate_existing_seed_data(self):
         first_run = create_demo_data(db_path=self.db_path)
@@ -57,6 +56,21 @@ class DemoDataTestCase(unittest.TestCase):
             self.assertIsNotNone(version["content_json"])
             self.assertTrue(version["odf_path"])
             self.assertTrue(Path(version["odf_path"]).exists())
+
+    def test_demo_data_contains_multiple_document_types(self):
+        create_demo_data(db_path=self.db_path)
+        document_types = {document["document_type"] for document in list_documents(db_path=self.db_path)}
+
+        self.assertEqual(
+            document_types,
+            {
+                "會議紀錄",
+                "活動企劃書",
+                "活動成果報告",
+                "活動檢討會紀錄",
+                "年度計畫",
+            },
+        )
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from core.constants import DOCUMENT_STATUSES, EVALUATION_CATEGORIES
 from core.database import DEFAULT_DB_PATH, get_connection, initialize_database
-from core.meeting_minutes import normalize_meeting_minutes_content
+from core.document_schemas import derive_document_title, normalize_document_content
 
 
 def validate_document_status(status: str) -> str:
@@ -27,12 +27,12 @@ def _row_to_dict(row):
     return dict(row) if row is not None else None
 
 
-def _load_content_json(content_json: str) -> dict:
-    return normalize_meeting_minutes_content(json.loads(content_json))
+def _load_content_json(content_json: str, document_type: str) -> dict:
+    return normalize_document_content(document_type, json.loads(content_json))
 
 
-def _serialize_content_json(content_json: dict) -> str:
-    normalized = normalize_meeting_minutes_content(content_json)
+def _serialize_content_json(content_json: dict, document_type: str) -> str:
+    normalized = normalize_document_content(document_type, content_json)
     return json.dumps(normalized, ensure_ascii=False)
 
 
@@ -40,12 +40,12 @@ def _version_label(version_number: int) -> str:
     return f"v{version_number}" if version_number > 0 else "-"
 
 
-def _normalize_version_row(version_row: dict | None) -> dict | None:
+def _normalize_version_row(version_row: dict | None, document_type: str) -> dict | None:
     if version_row is None:
         return None
 
     version = _row_to_dict(version_row)
-    version["content_json"] = _load_content_json(version["content_json"])
+    version["content_json"] = _load_content_json(version["content_json"], document_type)
     version["version_label"] = _version_label(version["version_number"])
     return version
 
@@ -136,7 +136,7 @@ def create_document_version(
             (
                 document_id,
                 next_version,
-                _serialize_content_json(content_json),
+                _serialize_content_json(content_json, document_row["document_type"]),
                 odf_path,
                 pdf_path,
                 note.strip() or None,
@@ -154,7 +154,11 @@ def create_document_version(
                 """,
                 (
                     next_version,
-                    normalize_meeting_minutes_content(content_json)["meeting_title"] or document_row["title"],
+                    derive_document_title(
+                        document_row["document_type"],
+                        content_json,
+                        fallback=document_row["title"],
+                    ),
                     document_id,
                 ),
             )
@@ -170,7 +174,7 @@ def create_document_version(
             (document_id, next_version),
         ).fetchone()
 
-    return _normalize_version_row(version_row)
+    return _normalize_version_row(version_row, document_row["document_type"])
 
 
 def list_documents(db_path: Path | str = DEFAULT_DB_PATH) -> list[dict]:
@@ -218,7 +222,10 @@ def get_document(document_id: int, db_path: Path | str = DEFAULT_DB_PATH) -> dic
 
     document["current_version_label"] = _version_label(document["current_version"])
     document["current_version_content_json"] = (
-        _load_content_json(current_version_row["content_json"])
+        _load_content_json(
+            current_version_row["content_json"],
+            document["document_type"],
+        )
         if current_version_row is not None
         else None
     )
@@ -255,7 +262,11 @@ def get_current_version(
     if version_row is None:
         raise ValueError(f"文件 {document_id} 的目前版本不存在")
 
-    return _normalize_version_row(version_row)
+    document = get_document(document_id, db_path=db_path)
+    if document is None:
+        raise ValueError(f"找不到文件: {document_id}")
+
+    return _normalize_version_row(version_row, document["document_type"])
 
 
 def get_document_with_current_version(
@@ -275,6 +286,9 @@ def get_document_versions(
     db_path: Path | str = DEFAULT_DB_PATH,
 ) -> list[dict]:
     initialize_database(db_path)
+    document = get_document(document_id, db_path=db_path)
+    if document is None:
+        raise ValueError(f"找不到文件: {document_id}")
 
     with closing(get_connection(db_path)) as connection:
         rows = connection.execute(
@@ -289,7 +303,7 @@ def get_document_versions(
 
     versions = []
     for row in rows:
-        versions.append(_normalize_version_row(row))
+        versions.append(_normalize_version_row(row, document["document_type"]))
 
     return versions
 
@@ -342,7 +356,10 @@ def update_version_file_paths(
             (document_id, version_number),
         ).fetchone()
 
-    return _normalize_version_row(updated_row)
+    document = get_document(document_id, db_path=db_path)
+    if document is None:
+        raise ValueError(f"找不到文件: {document_id}")
+    return _normalize_version_row(updated_row, document["document_type"])
 
 
 def update_document_status(
@@ -393,7 +410,17 @@ def set_current_version(
                 f"找不到文件 {document_id} 的版本 v{version_number}"
             )
 
-        content_json = _load_content_json(version_row["content_json"])
+        document_row = cursor.execute(
+            "SELECT title, document_type FROM documents WHERE id = ?",
+            (document_id,),
+        ).fetchone()
+        if document_row is None:
+            raise ValueError(f"找不到文件: {document_id}")
+
+        content_json = _load_content_json(
+            version_row["content_json"],
+            document_row["document_type"],
+        )
         cursor.execute(
             """
             UPDATE documents
@@ -404,7 +431,11 @@ def set_current_version(
             """,
             (
                 version_number,
-                content_json["meeting_title"],
+                derive_document_title(
+                    document_row["document_type"],
+                    content_json,
+                    fallback=document_row["title"],
+                ),
                 document_id,
             ),
         )

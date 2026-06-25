@@ -31,15 +31,20 @@ class TemplateServiceTestCase(unittest.TestCase):
 
         self.assertEqual(categories, set(TEMPLATE_LIBRARY_CATEGORIES))
 
-    def test_template_count_is_at_least_twenty(self):
+    def test_template_count_is_at_least_twenty_two(self):
         definitions = list_template_definitions()
-        self.assertGreaterEqual(len(definitions), 20)
+        self.assertGreaterEqual(len(definitions), 22)
 
     def test_get_template_definition_returns_specific_template(self):
         definition = get_template_definition("meeting_notice_odt")
 
         self.assertEqual(definition["name"], "會議通知")
         self.assertEqual(definition["suggested_format"], "ODT")
+
+    def test_core_odt_templates_can_link_to_generate_flow(self):
+        definition = get_template_definition("activity_proposal_odt")
+
+        self.assertEqual(definition["linked_document_type"], "活動企劃書")
 
     def test_generate_template_file_creates_odt(self):
         output_path = generate_template_file("meeting_notice_odt")

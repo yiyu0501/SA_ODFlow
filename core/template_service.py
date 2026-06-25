@@ -26,6 +26,7 @@ def _odt_template(
     outline_fields: list[str],
     instructions: list[str],
     evaluation_category: str = "",
+    linked_document_type: str | None = None,
 ) -> dict:
     return {
         "id": template_id,
@@ -38,6 +39,7 @@ def _odt_template(
         "basic_fields": basic_fields,
         "outline_fields": outline_fields,
         "instructions": instructions,
+        "linked_document_type": linked_document_type,
     }
 
 
@@ -96,6 +98,7 @@ TEMPLATE_DEFINITIONS = {
             ["出席與請假", "討論摘要", "決議事項", "待辦事項"],
             ["若已在 Generate 建立草稿，可再用此範本做手動整理。"],
             "2.社團行政_管理運作",
+            linked_document_type="會議紀錄",
         ),
         _ods_template(
             "attendance_sheet_ods",
@@ -158,6 +161,7 @@ TEMPLATE_DEFINITIONS = {
             ["活動目標", "流程規劃", "人力分工", "風險與備案"],
             ["企劃定稿後可另搭配預算表與流程表。"],
             "6.社團活動_社團活動",
+            linked_document_type="活動企劃書",
         ),
         _ods_template(
             "activity_rundown_coarse_ods",
@@ -208,6 +212,7 @@ TEMPLATE_DEFINITIONS = {
             ["活動摘要", "成果亮點", "照片與附件說明", "後續建議"],
             ["可搭配簽到表、檢討會紀錄一同歸檔。"],
             "6.社團活動_社團活動",
+            linked_document_type="活動成果報告",
         ),
         _odt_template(
             "activity_review_minutes_odt",
@@ -218,6 +223,7 @@ TEMPLATE_DEFINITIONS = {
             ["流程檢討", "宣傳檢討", "行政與器材檢討", "待改善事項"],
             ["建議活動結束一週內完成。"],
             "6.社團活動_社團活動",
+            linked_document_type="活動檢討會紀錄",
         ),
     ],
     "社團評鑑型": [
@@ -249,6 +255,7 @@ TEMPLATE_DEFINITIONS = {
             ["年度活動規劃", "組織運作重點", "預期成果"],
             ["可搭配年度行事曆與執行對照表。"],
             "4.社團行政_年度計畫",
+            linked_document_type="年度計畫",
         ),
         _ods_template(
             "annual_calendar_ods",

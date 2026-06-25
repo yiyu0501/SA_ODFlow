@@ -4,21 +4,21 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from core.document_schemas import get_default_document_content
 from core.document_service import (
     create_document,
     create_document_version,
-    get_document,
-    get_document_with_current_version,
     get_current_version,
+    get_document,
     get_document_versions,
+    get_document_with_current_version,
     list_documents,
     set_current_version,
-    update_version_file_paths,
     update_document_status,
+    update_version_file_paths,
     validate_document_status,
     validate_evaluation_category,
 )
-from core.meeting_minutes import empty_meeting_minutes_content
 
 
 class DocumentServiceTestCase(unittest.TestCase):
@@ -29,8 +29,8 @@ class DocumentServiceTestCase(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def _sample_content(self, title: str = "第 3 次幹部會議") -> dict:
-        content = empty_meeting_minutes_content()
+    def _sample_meeting_content(self, title: str = "第 3 次幹部會議") -> dict:
+        content = get_default_document_content("會議紀錄")
         content["meeting_title"] = title
         content["meeting_date"] = "2026-06-24"
         content["agenda_items"] = [
@@ -46,6 +46,51 @@ class DocumentServiceTestCase(unittest.TestCase):
                 "owner": "王小明",
                 "deadline": "2026-06-30",
                 "note": "",
+            }
+        ]
+        return content
+
+    def _sample_activity_proposal(self) -> dict:
+        content = get_default_document_content("活動企劃書")
+        content["activity_name"] = "迎新活動"
+        content["organizer"] = "ODFlow示範社團"
+        content["schedule_items"] = [
+            {"time": "18:00", "item": "報到", "owner": "李宣傳", "note": ""}
+        ]
+        return content
+
+    def _sample_activity_report(self) -> dict:
+        content = get_default_document_content("活動成果報告")
+        content["activity_name"] = "迎新活動"
+        content["participant_count"] = "30"
+        content["activity_summary"] = "活動順利完成"
+        return content
+
+    def _sample_activity_review(self) -> dict:
+        content = get_default_document_content("活動檢討會紀錄")
+        content["meeting_title"] = "迎新活動檢討會"
+        content["activity_name"] = "迎新活動"
+        content["improvement_actions"] = [
+            {
+                "issue": "報到塞車",
+                "action": "增設第二桌",
+                "owner": "王活動",
+                "deadline": "下次活動前",
+            }
+        ]
+        return content
+
+    def _sample_annual_plan(self) -> dict:
+        content = get_default_document_content("年度計畫")
+        content["academic_year"] = "114"
+        content["club_name"] = "ODFlow示範社團"
+        content["annual_goal"] = "完成年度活動整理"
+        content["semester_plans"] = [
+            {
+                "semester": "上學期",
+                "plan": "招新與迎新",
+                "expected_month": "9 月",
+                "owner": "林會長",
             }
         ]
         return content
@@ -72,12 +117,12 @@ class DocumentServiceTestCase(unittest.TestCase):
 
         version_one = create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(),
+            content_json=self._sample_meeting_content(),
             db_path=self.db_path,
         )
         version_two = create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(title="第 3 次幹部會議（修訂）"),
+            content_json=self._sample_meeting_content(title="第 3 次幹部會議（修訂）"),
             db_path=self.db_path,
         )
 
@@ -109,7 +154,7 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(),
+            content_json=self._sample_meeting_content(),
             db_path=self.db_path,
         )
 
@@ -135,12 +180,12 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(title="版本一"),
+            content_json=self._sample_meeting_content(title="版本一"),
             db_path=self.db_path,
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(title="版本二"),
+            content_json=self._sample_meeting_content(title="版本二"),
             db_path=self.db_path,
         )
 
@@ -178,7 +223,7 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(title="版本一"),
+            content_json=self._sample_meeting_content(title="版本一"),
             db_path=self.db_path,
         )
 
@@ -196,7 +241,7 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(),
+            content_json=self._sample_meeting_content(),
             db_path=self.db_path,
         )
 
@@ -220,7 +265,7 @@ class DocumentServiceTestCase(unittest.TestCase):
         )
         create_document_version(
             document_id=document["id"],
-            content_json=self._sample_content(title="版本一"),
+            content_json=self._sample_meeting_content(title="版本一"),
             db_path=self.db_path,
         )
 
@@ -233,6 +278,62 @@ class DocumentServiceTestCase(unittest.TestCase):
             document_with_version["current_version_data"]["content_json"]["meeting_title"],
             "版本一",
         )
+
+    def test_activity_proposal_can_be_saved_to_files(self):
+        document = create_document(
+            title="迎新活動企劃書",
+            document_type="活動企劃書",
+            evaluation_category="6.社團活動_社團活動",
+            db_path=self.db_path,
+        )
+        version = create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_activity_proposal(),
+            db_path=self.db_path,
+        )
+        self.assertEqual(version["content_json"]["activity_name"], "迎新活動")
+
+    def test_activity_report_can_be_saved_to_files(self):
+        document = create_document(
+            title="迎新活動成果報告",
+            document_type="活動成果報告",
+            evaluation_category="6.社團活動_社團活動",
+            db_path=self.db_path,
+        )
+        version = create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_activity_report(),
+            db_path=self.db_path,
+        )
+        self.assertEqual(version["content_json"]["participant_count"], "30")
+
+    def test_activity_review_can_be_saved_to_files(self):
+        document = create_document(
+            title="迎新活動檢討會紀錄",
+            document_type="活動檢討會紀錄",
+            evaluation_category="6.社團活動_社團活動",
+            db_path=self.db_path,
+        )
+        version = create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_activity_review(),
+            db_path=self.db_path,
+        )
+        self.assertEqual(version["content_json"]["meeting_title"], "迎新活動檢討會")
+
+    def test_annual_plan_can_be_saved_to_files(self):
+        document = create_document(
+            title="年度計畫",
+            document_type="年度計畫",
+            evaluation_category="4.社團行政_年度計畫",
+            db_path=self.db_path,
+        )
+        version = create_document_version(
+            document_id=document["id"],
+            content_json=self._sample_annual_plan(),
+            db_path=self.db_path,
+        )
+        self.assertEqual(version["content_json"]["academic_year"], "114")
 
 
 if __name__ == "__main__":

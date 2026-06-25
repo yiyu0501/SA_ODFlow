@@ -6,6 +6,7 @@ from zipfile import ZIP_DEFLATED
 from zipfile import ZIP_STORED
 from zipfile import ZipFile
 
+from core.document_schemas import build_document_preview_blocks, derive_document_title
 from generators.export_utils import prepare_output_path, validate_export_payload
 
 
@@ -25,43 +26,27 @@ def _list_xml(items: list[str]) -> str:
     return f"<text:list>{list_items}</text:list>"
 
 
-def _build_meeting_minutes_content_xml(content_json: dict) -> str:
-    body_parts = [
-        _heading_xml("會議紀錄", level=1),
-        _paragraph_xml(f"會議名稱：{content_json['meeting_title']}"),
-        _paragraph_xml(f"會議日期：{content_json['meeting_date']}"),
-        _paragraph_xml(f"會議時間：{content_json['meeting_time']}"),
-        _paragraph_xml(f"會議地點：{content_json['location']}"),
-        _paragraph_xml(f"主席：{content_json['chair']}"),
-        _paragraph_xml(f"紀錄：{content_json['recorder']}"),
-        _paragraph_xml(f"出席人員：{'、'.join(content_json['attendees'])}"),
-        _paragraph_xml(f"請假人員：{'、'.join(content_json['absentees'])}"),
-        _heading_xml("討論事項與決議", level=2),
-    ]
-
-    for index, item in enumerate(content_json["agenda_items"], start=1):
-        body_parts.extend(
-            [
-                _paragraph_xml(f"{index}. 議題：{item['title']}"),
-                _paragraph_xml(f"討論：{item['discussion']}"),
-                _paragraph_xml(f"決議：{item['decision']}"),
-            ]
-        )
-
-    body_parts.append(_heading_xml("待辦事項", level=2))
-    for index, item in enumerate(content_json["action_items"], start=1):
-        body_parts.append(
-            _paragraph_xml(
-                f"{index}. 待辦：{item['task']}／負責人：{item['owner']}／期限：{item['deadline']}／備註：{item['note']}"
-            )
-        )
-
-    body_parts.extend(
-        [
-            _paragraph_xml(f"下次會議時間：{content_json['next_meeting_time']}"),
-            _paragraph_xml(f"備註：{content_json['notes']}"),
-        ]
+def _build_document_content_xml(document: dict, content_json: dict) -> str:
+    blocks = build_document_preview_blocks(
+        document["document_type"],
+        content_json,
+        title_override=derive_document_title(
+            document["document_type"],
+            content_json,
+            fallback=document.get("title"),
+        ),
     )
+    body_parts = []
+    for block in blocks:
+        kind = block["kind"]
+        if kind == "title":
+            body_parts.append(_heading_xml(block["text"], level=1))
+        elif kind == "heading":
+            body_parts.append(_heading_xml(block["text"], level=block.get("level", 2)))
+        elif kind == "paragraph":
+            body_parts.append(_paragraph_xml(block["text"]))
+        elif kind == "bullet_list":
+            body_parts.append(_list_xml(block["items"]))
     return _wrap_text_document("\n".join(body_parts))
 
 
@@ -167,15 +152,26 @@ def _write_odf_package(output_path: Path, file_map: dict[str, str]) -> Path:
     return output_path
 
 
-def generate_meeting_minutes_odt(
+def generate_document_odt(
     document: dict,
     version: dict,
     output_dir: Path | str | None = None,
 ) -> Path:
     validated_document, validated_version = validate_export_payload(document, version)
     output_path = prepare_output_path(validated_document, validated_version, "odt", output_dir)
-    content_xml = _build_meeting_minutes_content_xml(validated_version["content_json"])
+    content_xml = _build_document_content_xml(
+        validated_document,
+        validated_version["content_json"],
+    )
     return _write_odf_package(output_path, _minimal_odt_files(content_xml))
+
+
+def generate_meeting_minutes_odt(
+    document: dict,
+    version: dict,
+    output_dir: Path | str | None = None,
+) -> Path:
+    return generate_document_odt(document=document, version=version, output_dir=output_dir)
 
 
 def generate_odt_template(
