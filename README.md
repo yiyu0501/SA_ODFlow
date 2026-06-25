@@ -187,3 +187,11 @@ python3 -m venv .venv
 - 評審 Q&A：[docs/judge_qna.md](/Users/yiyu/Documents/SA_OPFlow/docs/judge_qna.md)
 - AI 使用聲明比賽版：[docs/ai_usage_competition_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_competition_statement.md)
 - 最終提交檢查表：[docs/final_submission_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/final_submission_checklist.md)
+
+## v0.3 規劃文件
+
+- v0.3 產品品質升級規劃：[docs/v0_3_product_upgrade_plan.md](/Users/yiyu/Documents/SA_OPFlow/docs/v0_3_product_upgrade_plan.md)
+- v0.3 範本品質規格：[docs/v0_3_template_quality_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v0_3_template_quality_spec.md)
+- v0.3 範圍決策：[docs/v0_3_scope_decision.md](/Users/yiyu/Documents/SA_OPFlow/docs/v0_3_scope_decision.md)
+- v0.3 側邊欄與頁面命名規劃：[docs/v0_3_sidebar_and_page_naming.md](/Users/yiyu/Documents/SA_OPFlow/docs/v0_3_sidebar_and_page_naming.md)
+- v0.3 執行任務拆分：[docs/v0_3_execution_tasks.md](/Users/yiyu/Documents/SA_OPFlow/docs/v0_3_execution_tasks.md)
