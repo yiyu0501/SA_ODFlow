@@ -7,6 +7,16 @@ from core.filename import parse_meeting_date
 from core.meeting_minutes import normalize_meeting_minutes_content, people_list_to_text, split_people_text
 
 
+DOCUMENT_TYPE_ALIASES = {
+    "開會通知": "開會通知單",
+}
+
+
+def canonical_document_type(document_type: str) -> str:
+    normalized = str(document_type or "").strip()
+    return DOCUMENT_TYPE_ALIASES.get(normalized, normalized)
+
+
 def _field(key: str, label: str, input_type: str = "text") -> dict:
     return {"key": key, "label": label, "input_type": input_type}
 
@@ -37,7 +47,7 @@ DOCUMENT_SCHEMAS = {
             _field("meeting_time", "會議時間"),
             _field("location", "會議地點"),
             _field("chair", "主席"),
-            _field("recorder", "紀錄"),
+            _field("recorder", "記錄人員"),
             _field("attendees", "出席人員", "people_list"),
             _field("absentees", "請假人員", "people_list"),
             _field("observers", "列席人員", "people_list"),
@@ -73,36 +83,30 @@ DOCUMENT_SCHEMAS = {
         ],
         "output_formats": ["ODT", "PDF"],
     },
-    "開會通知": {
-        "document_type": "開會通知",
-        "display_name": "開會通知",
-        "default_title": "開會通知",
+    "開會通知單": {
+        "document_type": "開會通知單",
+        "display_name": "開會通知單",
+        "default_title": "開會通知單",
         "recommended_evaluation_category": "2.社團行政_管理運作",
         "fields": [
-            _field("meeting_title", "通知標題"),
-            _field("recipients", "受文者 / 參與對象"),
-            _field("subject", "開會事由"),
-            _field("meeting_date", "開會日期"),
-            _field("meeting_time", "開會時間"),
-            _field("location", "開會地點"),
-            _field("chair", "主持人"),
+            _field("organization_name", "發文單位"),
+            _field("recipient", "受文者"),
+            _field("document_date", "發文日期"),
+            _field("document_number", "發文字號"),
+            _field("priority", "速別"),
+            _field("security_level", "密等及解密條件或保密期限"),
+            _field("attachments", "附件"),
+            _field("meeting_reason", "開會事由", "textarea"),
+            _field("meeting_datetime", "開會時間"),
+            _field("meeting_location", "開會地點"),
+            _field("host", "主持人"),
             _field("contact_person", "聯絡人"),
-            _field("issuing_unit", "發文社團"),
-            _field("issue_date", "發文日期"),
-            _field("notes", "備註", "textarea"),
+            _field("contact_phone", "聯絡電話"),
+            _field("attendees", "出席者", "people_list"),
+            _field("observers", "列席者", "people_list"),
+            _field("note", "備註", "textarea"),
         ],
-        "repeatable_sections": [
-            _repeatable_section(
-                "agenda_items",
-                "議程摘要",
-                [
-                    ("time", "時間"),
-                    ("item", "議程項目"),
-                    ("note", "說明"),
-                ],
-                min_items=3,
-            )
-        ],
+        "repeatable_sections": [],
         "output_formats": ["ODT", "PDF"],
     },
     "會議議程": {
@@ -116,7 +120,7 @@ DOCUMENT_SCHEMAS = {
             _field("meeting_time", "時間"),
             _field("location", "地點"),
             _field("chair", "主席"),
-            _field("recorder", "紀錄"),
+            _field("recorder", "記錄人員"),
             _field("notes", "備註", "textarea"),
         ],
         "repeatable_sections": [
@@ -152,17 +156,27 @@ DOCUMENT_SCHEMAS = {
         "recommended_evaluation_category": "6.社團活動_社團活動",
         "fields": [
             _field("activity_name", "活動名稱"),
+            _field("school_name", "學校名稱"),
+            _field("activity_theme", "活動主題"),
             _field("activity_date", "活動日期"),
             _field("activity_time", "活動時間"),
             _field("location", "活動地點"),
+            _field("activity_location", "活動地點"),
+            _field("advisor_unit", "指導單位"),
             _field("organizer", "主辦單位"),
             _field("co_organizer", "協辦單位"),
             _field("target_audience", "活動對象"),
             _field("expected_participants", "預計人數"),
             _field("purpose", "活動目的", "textarea"),
             _field("activity_description", "活動說明", "textarea"),
+            _field("activity_content", "活動內容", "textarea"),
+            _field("expected_benefits", "預期效益", "textarea"),
             _field("expected_outcomes", "預期成果", "textarea"),
+            _field("promotion_plan", "宣傳方式", "textarea"),
             _field("resource_needs", "資源需求", "textarea"),
+            _field("equipment_list", "所需設備清單", "textarea"),
+            _field("school_support", "需學校協助事項", "textarea"),
+            _field("attachments", "附件", "textarea"),
             _field("notes", "備註", "textarea"),
         ],
         "repeatable_sections": [
@@ -192,7 +206,33 @@ DOCUMENT_SCHEMAS = {
                 "預算規劃",
                 [
                     ("item", "項目"),
+                    ("description", "說明"),
+                    ("quantity", "數量"),
+                    ("unit_price", "單價"),
                     ("amount", "金額"),
+                    ("funding_source", "經費來源"),
+                    ("note", "備註"),
+                ],
+                min_items=3,
+            ),
+            _repeatable_section(
+                "contact_items",
+                "聯絡方式",
+                [
+                    ("role", "職務"),
+                    ("name", "姓名"),
+                    ("phone", "電話"),
+                    ("email", "Email"),
+                ],
+                min_items=2,
+            ),
+            _repeatable_section(
+                "preparation_items",
+                "工作人員、內容分配與預定進度",
+                [
+                    ("task", "工作項目"),
+                    ("owner", "負責人"),
+                    ("deadline", "預定進度"),
                     ("note", "備註"),
                 ],
                 min_items=3,
@@ -246,7 +286,7 @@ DOCUMENT_SCHEMAS = {
             _field("activity_name", "活動名稱"),
             _field("location", "檢討會地點"),
             _field("chair", "主席"),
-            _field("recorder", "紀錄"),
+            _field("recorder", "記錄人員"),
             _field("attendees", "出席人員", "people_list"),
             _field("strengths", "優點", "textarea"),
             _field("problems", "問題", "textarea"),
@@ -342,6 +382,7 @@ def list_supported_document_types() -> list[str]:
 
 
 def get_document_schema(document_type: str) -> dict:
+    document_type = canonical_document_type(document_type)
     schema = DOCUMENT_SCHEMAS.get(document_type)
     if schema is None:
         raise ValueError(f"不支援的文件類型: {document_type}")
@@ -349,7 +390,7 @@ def get_document_schema(document_type: str) -> dict:
 
 
 def is_supported_document_type(document_type: str) -> bool:
-    return document_type in DOCUMENT_SCHEMAS
+    return canonical_document_type(document_type) in DOCUMENT_SCHEMAS
 
 
 def get_recommended_evaluation_category(document_type: str) -> str:
@@ -365,12 +406,14 @@ def get_default_document_content(document_type: str) -> dict:
 
 
 def get_document_storage_keys(document_type: str) -> list[str]:
+    document_type = canonical_document_type(document_type)
     if document_type not in DOCUMENT_SCHEMAS:
         return []
     return list(DOCUMENT_SCHEMAS[document_type]["storage_keys"])
 
 
 def normalize_document_content(document_type: str, content: dict | None) -> dict:
+    document_type = canonical_document_type(document_type)
     if document_type == "會議紀錄":
         return normalize_meeting_minutes_content(content)
 
@@ -395,6 +438,11 @@ def normalize_document_content(document_type: str, content: dict | None) -> dict
             section,
         )
 
+    if document_type == "開會通知單":
+        _copy_meeting_notice_legacy_fields(normalized, content)
+    elif document_type == "活動企劃書":
+        _copy_activity_proposal_legacy_fields(normalized, content)
+
     if "document_title" in content:
         normalized["document_title"] = str(content.get("document_title", "")).strip()
 
@@ -406,6 +454,7 @@ def derive_document_title(
     content: dict | None,
     fallback: str | None = None,
 ) -> str:
+    document_type = canonical_document_type(document_type)
     normalized = normalize_document_content(document_type, content)
     custom_title = str(normalized.get("document_title", "")).strip()
     if custom_title:
@@ -413,9 +462,9 @@ def derive_document_title(
 
     if document_type == "會議紀錄":
         title = normalized.get("meeting_title", "")
-    elif document_type == "開會通知":
-        meeting_title = normalized.get("meeting_title", "")
-        title = meeting_title or "開會通知"
+    elif document_type == "開會通知單":
+        reason = normalized.get("meeting_reason", "")
+        title = f"{reason} 開會通知單".strip() if reason else "開會通知單"
     elif document_type == "會議議程":
         meeting_title = normalized.get("meeting_title", "")
         title = meeting_title or "會議議程"
@@ -449,13 +498,14 @@ def derive_document_title(
 
 
 def get_document_primary_date(document_type: str, content: dict | None) -> date | None:
+    document_type = canonical_document_type(document_type)
     normalized = normalize_document_content(document_type, content)
     if document_type == "年度計畫":
         return None
 
     date_field = {
         "會議紀錄": "meeting_date",
-        "開會通知": "meeting_date",
+        "開會通知單": "document_date",
         "會議議程": "meeting_date",
         "活動企劃書": "activity_date",
         "活動成果報告": "activity_date",
@@ -471,12 +521,13 @@ def build_document_preview_blocks(
     content: dict | None,
     title_override: str | None = None,
 ) -> list[dict]:
+    document_type = canonical_document_type(document_type)
     normalized = normalize_document_content(document_type, content)
     title = title_override or derive_document_title(document_type, normalized)
 
     builders = {
         "會議紀錄": _build_meeting_minutes_blocks,
-        "開會通知": _build_meeting_notice_blocks,
+        "開會通知單": _build_meeting_notice_blocks,
         "會議議程": _build_meeting_agenda_blocks,
         "活動企劃書": _build_activity_proposal_blocks,
         "活動成果報告": _build_activity_report_blocks,
@@ -513,6 +564,42 @@ def _normalize_repeatable_rows(rows, section: dict) -> list[dict]:
             normalized_rows.append(normalized_row)
 
     return normalized_rows or _default_repeatable_rows(section)
+
+
+def _copy_meeting_notice_legacy_fields(normalized: dict, content: dict) -> None:
+    legacy_pairs = {
+        "organization_name": ("issuing_unit",),
+        "recipient": ("recipients",),
+        "document_date": ("issue_date", "meeting_date"),
+        "meeting_reason": ("subject", "meeting_title"),
+        "meeting_location": ("location",),
+        "host": ("chair",),
+        "note": ("notes",),
+    }
+    for target_key, source_keys in legacy_pairs.items():
+        if normalized.get(target_key):
+            continue
+        for source_key in source_keys:
+            value = str(content.get(source_key, "")).strip()
+            if value:
+                normalized[target_key] = value
+                break
+
+    if not normalized.get("meeting_datetime"):
+        meeting_date = str(content.get("meeting_date", "")).strip()
+        meeting_time = str(content.get("meeting_time", "")).strip()
+        normalized["meeting_datetime"] = " ".join(
+            value for value in (meeting_date, meeting_time) if value
+        )
+
+
+def _copy_activity_proposal_legacy_fields(normalized: dict, content: dict) -> None:
+    if not normalized.get("activity_location"):
+        normalized["activity_location"] = str(content.get("location", "")).strip()
+    if not normalized.get("activity_content"):
+        normalized["activity_content"] = str(content.get("activity_description", "")).strip()
+    if not normalized.get("expected_benefits"):
+        normalized["expected_benefits"] = str(content.get("expected_outcomes", "")).strip()
 
 
 def _normalize_generic_content(content: dict | None) -> dict:
@@ -560,7 +647,7 @@ def _build_meeting_minutes_blocks(content: dict) -> list[dict]:
             ("會議時間", content["meeting_time"]),
             ("會議地點", content["location"]),
             ("主席", content["chair"]),
-            ("紀錄", content["recorder"]),
+            ("記錄人員", content["recorder"]),
             ("出席人員", people_list_to_text(content["attendees"]) or "-"),
             ("請假人員", people_list_to_text(content["absentees"]) or "-"),
             ("列席人員", people_list_to_text(content.get("observers")) or "-"),
@@ -611,28 +698,24 @@ def _build_meeting_minutes_blocks(content: dict) -> list[dict]:
 def _build_meeting_notice_blocks(content: dict) -> list[dict]:
     blocks = _build_label_value_blocks(
         [
-            ("通知標題", content["meeting_title"]),
-            ("受文者 / 參與對象", content.get("recipients", "")),
-            ("開會事由", content.get("subject", "")),
-            ("開會日期", content["meeting_date"]),
-            ("開會時間", content["meeting_time"]),
-            ("開會地點", content["location"]),
-            ("主持人", content["chair"]),
+            ("發文單位", content.get("organization_name", "")),
+            ("受文者", content.get("recipient", "")),
+            ("發文日期", content.get("document_date", "")),
+            ("發文字號", content.get("document_number", "")),
+            ("速別", content.get("priority", "")),
+            ("密等及解密條件或保密期限", content.get("security_level", "")),
+            ("附件", content.get("attachments", "")),
+            ("開會事由", content.get("meeting_reason", "")),
+            ("開會時間", content.get("meeting_datetime", "")),
+            ("開會地點", content.get("meeting_location", "")),
+            ("主持人", content.get("host", "")),
             ("聯絡人", content.get("contact_person", "")),
-            ("發文社團", content.get("issuing_unit", "")),
-            ("發文日期", content.get("issue_date", "")),
+            ("聯絡電話", content.get("contact_phone", "")),
+            ("出席者", people_list_to_text(content.get("attendees")) or "-"),
+            ("列席者", people_list_to_text(content.get("observers")) or "-"),
+            ("備註", content.get("note", "")),
         ]
     )
-    blocks.append(_heading("議程摘要"))
-    blocks.append(
-        _list_block(
-            [
-                f"{index}. 時間：{item['time'] or '-'} / 項目：{item['item'] or '-'} / 說明：{item['note'] or '-'}"
-                for index, item in enumerate(content["agenda_items"], start=1)
-            ]
-        )
-    )
-    blocks.extend(_build_label_value_blocks([("備註", content["notes"])]))
     return blocks
 
 
@@ -644,7 +727,7 @@ def _build_meeting_agenda_blocks(content: dict) -> list[dict]:
             ("時間", content["meeting_time"]),
             ("地點", content["location"]),
             ("主席", content["chair"]),
-            ("紀錄", content["recorder"]),
+            ("記錄人員", content["recorder"]),
         ]
     )
     blocks.append(_heading("議程表"))
@@ -679,9 +762,11 @@ def _build_activity_proposal_blocks(content: dict) -> list[dict]:
     blocks = _build_label_value_blocks(
         [
             ("活動名稱", content["activity_name"]),
+            ("活動主題", content.get("activity_theme", "")),
             ("活動日期", content["activity_date"]),
             ("活動時間", content["activity_time"]),
-            ("活動地點", content["location"]),
+            ("活動地點", content.get("activity_location") or content["location"]),
+            ("指導單位", content.get("advisor_unit", "")),
             ("主辦單位", content["organizer"]),
             ("協辦單位", content.get("co_organizer", "")),
             ("活動對象", content["target_audience"]),
@@ -693,7 +778,7 @@ def _build_activity_proposal_blocks(content: dict) -> list[dict]:
             _heading("活動目的"),
             _paragraph(content["purpose"] or "-"),
             _heading("活動說明"),
-            _paragraph(content["activity_description"] or "-"),
+            _paragraph(content.get("activity_content") or content["activity_description"] or "-"),
             _heading("流程規劃"),
             _list_block(
                 [
@@ -717,14 +802,27 @@ def _build_activity_proposal_blocks(content: dict) -> list[dict]:
             _heading("預算規劃"),
             _list_block(
                 [
-                    f"{index}. 項目：{item['item'] or '-'} / 金額：{item['amount'] or '-'} / 備註：{item['note'] or '-'}"
+                    (
+                        f"{index}. 項目：{item['item'] or '-'} / 說明：{item.get('description', '') or '-'} / "
+                        f"數量：{item.get('quantity', '') or '-'} / 單價：{item.get('unit_price', '') or '-'} / "
+                        f"金額：{item['amount'] or '-'} / 經費來源：{item.get('funding_source', '') or '-'} / "
+                        f"備註：{item['note'] or '-'}"
+                    )
                     for index, item in enumerate(content["budget_items"], start=1)
                 ]
             ),
             _heading("預期成果"),
-            _paragraph(content["expected_outcomes"] or "-"),
+            _paragraph(content.get("expected_benefits") or content["expected_outcomes"] or "-"),
+            _heading("宣傳方式"),
+            _paragraph(content.get("promotion_plan") or "-"),
             _heading("資源需求"),
             _paragraph(content.get("resource_needs") or "-"),
+            _heading("所需設備清單"),
+            _paragraph(content.get("equipment_list") or "-"),
+            _heading("需學校協助事項"),
+            _paragraph(content.get("school_support") or "-"),
+            _heading("附件"),
+            _paragraph(content.get("attachments") or "-"),
             _heading("備註"),
             _paragraph(content["notes"] or "-"),
         ]
@@ -782,7 +880,7 @@ def _build_activity_review_blocks(content: dict) -> list[dict]:
             ("活動名稱", content["activity_name"]),
             ("檢討會地點", content.get("location", "")),
             ("主席", content.get("chair", "")),
-            ("紀錄", content.get("recorder", "")),
+            ("記錄人員", content.get("recorder", "")),
             ("出席人員", people_list_to_text(content["attendees"]) or "-"),
         ]
     )

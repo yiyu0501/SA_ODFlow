@@ -15,7 +15,7 @@ class DocumentSchemasTestCase(unittest.TestCase):
             list_supported_document_types(),
             [
                 "會議紀錄",
-                "開會通知",
+                "開會通知單",
                 "會議議程",
                 "活動企劃書",
                 "活動成果報告",

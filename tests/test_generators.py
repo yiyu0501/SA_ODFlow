@@ -59,21 +59,23 @@ class ExportGeneratorsTestCase(unittest.TestCase):
             ]
             content["next_meeting_time"] = "2026-07-01 19:00"
             content["notes"] = "測試匯出"
-        elif document_type == "開會通知":
-            content["meeting_title"] = "第 3 次幹部會議開會通知"
-            content["recipients"] = "全體幹部"
-            content["subject"] = "確認迎新活動分工"
-            content["meeting_date"] = "2026-06-24"
-            content["meeting_time"] = "18:30"
-            content["location"] = "社辦"
-            content["chair"] = "王小明"
+        elif document_type == "開會通知單":
+            content["organization_name"] = "ODFlow示範社團"
+            content["recipient"] = "全體幹部"
+            content["document_date"] = "2026-06-20"
+            content["document_number"] = "ODF字第001號"
+            content["priority"] = "普通件"
+            content["security_level"] = "普通"
+            content["attachments"] = "無"
+            content["meeting_reason"] = "確認迎新活動分工"
+            content["meeting_datetime"] = "2026-06-24 18:30"
+            content["meeting_location"] = "社辦"
+            content["host"] = "王小明"
             content["contact_person"] = "李小華"
-            content["issuing_unit"] = "ODFlow示範社團"
-            content["issue_date"] = "2026-06-20"
-            content["agenda_items"] = [
-                {"time": "18:30", "item": "主席致詞", "note": ""},
-                {"time": "18:40", "item": "迎新進度確認", "note": "各組回報"},
-            ]
+            content["contact_phone"] = "02-0000-0000"
+            content["attendees"] = ["王小明", "李小華"]
+            content["observers"] = ["張同學"]
+            content["note"] = "請準時出席"
         elif document_type == "會議議程":
             content["meeting_title"] = "第 3 次幹部會議議程"
             content["meeting_date"] = "2026-06-24"
@@ -98,23 +100,47 @@ class ExportGeneratorsTestCase(unittest.TestCase):
             content["activity_date"] = "2026-09-20"
             content["activity_time"] = "18:00-21:00"
             content["location"] = "活動中心 3F"
+            content["activity_location"] = "活動中心 3F"
+            content["school_name"] = "臺北市立大學"
+            content["activity_theme"] = "新生交流"
+            content["advisor_unit"] = "課外活動組"
             content["organizer"] = "ODFlow示範社團"
             content["co_organizer"] = "學生會"
             content["target_audience"] = "新生"
             content["expected_participants"] = "30"
             content["purpose"] = "協助新生快速認識社團。"
             content["activity_description"] = "安排破冰、社團介紹與小隊任務。"
+            content["activity_content"] = "安排破冰、社團介紹與小隊任務。"
             content["schedule_items"] = [
                 {"time": "18:00", "item": "報到", "owner": "李宣傳", "note": ""}
             ]
             content["staff_assignments"] = [
                 {"role": "總召", "name": "王活動", "task": "整體統籌"}
             ]
-            content["budget_items"] = [
-                {"item": "點心", "amount": "2000", "note": "依人數調整"}
+            content["contact_items"] = [
+                {"role": "總召", "name": "王活動", "phone": "0912-000-000", "email": "demo@example.com"}
             ]
+            content["preparation_items"] = [
+                {"task": "場地確認", "owner": "王活動", "deadline": "活動前一週", "note": ""}
+            ]
+            content["budget_items"] = [
+                {
+                    "item": "點心",
+                    "description": "活動茶點",
+                    "quantity": "30",
+                    "unit_price": "70",
+                    "amount": "2100",
+                    "funding_source": "社費",
+                    "note": "依人數調整",
+                }
+            ]
+            content["expected_benefits"] = "提升參與率"
             content["expected_outcomes"] = "提升參與率"
+            content["promotion_plan"] = "社群公告與班級宣傳"
             content["resource_needs"] = "場地、音響、投影設備"
+            content["equipment_list"] = "投影機、麥克風"
+            content["school_support"] = "協助借用場地"
+            content["attachments"] = "無"
         elif document_type == "活動成果報告":
             content["activity_name"] = "迎新活動"
             content["activity_date"] = "2026-09-20"
@@ -204,7 +230,7 @@ class ExportGeneratorsTestCase(unittest.TestCase):
     def test_generate_document_odt_supports_seven_document_types(self):
         for document_type in [
             "會議紀錄",
-            "開會通知",
+            "開會通知單",
             "會議議程",
             "活動企劃書",
             "活動成果報告",
@@ -224,11 +250,14 @@ class ExportGeneratorsTestCase(unittest.TestCase):
                 content_xml = archive.read("content.xml").decode("utf-8")
                 self.assertIn("office:document-content", content_xml)
                 self.assertIn("text:h", content_xml)
+                if document_type in {"會議紀錄", "開會通知單", "活動企劃書"}:
+                    self.assertNotIn("{{", content_xml)
+                    self.assertNotIn("}}", content_xml)
 
     def test_generate_document_pdf_supports_seven_document_types(self):
         for document_type in [
             "會議紀錄",
-            "開會通知",
+            "開會通知單",
             "會議議程",
             "活動企劃書",
             "活動成果報告",
@@ -333,7 +362,7 @@ class ExportGeneratorsTestCase(unittest.TestCase):
     def test_empty_values_do_not_crash_generators(self):
         for document_type in [
             "會議紀錄",
-            "開會通知",
+            "開會通知單",
             "會議議程",
             "活動企劃書",
             "活動成果報告",

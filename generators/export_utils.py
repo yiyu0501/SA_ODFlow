@@ -5,6 +5,7 @@ from pathlib import Path
 from core.database import ROOT_DIR
 from core.filename import build_versioned_filename
 from core.document_schemas import (
+    canonical_document_type,
     derive_document_title,
     get_document_primary_date,
     normalize_document_content,
@@ -21,7 +22,7 @@ def validate_export_payload(document: dict, version: dict) -> tuple[dict, dict]:
     if not version:
         raise ValueError("版本不存在")
 
-    document_type = document.get("document_type") or "文件"
+    document_type = canonical_document_type(document.get("document_type") or "文件")
     content_json = version.get("content_json")
     if not isinstance(content_json, dict):
         raise ValueError("content_json 格式不完整")
@@ -47,7 +48,7 @@ def prepare_output_path(
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
     content_json = normalized_version["content_json"]
-    document_type = validated_document.get("document_type") or "文件"
+    document_type = canonical_document_type(validated_document.get("document_type") or "文件")
     filename = build_versioned_filename(
         club_name=validated_document.get("club_name") or DEFAULT_CLUB_NAME,
         document_type=document_type,

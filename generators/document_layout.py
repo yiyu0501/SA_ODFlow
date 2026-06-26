@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from core.document_schemas import (
+    canonical_document_type,
     derive_document_title,
     get_default_document_content,
     normalize_document_content,
@@ -42,12 +43,13 @@ def build_document_render_spec(
     content: dict | None,
     title_override: str | None = None,
 ) -> dict:
+    document_type = canonical_document_type(document_type)
     normalized = normalize_document_content(document_type, content)
     title = title_override or derive_document_title(document_type, normalized)
 
     builders = {
         "會議紀錄": _build_meeting_minutes_spec,
-        "開會通知": _build_meeting_notice_spec,
+        "開會通知單": _build_meeting_notice_spec,
         "會議議程": _build_meeting_agenda_spec,
         "活動企劃書": _build_activity_proposal_spec,
         "活動成果報告": _build_activity_report_spec,
@@ -77,8 +79,8 @@ def build_template_render_spec(template_definition: dict) -> dict:
 
     special_template_builders = {
         "meeting_notice_odt": lambda: build_document_render_spec(
-            "開會通知",
-            get_default_document_content("開會通知"),
+            "開會通知單",
+            get_default_document_content("開會通知單"),
             title_override=template_definition["name"],
         ),
         "meeting_agenda_odt": lambda: build_document_render_spec(
@@ -192,7 +194,7 @@ def _build_meeting_minutes_spec(content: dict) -> list[dict]:
                     ("會議時間", display_text(content.get("meeting_time"))),
                     ("會議地點", display_text(content.get("location"))),
                     ("主席", display_text(content.get("chair"))),
-                    ("紀錄", display_text(content.get("recorder"))),
+                    ("記錄人員", display_text(content.get("recorder"))),
                     ("出席人員", display_people(content.get("attendees"))),
                     ("請假人員", display_people(content.get("absentees"))),
                     ("列席人員", display_people(content.get("observers"))),
@@ -229,48 +231,38 @@ def _build_meeting_minutes_spec(content: dict) -> list[dict]:
 
 
 def _build_meeting_notice_spec(content: dict) -> list[dict]:
-    agenda_rows = ensure_table_rows(
-        [
-            [
-                display_text(item.get("time")),
-                display_text(item.get("item")),
-                display_text(item.get("note")),
-            ]
-            for item in content["agenda_items"]
-        ],
-        3,
-        minimum_rows=3,
-        placeholder="",
-    )
     return [
         _section(
             "info_table",
             rows=_info_rows(
                 [
-                    ("受文者 / 參與對象", display_text(content.get("recipients"))),
-                    ("開會事由", display_text(content.get("subject"))),
-                    ("開會時間", _combine_datetime(content.get("meeting_date"), content.get("meeting_time"))),
-                    ("開會地點", display_text(content.get("location"))),
-                    ("主持人", display_text(content.get("chair"))),
+                    ("發文單位", display_text(content.get("organization_name"))),
+                    ("受文者", display_text(content.get("recipient"))),
+                    ("發文日期", display_text(content.get("document_date"))),
+                    ("發文字號", display_text(content.get("document_number"))),
+                    ("速別", display_text(content.get("priority"))),
+                    ("密等及解密條件或保密期限", display_text(content.get("security_level"))),
+                    ("附件", display_text(content.get("attachments"))),
+                    ("開會事由", display_text(content.get("meeting_reason"))),
+                    ("開會時間", display_text(content.get("meeting_datetime"))),
+                    ("開會地點", display_text(content.get("meeting_location"))),
+                    ("主持人", display_text(content.get("host"))),
                     ("聯絡人", display_text(content.get("contact_person"))),
-                    ("備註", display_text(content.get("notes"))),
+                    ("聯絡電話", display_text(content.get("contact_phone"))),
+                    ("出席者", display_people(content.get("attendees"))),
+                    ("列席者", display_people(content.get("observers"))),
+                    ("備註", display_text(content.get("note"))),
                 ],
                 columns_per_row=1,
             ),
             columns=2,
         ),
         _section(
-            "table",
-            heading="議程摘要",
-            headers=["時間", "議程項目", "說明"],
-            rows=agenda_rows,
-        ),
-        _section(
             "lines",
-            heading="發文資訊",
+            heading="頁面標記",
             lines=[
-                f"發文社團：{display_text(content.get('issuing_unit'))}",
-                f"日期：{display_text(content.get('issue_date'))}",
+                "左側保留小型裝訂標記。",
+                "中下方保留用印處。",
             ],
         ),
     ]
@@ -315,7 +307,7 @@ def _build_meeting_agenda_spec(content: dict) -> list[dict]:
                     ("時間", display_text(content.get("meeting_time"))),
                     ("地點", display_text(content.get("location"))),
                     ("主席", display_text(content.get("chair"))),
-                    ("紀錄", display_text(content.get("recorder"))),
+                    ("記錄人員", display_text(content.get("recorder"))),
                 ]
             ),
             columns=4,
@@ -367,12 +359,15 @@ def _build_activity_proposal_spec(content: dict) -> list[dict]:
         [
             [
                 display_text(item.get("item")),
+                display_text(item.get("quantity")),
+                display_text(item.get("unit_price")),
                 display_text(item.get("amount")),
+                display_text(item.get("funding_source")),
                 display_text(item.get("note")),
             ]
             for item in content["budget_items"]
         ],
-        3,
+        6,
         minimum_rows=3,
         placeholder="",
     )
@@ -382,10 +377,12 @@ def _build_activity_proposal_spec(content: dict) -> list[dict]:
             rows=_info_rows(
                 [
                     ("活動名稱", display_text(content.get("activity_name"))),
+                    ("活動主題", display_text(content.get("activity_theme"))),
                     ("主辦單位", display_text(content.get("organizer"))),
                     ("協辦單位", display_text(content.get("co_organizer"))),
                     ("活動時間", _combine_datetime(content.get("activity_date"), content.get("activity_time"))),
-                    ("活動地點", display_text(content.get("location"))),
+                    ("活動地點", display_text(content.get("activity_location") or content.get("location"))),
+                    ("指導單位", display_text(content.get("advisor_unit"))),
                     ("活動對象", display_text(content.get("target_audience"))),
                     ("預計人數", display_text(content.get("expected_participants"))),
                 ],
@@ -394,13 +391,16 @@ def _build_activity_proposal_spec(content: dict) -> list[dict]:
             columns=2,
         ),
         _section("paragraph", heading="一、活動宗旨", paragraphs=display_lines(content.get("purpose"))),
-        _section("paragraph", heading="二、活動說明", paragraphs=display_lines(content.get("activity_description"))),
+        _section("paragraph", heading="二、活動說明", paragraphs=display_lines(content.get("activity_content") or content.get("activity_description"))),
         _section("table", heading="三、活動流程", headers=["時間", "流程項目", "負責人", "備註"], rows=schedule_rows),
         _section("table", heading="四、工作分工", headers=["角色", "姓名", "工作內容"], rows=staff_rows),
-        _section("table", heading="五、經費預算", headers=["項目", "金額", "備註"], rows=budget_rows),
-        _section("bullet_list", heading="六、預期效益", items=display_bullets(content.get("expected_outcomes"))),
-        _section("paragraph", heading="七、資源需求", paragraphs=display_lines(content.get("resource_needs"))),
-        _section("paragraph", heading="八、備註", paragraphs=display_lines(content.get("notes"))),
+        _section("table", heading="五、經費預算", headers=["項目", "數量", "單價", "金額", "經費來源", "備註"], rows=budget_rows),
+        _section("bullet_list", heading="六、預期效益", items=display_bullets(content.get("expected_benefits") or content.get("expected_outcomes"))),
+        _section("paragraph", heading="七、宣傳方式", paragraphs=display_lines(content.get("promotion_plan"))),
+        _section("paragraph", heading="八、所需設備清單", paragraphs=display_lines(content.get("equipment_list") or content.get("resource_needs"))),
+        _section("paragraph", heading="九、需學校協助事項", paragraphs=display_lines(content.get("school_support"))),
+        _section("paragraph", heading="十、附件", paragraphs=display_lines(content.get("attachments"))),
+        _section("paragraph", heading="十一、備註", paragraphs=display_lines(content.get("notes"))),
     ]
 
 
@@ -484,7 +484,7 @@ def _build_activity_review_spec(content: dict) -> list[dict]:
                     ("檢討會日期", display_text(content.get("meeting_date"))),
                     ("檢討會地點", display_text(content.get("location"))),
                     ("主席", display_text(content.get("chair"))),
-                    ("紀錄", display_text(content.get("recorder"))),
+                    ("記錄人員", display_text(content.get("recorder"))),
                     ("出席人員", display_people(content.get("attendees"))),
                 ],
                 columns_per_row=1,
