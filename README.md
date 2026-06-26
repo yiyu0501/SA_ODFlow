@@ -136,12 +136,12 @@ python3 -m venv .venv
 
 提供 22 個空白 ODT / ODS 範本，分成：
 
-- 日常行政
-- 活動專案
-- 社團評鑑
-- 財務與清冊
+- 日常行政型
+- 專案活動型
+- 社團運作型
+- 財務與清冊型
 
-目前可直接下載空白 ODT / ODS 範本，不需要先建立文件；另外也支援 7 個核心 ODT 範本直接「使用此範本建立文件」，帶入「生成文件」建立正式文件。Task 15 後，會議紀錄、開會通知單、活動企劃書三個核心文件優先使用 ODT placeholder 樣板填入，會議議程、活動成果報告、活動檢討會紀錄、年度計畫與出席簽到表則沿用既有正式風格 generator。
+目前可直接下載空白 ODT / ODS 範本，不需要先建立文件；另外也支援 7 個核心 ODT 範本直接「使用此範本建立文件」，帶入「生成文件」建立正式文件。Task 15 後，會議紀錄、開會通知單、活動企劃書三個核心文件優先使用正式 ODT placeholder 樣板填入，不再下載 metadata 型說明頁。空白範本頁的「預覽」為版型近似預覽，實際格式以下載 ODT / ODS 為準。會議議程、活動成果報告、活動檢討會紀錄、年度計畫與出席簽到表則沿用既有正式風格 generator。
 
 ### 社團設定
 
@@ -162,6 +162,8 @@ Task 15 起，會議紀錄、開會通知單、活動企劃書三個核心文件
 這條路線比完全由程式從零生成版面更能保留正式文件的表格、章節與校園行政文件感。若樣板填入失敗，系統會 fallback 到 Task 14 的 ODT generator，避免匯出流程中斷。
 
 PDF 目前仍沿用 Task 14 的 PDF generator。未來若要讓 PDF 更貼近 ODT 樣板，可再加入 LibreOffice conversion 流程。
+
+完整規格請見 [docs/template_based_rendering_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/template_based_rendering_spec.md)。
 
 ## AI 使用聲明
 

@@ -102,7 +102,7 @@ class TemplateRendererTestCase(unittest.TestCase):
         content_xml = self._content_xml(output_path)
 
         self.assertIn("開會通知單", content_xml)
-        self.assertIn("用印處", content_xml)
+        self.assertIn("第1頁　共1頁", content_xml)
         self.assertIn("確認迎新活動分工", content_xml)
 
     def test_activity_proposal_template_generates_odt(self):
