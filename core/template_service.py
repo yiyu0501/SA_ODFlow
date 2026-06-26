@@ -10,10 +10,10 @@ from generators.template_renderer import copy_odt_template
 
 
 TEMPLATE_LIBRARY_CATEGORIES = [
-    "日常行政",
-    "活動專案",
-    "社團評鑑",
-    "財務與清冊",
+    "日常行政型",
+    "專案活動型",
+    "社團運作型",
+    "財務與清冊型",
 ]
 
 DEFAULT_TEMPLATE_OUTPUT_DIR = DATA_DIR / "generated" / "templates"
@@ -72,7 +72,7 @@ def _ods_template(
 
 
 TEMPLATE_DEFINITIONS = {
-    "日常行政": [
+    "日常行政型": [
         _odt_template(
             "meeting_notice_odt",
             "開會通知單",
@@ -149,7 +149,7 @@ TEMPLATE_DEFINITIONS = {
             "2.社團行政_管理運作",
         ),
     ],
-    "活動專案": [
+    "專案活動型": [
         _odt_template(
             "activity_proposal_odt",
             "活動企劃書",
@@ -215,7 +215,7 @@ TEMPLATE_DEFINITIONS = {
             linked_document_type="活動檢討會紀錄",
         ),
     ],
-    "社團評鑑": [
+    "社團運作型": [
         _ods_template(
             "evaluation_checklist_ods",
             "社團評鑑資料檢核表",
@@ -277,7 +277,7 @@ TEMPLATE_DEFINITIONS = {
             "7.社團活動_服務學習",
         ),
     ],
-    "財務與清冊": [
+    "財務與清冊型": [
         _ods_template(
             "ledger_ods",
             "收支帳冊",
@@ -322,6 +322,17 @@ TEMPLATE_DEFINITIONS_BY_ID = {
     for definition in definitions
 }
 
+TEMPLATE_DEFINITION_ALIASES = {
+    "會議通知": "meeting_notice_odt",
+}
+
+for template_id, definition in TEMPLATE_DEFINITIONS_BY_ID.items():
+    TEMPLATE_DEFINITION_ALIASES.setdefault(definition["name"], template_id)
+
+
+def resolve_template_definition_id(template_id: str) -> str:
+    return TEMPLATE_DEFINITION_ALIASES.get(template_id, template_id)
+
 
 def list_template_definitions(category: str | None = None) -> list[dict]:
     if category is None:
@@ -337,10 +348,24 @@ def list_template_definitions(category: str | None = None) -> list[dict]:
 
 
 def get_template_definition(template_id: str) -> dict:
-    definition = TEMPLATE_DEFINITIONS_BY_ID.get(template_id)
+    resolved_id = resolve_template_definition_id(template_id)
+    definition = TEMPLATE_DEFINITIONS_BY_ID.get(resolved_id)
     if definition is None:
         raise ValueError(f"找不到範本: {template_id}")
     return definition.copy()
+
+
+def build_template_preview_data(template_id: str) -> dict:
+    resolved_id = resolve_template_definition_id(template_id)
+    definition = get_template_definition(resolved_id)
+
+    preview_builders = {
+        "meeting_minutes_template_odt": _build_meeting_minutes_preview_data,
+        "meeting_notice_odt": _build_meeting_notice_preview_data,
+        "activity_proposal_odt": _build_activity_proposal_preview_data,
+    }
+    builder = preview_builders.get(resolved_id, _build_generic_preview_data)
+    return builder(definition)
 
 
 def generate_template_file(
@@ -371,3 +396,147 @@ def _build_template_filename(definition: dict) -> str:
         fallback="templates",
     )
     return f"{roc_date_string()}_{safe_category}_{safe_name}.{extension}"
+
+
+def _build_meeting_minutes_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{organization_name}}文件", "{{meeting_title}}會議紀錄"],
+        "meta_rows": [
+            ("會議時間", "{{meeting_date}} {{meeting_time}}"),
+            ("會議地點", "實體：{{physical_location}} / 線上：{{online_location}}"),
+            ("主席", "{{chair}}"),
+            ("出席人員", "{{attendees}}"),
+            ("列席人員", "{{observers}}"),
+            ("請假人員", "{{absentees}}"),
+            ("記錄人員", "{{recorder}}"),
+        ],
+        "sections": [
+            {
+                "title": "壹、會議議程",
+                "items": ["一、報告事項", "二、討論事項", "三、臨時動議", "四、申明與補述"],
+            }
+        ],
+        "tables": [],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_meeting_notice_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{organization_name}} 開會通知單"],
+        "meta_rows": [
+            ("受文者", "{{recipient}}"),
+            ("發文日期", "{{document_date}}"),
+            ("發文字號", "{{document_number}}"),
+            ("速別", "{{priority}}"),
+            ("密等及解密條件或保密期限", "{{security_level}}"),
+            ("附件", "{{attachments}}"),
+            ("開會事由", "{{meeting_reason}}"),
+            ("開會時間", "{{meeting_datetime}}"),
+            ("開會地點", "{{meeting_location}}"),
+            ("主持人", "{{host}}"),
+            ("聯絡人及電話", "{{contact_person}} / {{contact_phone}}"),
+            ("出席者", "{{attendees}}"),
+            ("列席者", "{{observers}}"),
+            ("備註", "{{note}}"),
+        ],
+        "sections": [],
+        "tables": [],
+        "decor": {
+            "binding_marks": ["裝", "訂"],
+            "page_footer": "第1頁　共1頁",
+        },
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_activity_proposal_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}}「{{activity_name}}」活動企劃書"],
+        "meta_rows": [],
+        "sections": [
+            {
+                "title": "主要章節",
+                "items": [
+                    "1、活動主題",
+                    "2、活動宗旨",
+                    "3、預期效益",
+                    "4、指導單位",
+                    "5、主辦單位",
+                    "6、協辦單位",
+                    "7、活動對象",
+                    "8、活動內容",
+                    "9、活動地點",
+                    "10、活動時間流程表",
+                    "11、聯絡方式",
+                    "12、宣傳方式",
+                    "13、工作人員、內容分配與預定進度",
+                    "14、活動預算",
+                    "15、所需設備清單",
+                    "16、需學校協助事項",
+                    "17、附件",
+                ],
+            }
+        ],
+        "tables": [
+            {
+                "title": "活動時間流程表",
+                "headers": ["時間", "內容", "負責人", "備註"],
+                "rows": [["18:00", "報到與入場", "活動組", ""], ["18:30", "活動流程", "主持人", ""]],
+            },
+            {
+                "title": "活動預算",
+                "headers": ["項目", "說明", "數量 / 單位", "單價", "金額", "預算來源", "備註"],
+                "rows": [["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]],
+            },
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_generic_preview_data(definition: dict) -> dict:
+    meta_rows = [
+        (field, "＿＿＿＿＿＿＿＿")
+        for field in definition.get("basic_fields", [])[:6]
+    ]
+    sections = []
+    outline_fields = definition.get("outline_fields", [])
+    if outline_fields:
+        sections.append(
+            {
+                "title": "主要章節",
+                "items": [f"{index}. {field}" for index, field in enumerate(outline_fields, start=1)],
+            }
+        )
+
+    tables = []
+    table_headers = definition.get("table_headers", [])
+    if table_headers:
+        tables.append(
+            {
+                "title": "表格欄位",
+                "headers": table_headers,
+                "rows": [["" for _ in table_headers] for _ in range(3)],
+            }
+        )
+
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": [definition["name"]],
+        "meta_rows": meta_rows,
+        "sections": sections,
+        "tables": tables,
+        "decor": {},
+        "footnote": (
+            f"此為版型預覽，實際格式以下載 {definition['suggested_format']} 為準。"
+        ),
+    }
