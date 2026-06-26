@@ -5,12 +5,52 @@ from pathlib import Path
 
 import streamlit as st
 
+import core.template_service as template_service
 from core.database import initialize_database
-from core.template_service import (
-    TEMPLATE_LIBRARY_CATEGORIES,
-    build_template_preview_data,
-    generate_template_file,
-    list_template_definitions,
+
+TEMPLATE_LIBRARY_CATEGORIES = getattr(
+    template_service,
+    "TEMPLATE_LIBRARY_CATEGORIES",
+    ["日常行政型", "專案活動型", "社團運作型", "財務與清冊型"],
+)
+generate_template_file = template_service.generate_template_file
+list_template_definitions = template_service.list_template_definitions
+
+
+def _fallback_template_preview_data(template_id: str) -> dict:
+    definition = template_service.get_template_definition(template_id)
+    table_headers = definition.get("table_headers", [])
+    outline_fields = definition.get("outline_fields", [])
+    sections = []
+    tables = []
+
+    if outline_fields:
+        sections.append({"title": "主要章節", "items": outline_fields[:6]})
+    if table_headers:
+        tables.append(
+            {
+                "title": "主要欄位",
+                "headers": table_headers[:6],
+                "rows": [["" for _ in table_headers[:6]] for _ in range(3)],
+            }
+        )
+
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": [definition["name"]],
+        "meta_rows": [(field, "") for field in definition.get("basic_fields", [])[:6]],
+        "sections": sections,
+        "tables": tables,
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+build_template_preview_data = getattr(
+    template_service,
+    "build_template_preview_data",
+    _fallback_template_preview_data,
 )
 
 CATEGORY_COLORS = {
