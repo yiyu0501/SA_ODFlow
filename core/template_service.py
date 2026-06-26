@@ -6,6 +6,7 @@ from core.database import DATA_DIR
 from core.filename import roc_date_string, sanitize_filename_component
 from generators.ods_generator import generate_ods_template
 from generators.odt_generator import generate_odt_template
+from generators.template_renderer import copy_odt_template
 
 
 TEMPLATE_LIBRARY_CATEGORIES = [
@@ -28,6 +29,7 @@ def _odt_template(
     instructions: list[str],
     evaluation_category: str = "",
     linked_document_type: str | None = None,
+    placeholder_template_path: str | None = None,
 ) -> dict:
     return {
         "id": template_id,
@@ -41,6 +43,7 @@ def _odt_template(
         "outline_fields": outline_fields,
         "instructions": instructions,
         "linked_document_type": linked_document_type,
+        "placeholder_template_path": placeholder_template_path,
     }
 
 
@@ -72,21 +75,22 @@ TEMPLATE_DEFINITIONS = {
     "日常行政": [
         _odt_template(
             "meeting_notice_odt",
-            "會議通知",
+            "開會通知單",
             "行政通知",
-            "用於公告開會時間、地點、討論主題與注意事項。",
-            ["會議名稱", "會議日期", "會議時間", "會議地點", "通知對象"],
-            ["會議目的", "討論主題", "會前提醒"],
-            ["請於寄送前補齊聯絡人與報到資訊。"],
+            "用於正式通知開會時間、地點、事由、出席者與聯絡資訊。",
+            ["受文者", "發文日期", "發文字號", "開會事由", "開會時間", "開會地點"],
+            ["正式通知欄位", "出列席名單", "用印處"],
+            ["請於寄送前補齊發文字號、聯絡電話與出席者。"],
             "2.社團行政_管理運作",
-            linked_document_type="開會通知",
+            linked_document_type="開會通知單",
+            placeholder_template_path="templates/odt_placeholders/meeting_notice_template.odt",
         ),
         _odt_template(
             "meeting_agenda_odt",
             "會議議程",
             "會議文件",
             "用於會前整理議程順序、報告事項與討論重點。",
-            ["會議名稱", "日期", "主席", "紀錄", "出席對象"],
+            ["會議名稱", "日期", "主席", "記錄人員", "出席對象"],
             ["報告事項", "討論事項", "臨時動議"],
             ["建議會前先編號各議案，方便會後整理紀錄。"],
             "2.社團行政_管理運作",
@@ -97,11 +101,12 @@ TEMPLATE_DEFINITIONS = {
             "會議紀錄",
             "會議文件",
             "用於會後整理正式會議紀錄與決議事項。",
-            ["會議名稱", "日期", "時間", "地點", "主席", "紀錄"],
+            ["會議名稱", "日期", "時間", "地點", "主席", "記錄人員"],
             ["出席與請假", "討論摘要", "決議事項", "待辦事項"],
             ["若已在 Generate 建立草稿，可再用此範本做手動整理。"],
             "2.社團行政_管理運作",
             linked_document_type="會議紀錄",
+            placeholder_template_path="templates/odt_placeholders/meeting_minutes_template.odt",
         ),
         _ods_template(
             "attendance_sheet_ods",
@@ -155,6 +160,7 @@ TEMPLATE_DEFINITIONS = {
             ["企劃定稿後可另搭配預算表與流程表。"],
             "6.社團活動_社團活動",
             linked_document_type="活動企劃書",
+            placeholder_template_path="templates/odt_placeholders/activity_proposal_template.odt",
         ),
         _ods_template(
             "activity_rundown_coarse_ods",
@@ -202,7 +208,7 @@ TEMPLATE_DEFINITIONS = {
             "活動檢討會紀錄",
             "檢討文件",
             "用於活動結束後整理問題、經驗與改進方向。",
-            ["活動名稱", "檢討日期", "主持人", "紀錄人"],
+            ["活動名稱", "檢討日期", "主持人", "記錄人員"],
             ["流程檢討", "宣傳檢討", "行政與器材檢討", "待改善事項"],
             ["建議活動結束一週內完成。"],
             "6.社團活動_社團活動",
@@ -349,6 +355,8 @@ def generate_template_file(
 
     format_name = definition["suggested_format"].upper()
     if format_name == "ODT":
+        if definition.get("placeholder_template_path"):
+            return copy_odt_template(definition["placeholder_template_path"], output_path)
         return generate_odt_template(definition, output_path=output_path)
     if format_name == "ODS":
         return generate_ods_template(definition, output_path=output_path)

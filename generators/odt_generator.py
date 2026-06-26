@@ -4,7 +4,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from core.document_schemas import derive_document_title
+from core.document_schemas import canonical_document_type, derive_document_title
 from generators.document_layout import build_document_render_spec, build_template_render_spec
 from generators.document_style import (
     BODY_FONT_SIZE_PT,
@@ -18,6 +18,7 @@ from generators.document_style import (
     TITLE_FONT_SIZE_PT,
 )
 from generators.export_utils import prepare_output_path, validate_export_payload
+from generators.template_renderer import TemplateRenderError, render_document_odt_template
 
 
 def _paragraph_xml(text: str, style_name: str = "PBody") -> str:
@@ -287,11 +288,26 @@ def generate_document_odt(
 ) -> Path:
     validated_document, validated_version = validate_export_payload(document, version)
     output_path = prepare_output_path(validated_document, validated_version, "odt", output_dir)
+    canonical_type = canonical_document_type(validated_document["document_type"])
+    template_document = {**validated_document, "document_type": canonical_type}
+
+    try:
+        template_output = render_document_odt_template(
+            canonical_type,
+            template_document,
+            validated_version["content_json"],
+            output_path,
+        )
+    except TemplateRenderError:
+        template_output = None
+    if template_output is not None:
+        return template_output
+
     spec = build_document_render_spec(
-        validated_document["document_type"],
+        canonical_type,
         validated_version["content_json"],
         title_override=derive_document_title(
-            validated_document["document_type"],
+            canonical_type,
             validated_version["content_json"],
             fallback=validated_document.get("title"),
         ),

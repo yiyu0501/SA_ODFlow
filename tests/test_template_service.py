@@ -42,7 +42,7 @@ class TemplateServiceTestCase(unittest.TestCase):
     def test_get_template_definition_returns_specific_template(self):
         definition = get_template_definition("meeting_notice_odt")
 
-        self.assertEqual(definition["name"], "會議通知")
+        self.assertEqual(definition["name"], "開會通知單")
         self.assertEqual(definition["suggested_format"], "ODT")
 
     def test_core_odt_templates_can_link_to_generate_flow(self):
@@ -51,7 +51,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         agenda_definition = get_template_definition("meeting_agenda_odt")
 
         self.assertEqual(proposal_definition["linked_document_type"], "活動企劃書")
-        self.assertEqual(notice_definition["linked_document_type"], "開會通知")
+        self.assertEqual(notice_definition["linked_document_type"], "開會通知單")
         self.assertEqual(agenda_definition["linked_document_type"], "會議議程")
 
     def test_generate_template_file_creates_odt(self):
@@ -65,6 +65,8 @@ class TemplateServiceTestCase(unittest.TestCase):
                 archive.read("mimetype"),
                 b"application/vnd.oasis.opendocument.text",
             )
+            content_xml = archive.read("content.xml").decode("utf-8")
+            self.assertIn("{{meeting_reason}}", content_xml)
 
     def test_generate_template_file_creates_ods(self):
         output_path = generate_template_file("attendance_sheet_ods")
