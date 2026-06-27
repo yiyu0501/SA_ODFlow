@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 from core.database import DATA_DIR
 from core.filename import roc_date_string, sanitize_filename_component
+from core.template_registry import (
+    FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT,
+    FORMAL_TEMPLATE_REGISTRY,
+    FORMAL_TEMPLATE_REGISTRY_BY_KEY,
+    TEMPLATE_LIBRARY_CATEGORIES,
+)
 from generators.ods_generator import generate_ods_template
 from generators.odt_generator import generate_odt_template
 from generators.template_renderer import copy_odt_template
 
-
-TEMPLATE_LIBRARY_CATEGORIES = [
-    "日常行政型",
-    "專案活動型",
-    "社團運作型",
-    "財務與清冊型",
-]
 
 DEFAULT_TEMPLATE_OUTPUT_DIR = DATA_DIR / "generated" / "templates"
 
@@ -71,7 +71,7 @@ def _ods_template(
     }
 
 
-TEMPLATE_DEFINITIONS = {
+LEGACY_TEMPLATE_DEFINITIONS = {
     "日常行政型": [
         _odt_template(
             "meeting_notice_odt",
@@ -312,47 +312,150 @@ TEMPLATE_DEFINITIONS = {
 }
 
 
-for category_name, templates in TEMPLATE_DEFINITIONS.items():
+for category_name, templates in LEGACY_TEMPLATE_DEFINITIONS.items():
     for template_definition in templates:
         template_definition["library_category"] = category_name
 
+LEGACY_TEMPLATE_DEFINITIONS_BY_ID = {
+    definition["id"]: definition
+    for definitions in LEGACY_TEMPLATE_DEFINITIONS.values()
+    for definition in definitions
+}
+
+
+def _build_formal_definition(registry_entry: dict) -> dict:
+    definition = {
+        "id": registry_entry["template_key"],
+        "template_key": registry_entry["template_key"],
+        "name": registry_entry["display_name"],
+        "display_name": registry_entry["display_name"],
+        "aliases": list(registry_entry["aliases"]),
+        "library_category": registry_entry["category"],
+        "category": registry_entry["category"],
+        "template_type": "正式範本",
+        "suggested_format": registry_entry["format"],
+        "format": registry_entry["format"],
+        "priority": registry_entry["priority"],
+        "supports_blank_download": registry_entry["supports_blank_download"],
+        "supports_generate_document": registry_entry["supports_generate_document"],
+        "spec_path": registry_entry["spec_path"],
+        "blank_template_path": registry_entry["blank_template_path"],
+        "renderer": registry_entry["renderer"],
+        "preview_type": registry_entry["preview_type"],
+        "implementation_status": registry_entry["implementation_status"],
+        "usage_description": registry_entry["short_description"],
+        "linked_document_type": registry_entry.get("linked_document_type"),
+        "evaluation_category": registry_entry.get("evaluation_category", ""),
+        "legacy_definition_id": registry_entry.get("legacy_definition_id"),
+        "forbidden_body_text": list(FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT),
+        "basic_fields": [],
+        "outline_fields": [],
+        "table_headers": [],
+        "instructions": [],
+    }
+
+    legacy_definition_id = registry_entry.get("legacy_definition_id")
+    if legacy_definition_id and legacy_definition_id in LEGACY_TEMPLATE_DEFINITIONS_BY_ID:
+        legacy_definition = LEGACY_TEMPLATE_DEFINITIONS_BY_ID[legacy_definition_id]
+        for field_name in [
+            "template_type",
+            "basic_fields",
+            "outline_fields",
+            "table_headers",
+            "instructions",
+            "placeholder_template_path",
+        ]:
+            if field_name in legacy_definition:
+                definition[field_name] = deepcopy(legacy_definition[field_name])
+        if not definition["evaluation_category"]:
+            definition["evaluation_category"] = legacy_definition.get("evaluation_category", "")
+
+    return definition
+
+
+FORMAL_TEMPLATE_DEFINITIONS = {
+    category: []
+    for category in TEMPLATE_LIBRARY_CATEGORIES
+}
+for registry_entry in FORMAL_TEMPLATE_REGISTRY:
+    FORMAL_TEMPLATE_DEFINITIONS[registry_entry["category"]].append(
+        _build_formal_definition(registry_entry)
+    )
+
+TEMPLATE_DEFINITIONS = FORMAL_TEMPLATE_DEFINITIONS
 TEMPLATE_DEFINITIONS_BY_ID = {
     definition["id"]: definition
     for definitions in TEMPLATE_DEFINITIONS.values()
     for definition in definitions
 }
 
-TEMPLATE_DEFINITION_ALIASES = {
-    "會議通知": "meeting_notice_odt",
-}
 
-for template_id, definition in TEMPLATE_DEFINITIONS_BY_ID.items():
-    TEMPLATE_DEFINITION_ALIASES.setdefault(definition["name"], template_id)
+TEMPLATE_DEFINITION_ALIASES: dict[str, str] = {}
+for registry_entry in FORMAL_TEMPLATE_REGISTRY:
+    template_key = registry_entry["template_key"]
+    TEMPLATE_DEFINITION_ALIASES[template_key] = template_key
+    TEMPLATE_DEFINITION_ALIASES[registry_entry["display_name"]] = template_key
+    for alias in registry_entry["aliases"]:
+        TEMPLATE_DEFINITION_ALIASES[alias] = template_key
 
 
 def resolve_template_definition_id(template_id: str) -> str:
-    return TEMPLATE_DEFINITION_ALIASES.get(template_id, template_id)
+    if template_id in LEGACY_TEMPLATE_DEFINITIONS_BY_ID:
+        return template_id
+    if template_id in TEMPLATE_DEFINITION_ALIASES:
+        return TEMPLATE_DEFINITION_ALIASES[template_id]
+    if template_id in TEMPLATE_DEFINITIONS_BY_ID:
+        return template_id
+    return template_id
 
 
 def list_template_definitions(category: str | None = None) -> list[dict]:
     if category is None:
         return [
-            TEMPLATE_DEFINITIONS_BY_ID[template_id].copy()
-            for template_id in TEMPLATE_DEFINITIONS_BY_ID
+            deepcopy(TEMPLATE_DEFINITIONS_BY_ID[entry["template_key"]])
+            for entry in FORMAL_TEMPLATE_REGISTRY
         ]
 
     if category not in TEMPLATE_DEFINITIONS:
         raise ValueError(f"不支援的範本分類: {category}")
 
-    return [definition.copy() for definition in TEMPLATE_DEFINITIONS[category]]
+    return [deepcopy(definition) for definition in TEMPLATE_DEFINITIONS[category]]
 
 
 def get_template_definition(template_id: str) -> dict:
     resolved_id = resolve_template_definition_id(template_id)
-    definition = TEMPLATE_DEFINITIONS_BY_ID.get(resolved_id)
-    if definition is None:
-        raise ValueError(f"找不到範本: {template_id}")
-    return definition.copy()
+    if resolved_id in TEMPLATE_DEFINITIONS_BY_ID:
+        return deepcopy(TEMPLATE_DEFINITIONS_BY_ID[resolved_id])
+    if resolved_id in LEGACY_TEMPLATE_DEFINITIONS_BY_ID:
+        return deepcopy(LEGACY_TEMPLATE_DEFINITIONS_BY_ID[resolved_id])
+    raise ValueError(f"找不到範本: {template_id}")
+
+
+def get_template_registry_entry(template_key: str) -> dict:
+    registry_entry = FORMAL_TEMPLATE_REGISTRY_BY_KEY.get(template_key)
+    if registry_entry is None:
+        raise ValueError(f"找不到範本 registry: {template_key}")
+    return deepcopy(registry_entry)
+
+
+def _get_generation_definition(template_id: str) -> tuple[dict, dict]:
+    resolved_id = resolve_template_definition_id(template_id)
+    if resolved_id in TEMPLATE_DEFINITIONS_BY_ID:
+        canonical_definition = TEMPLATE_DEFINITIONS_BY_ID[resolved_id]
+        if not canonical_definition["supports_blank_download"]:
+            raise ValueError(
+                f"範本「{canonical_definition['name']}」目前僅完成 registry 登錄，尚未提供正式空白範本下載。"
+            )
+        legacy_definition_id = canonical_definition.get("legacy_definition_id")
+        if legacy_definition_id and legacy_definition_id in LEGACY_TEMPLATE_DEFINITIONS_BY_ID:
+            return canonical_definition, LEGACY_TEMPLATE_DEFINITIONS_BY_ID[legacy_definition_id]
+        return canonical_definition, canonical_definition
+
+    if resolved_id in LEGACY_TEMPLATE_DEFINITIONS_BY_ID:
+        legacy_definition = LEGACY_TEMPLATE_DEFINITIONS_BY_ID[resolved_id]
+        return legacy_definition, legacy_definition
+
+    raise ValueError(f"找不到範本: {template_id}")
 
 
 def build_template_preview_data(template_id: str) -> dict:
@@ -360,9 +463,9 @@ def build_template_preview_data(template_id: str) -> dict:
     definition = get_template_definition(resolved_id)
 
     preview_builders = {
-        "meeting_minutes_template_odt": _build_meeting_minutes_preview_data,
-        "meeting_notice_odt": _build_meeting_notice_preview_data,
-        "activity_proposal_odt": _build_activity_proposal_preview_data,
+        "meeting_minutes": _build_meeting_minutes_preview_data,
+        "meeting_notice": _build_meeting_notice_preview_data,
+        "activity_proposal": _build_activity_proposal_preview_data,
     }
     builder = preview_builders.get(resolved_id, _build_generic_preview_data)
     return builder(definition)
@@ -372,7 +475,7 @@ def generate_template_file(
     template_id: str,
     output_dir: Path | str | None = None,
 ) -> Path:
-    definition = get_template_definition(template_id)
+    definition, generation_definition = _get_generation_definition(template_id)
     output_dir_path = Path(output_dir) if output_dir is not None else DEFAULT_TEMPLATE_OUTPUT_DIR
     output_dir_path.mkdir(parents=True, exist_ok=True)
     filename = _build_template_filename(definition)
@@ -380,11 +483,12 @@ def generate_template_file(
 
     format_name = definition["suggested_format"].upper()
     if format_name == "ODT":
-        if definition.get("placeholder_template_path"):
-            return copy_odt_template(definition["placeholder_template_path"], output_path)
-        return generate_odt_template(definition, output_path=output_path)
+        placeholder_template_path = generation_definition.get("placeholder_template_path")
+        if placeholder_template_path:
+            return copy_odt_template(placeholder_template_path, output_path)
+        return generate_odt_template(generation_definition, output_path=output_path)
     if format_name == "ODS":
-        return generate_ods_template(definition, output_path=output_path)
+        return generate_ods_template(generation_definition, output_path=output_path)
     raise ValueError(f"不支援的範本格式: {definition['suggested_format']}")
 
 
@@ -459,7 +563,7 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
     return {
         "template_name": definition["name"],
         "suggested_format": definition["suggested_format"],
-        "header_lines": ["{{school_name}}「{{activity_name}}」活動企劃書"],
+        "header_lines": ["{{school_name}}「{{activity_name}}」活動企畫書"],
         "meta_rows": [],
         "sections": [
             {
@@ -525,6 +629,14 @@ def _build_generic_preview_data(definition: dict) -> dict:
                 "title": "表格欄位",
                 "headers": table_headers,
                 "rows": [["" for _ in table_headers] for _ in range(3)],
+            }
+        )
+
+    if not meta_rows and not sections and not tables:
+        sections.append(
+            {
+                "title": "文件用途",
+                "items": [definition.get("usage_description", definition["name"])],
             }
         )
 

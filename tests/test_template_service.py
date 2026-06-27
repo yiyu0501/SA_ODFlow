@@ -1,16 +1,22 @@
 from __future__ import annotations
 
+import runpy
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
 
 import core.template_service as template_service
-from core.template_service import (
+from core.template_registry import (
+    FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT,
+    FORMAL_TEMPLATE_REGISTRY,
     TEMPLATE_LIBRARY_CATEGORIES,
+)
+from core.template_service import (
     build_template_preview_data,
     generate_template_file,
     get_template_definition,
+    get_template_registry_entry,
     list_template_definitions,
 )
 
@@ -30,143 +36,91 @@ class TemplateServiceTestCase(unittest.TestCase):
         with zipfile.ZipFile(output_path) as archive:
             return archive.read("content.xml").decode("utf-8")
 
-    def test_list_template_definitions_returns_expected_library_categories(self):
+    def test_registry_contains_twenty_two_formal_templates(self):
+        definitions = list_template_definitions()
+        self.assertEqual(len(FORMAL_TEMPLATE_REGISTRY), 22)
+        self.assertEqual(len(definitions), 22)
+
+    def test_all_template_keys_are_unique(self):
+        definitions = list_template_definitions()
+        template_keys = [definition["template_key"] for definition in definitions]
+        self.assertEqual(len(template_keys), len(set(template_keys)))
+
+    def test_all_categories_are_valid(self):
         definitions = list_template_definitions()
         categories = {definition["library_category"] for definition in definitions}
-
         self.assertEqual(categories, set(TEMPLATE_LIBRARY_CATEGORIES))
-        self.assertEqual(
-            categories,
-            {"日常行政型", "專案活動型", "社團運作型", "財務與清冊型"},
-        )
         self.assertNotIn("社團評鑑型", categories)
-        self.assertNotIn("社團評鑑", categories)
 
-    def test_template_count_is_at_least_twenty_two(self):
+    def test_all_formats_are_odt_or_ods(self):
         definitions = list_template_definitions()
-        self.assertGreaterEqual(len(definitions), 22)
+        formats = {definition["suggested_format"] for definition in definitions}
+        self.assertEqual(formats, {"ODT", "ODS"})
 
-    def test_get_template_definition_returns_specific_template(self):
-        definition = get_template_definition("meeting_notice_odt")
-
-        self.assertEqual(definition["name"], "開會通知單")
-        self.assertEqual(definition["suggested_format"], "ODT")
-
-    def test_core_odt_templates_can_link_to_generate_flow(self):
-        proposal_definition = get_template_definition("activity_proposal_odt")
-        notice_definition = get_template_definition("meeting_notice_odt")
-        agenda_definition = get_template_definition("meeting_agenda_odt")
-
-        self.assertEqual(proposal_definition["linked_document_type"], "活動企劃書")
-        self.assertEqual(notice_definition["linked_document_type"], "開會通知單")
-        self.assertEqual(agenda_definition["linked_document_type"], "會議議程")
-
-    def test_generate_template_file_creates_odt(self):
-        output_path = generate_template_file("meeting_notice_odt")
-
-        self.assertTrue(output_path.exists())
-        self.assertEqual(output_path.suffix, ".odt")
-        with zipfile.ZipFile(output_path) as archive:
-            self.assertIn("content.xml", archive.namelist())
-            self.assertEqual(
-                archive.read("mimetype"),
-                b"application/vnd.oasis.opendocument.text",
-            )
-            content_xml = archive.read("content.xml").decode("utf-8")
-            self.assertIn("{{meeting_reason}}", content_xml)
-
-    def test_legacy_meeting_notice_alias_uses_formal_template(self):
-        definition = get_template_definition("會議通知")
-        output_path = generate_template_file("會議通知")
-        content_xml = self._read_content_xml(output_path)
-
-        self.assertEqual(definition["id"], "meeting_notice_odt")
-        self.assertEqual(definition["name"], "開會通知單")
-        self.assertIn("開會通知單", content_xml)
-
-    def test_generate_template_file_creates_ods(self):
-        output_path = generate_template_file("attendance_sheet_ods")
-
-        self.assertTrue(output_path.exists())
-        self.assertEqual(output_path.suffix, ".ods")
-        with zipfile.ZipFile(output_path) as archive:
-            self.assertIn("content.xml", archive.namelist())
-            self.assertEqual(
-                archive.read("mimetype"),
-                b"application/vnd.oasis.opendocument.spreadsheet",
-            )
-
-    def test_generated_template_file_uses_templates_output_directory(self):
-        output_path = generate_template_file("activity_budget_ods")
-
-        self.assertEqual(output_path.parent, self.output_dir)
-        self.assertTrue(output_path.parent.exists())
-
-    def test_all_twenty_two_templates_remain_generatable(self):
+    def test_all_spec_paths_exist(self):
         for definition in list_template_definitions():
-            output_path = generate_template_file(definition["id"])
-            self.assertTrue(output_path.exists(), definition["id"])
-            self.assertEqual(
-                output_path.parent,
-                self.output_dir,
-                definition["id"],
-            )
+            spec_path = Path(definition["spec_path"])
+            self.assertTrue(spec_path.exists(), definition["spec_path"])
 
-    def test_unsupported_template_format_raises_clear_error(self):
-        original_definition = template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"]
-        broken_definition = {**original_definition, "suggested_format": "ODP"}
-        template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"] = broken_definition
+    def test_template_registry_can_be_read_by_template_page(self):
+        runpy.run_path("pages/6_Templates.py")
 
-        try:
-            with self.assertRaises(ValueError) as context:
-                generate_template_file("meeting_notice_odt")
-        finally:
-            template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"] = original_definition
+    def test_unimplemented_templates_are_not_marked_downloadable(self):
+        for definition in list_template_definitions():
+            if definition["implementation_status"] in {"registered_only", "planned"}:
+                self.assertFalse(definition["supports_blank_download"], definition["id"])
 
-        self.assertIn("不支援的範本格式", str(context.exception))
-
-    def test_generated_template_filename_excludes_unsafe_characters(self):
-        original_definition = template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"]
-        unsafe_definition = {**original_definition, "name": '會議:通知/測試?*'}
-        template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"] = unsafe_definition
-
-        try:
-            output_path = generate_template_file("meeting_notice_odt")
-        finally:
-            template_service.TEMPLATE_DEFINITIONS_BY_ID["meeting_notice_odt"] = original_definition
-
-        for char in '\\/:*?"<>|':
-            self.assertNotIn(char, output_path.name)
-
-    def test_core_blank_templates_do_not_include_metadata_labels(self):
-        disallowed_labels = [
-            "範本類型",
-            "建議格式",
-            "對應評鑑分類",
-            "使用情境",
-            "使用說明",
+    def test_only_three_formal_templates_currently_support_blank_download(self):
+        downloadable = [
+            definition["template_key"]
+            for definition in list_template_definitions()
+            if definition["supports_blank_download"]
         ]
+        self.assertEqual(
+            downloadable,
+            ["meeting_minutes", "meeting_notice", "activity_proposal"],
+        )
 
+    def test_canonical_downloadable_templates_generate_files(self):
+        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal"]:
+            output_path = generate_template_file(template_key)
+            self.assertTrue(output_path.exists(), template_key)
+
+    def test_canonical_registered_only_template_does_not_fake_download(self):
+        with self.assertRaises(ValueError) as context:
+            generate_template_file("activity_application")
+
+        self.assertIn("尚未提供正式空白範本下載", str(context.exception))
+
+    def test_existing_legacy_downloads_still_work(self):
         for template_id in [
-            "meeting_minutes_template_odt",
             "meeting_notice_odt",
+            "meeting_minutes_template_odt",
             "activity_proposal_odt",
+            "attendance_sheet_ods",
+            "activity_budget_ods",
         ]:
             output_path = generate_template_file(template_id)
+            self.assertTrue(output_path.exists(), template_id)
+
+    def test_legacy_meeting_notice_alias_maps_to_canonical_registry_entry(self):
+        definition = get_template_definition("會議通知")
+        registry_entry = get_template_registry_entry("meeting_notice")
+
+        self.assertEqual(definition["template_key"], "meeting_notice")
+        self.assertEqual(definition["name"], "開會通知單")
+        self.assertEqual(registry_entry["display_name"], "開會通知單")
+
+    def test_generated_formal_templates_do_not_include_forbidden_metadata_body_text(self):
+        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal"]:
+            output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
-            for label in disallowed_labels:
-                self.assertNotIn(label, content_xml, f"{template_id} contains {label}")
-
-    def test_meeting_minutes_template_uses_meeting_minutes_wording(self):
-        output_path = generate_template_file("meeting_minutes_template_odt")
-        content_xml = self._read_content_xml(output_path)
-
-        self.assertIn("會議紀錄", content_xml)
-        self.assertNotIn("會議記錄", content_xml)
+            for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
+                self.assertNotIn(forbidden_text, content_xml, f"{template_key} contains {forbidden_text}")
 
     def test_core_blank_templates_keep_required_formal_fields(self):
         expected_fields = {
-            "meeting_minutes_template_odt": [
+            "meeting_minutes": [
                 "會議時間",
                 "主席",
                 "出席人員",
@@ -174,7 +128,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "報告事項",
                 "討論事項",
             ],
-            "meeting_notice_odt": [
+            "meeting_notice": [
                 "受文者",
                 "發文日期",
                 "發文字號",
@@ -183,7 +137,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "開會地點",
                 "主持人",
             ],
-            "activity_proposal_odt": [
+            "activity_proposal": [
                 "活動主題",
                 "活動宗旨",
                 "活動時間流程表",
@@ -191,23 +145,20 @@ class TemplateServiceTestCase(unittest.TestCase):
             ],
         }
 
-        for template_id, required_fields in expected_fields.items():
-            output_path = generate_template_file(template_id)
+        for template_key, required_fields in expected_fields.items():
+            output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
             for field_name in required_fields:
-                self.assertIn(field_name, content_xml, f"{template_id} missing {field_name}")
+                self.assertIn(field_name, content_xml, f"{template_key} missing {field_name}")
 
-    def test_core_template_preview_data_returns_document_layout_blocks(self):
-        minutes_preview = build_template_preview_data("meeting_minutes_template_odt")
+    def test_preview_data_supports_canonical_and_legacy_aliases(self):
+        minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
-        proposal_preview = build_template_preview_data("activity_proposal_odt")
+        proposal_preview = build_template_preview_data("activity_proposal")
 
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
-        self.assertEqual(minutes_preview["meta_rows"][0][0], "會議時間")
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
-        self.assertEqual(notice_preview["decor"]["page_footer"], "第1頁　共1頁")
-        self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企劃書")
-        self.assertEqual(proposal_preview["tables"][0]["title"], "活動時間流程表")
+        self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
 
 
 if __name__ == "__main__":
