@@ -5,7 +5,7 @@ ODFlow 是一套學生社團 ODF 文件流與評鑑整理系統，協助社團�
 ## 線上展示
 
 - Streamlit App：[https://sa-odflow.streamlit.app/](https://sa-odflow.streamlit.app/)
-- 目前正進行 v0.3 介面與互動體驗升級，重點是中文介面、空白範本直接下載、儀表板與社團評鑑頁更直覺。
+- v0.4 UIUX 第一階段已依 [docs/v04_uiux_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v04_uiux_spec.md) 實作首頁工作台、空白範本中心、生成文件流程骨架與儀表板定位調整。
 
 ## 解決問題
 
@@ -142,6 +142,7 @@ python3 -m venv .venv
 - 財務與清冊型
 
 目前可直接下載空白 ODT / ODS 範本，不需要先建立文件；另外也支援 7 個核心 ODT 範本直接「使用此範本建立文件」，帶入「生成文件」建立正式文件。Task 15 後，會議紀錄、開會通知單、活動企劃書三個核心文件優先使用正式 ODT placeholder 樣板填入，不再下載 metadata 型說明頁。空白範本頁的「預覽」為版型近似預覽，實際格式以下載 ODT / ODS 為準。會議議程、活動成果報告、活動檢討會紀錄、年度計畫與出席簽到表則沿用既有正式風格 generator。
+Task 19 主要整理 UIUX 與工作流程，不包含全部 22 個空白範本的正式化版型升級；其餘範本精修會由後續任務處理。
 
 ### 社團設定
 

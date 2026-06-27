@@ -14,6 +14,7 @@ from core.export_service import (
 )
 from core.evaluation_service import get_evaluation_summary
 from core.settings_service import get_evaluation_export_defaults
+from core.ui_components import badge_html, card_html, inject_base_styles, page_intro
 
 
 def _resolve_download_path(path_value: str | None) -> Path | None:
@@ -211,13 +212,30 @@ def _render_export_result(title: str, session_key: str, download_label: str, mim
 
 
 initialize_database()
+inject_base_styles()
 _initialize_export_form_state()
 summary = get_evaluation_summary()
 records = collect_exportable_documents()
 pdf_exportable_documents, pdf_blocked_documents = _classify_pdf_package_records(records)
 
-st.title("社團評鑑")
-st.caption("七大評鑑項目檢核、PDF 評鑑上傳包預覽與 ZIP 下載")
+page_intro(
+    "社團評鑑",
+    "檢查七大評鑑項目的缺件、可打包文件與 PDF / ODF ZIP 輸出。",
+    eyebrow="Evaluation",
+)
+
+st.markdown(
+    card_html(
+        "本頁角色",
+        "這一頁聚焦評鑑資料完整度、可打包 / 不可打包原因與最後的 ZIP 匯出。"
+        " 日常文件動態與常用範本，請到「儀表板」查看。",
+        badges=[
+            badge_html("PDF 評鑑上傳包", tone="primary"),
+            badge_html("ODF 原始檔備份 ZIP", tone="neutral"),
+        ],
+    ),
+    unsafe_allow_html=True,
+)
 
 metric_col1, metric_col2, metric_col3 = st.columns(3)
 with metric_col1:

@@ -3,12 +3,17 @@ from __future__ import annotations
 import streamlit as st
 
 from core.database import initialize_database
+from core.ui_components import inject_base_styles, page_intro
 
 
 initialize_database()
+inject_base_styles()
 
-st.title("專案")
-st.caption("未來擴充頁：活動生命週期與相關文件整理")
+page_intro(
+    "專案",
+    "未來擴充頁：活動生命週期與相關文件整理。",
+    eyebrow="Future",
+)
 
 st.info(
     "「專案」目前不是 ODFlow 的核心功能。"
