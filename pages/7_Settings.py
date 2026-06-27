@@ -5,6 +5,7 @@ import streamlit as st
 from core.database import initialize_database
 from core.demo_data import create_demo_data
 from core.settings_service import get_club_settings, save_club_settings
+from core.ui_components import inject_base_styles, page_intro
 
 
 def _sync_evaluation_export_state(settings: dict) -> None:
@@ -14,10 +15,14 @@ def _sync_evaluation_export_state(settings: dict) -> None:
 
 
 initialize_database()
+inject_base_styles()
 settings = get_club_settings()
 
-st.title("社團設定")
-st.caption("社團基本資料、評鑑匯出預設值與展示用示範資料")
+page_intro(
+    "社團設定",
+    "管理社團基本資料、評鑑匯出預設值與展示用示範資料。",
+    eyebrow="Settings",
+)
 
 settings_message = st.session_state.pop("settings_message", "")
 if settings_message:

@@ -26,6 +26,7 @@ from core.document_service import (
 from core.evaluation_service import COMPLETED_STATUSES, IN_PROGRESS_STATUSES
 from core.meeting_minutes import people_list_to_text
 from core.settings_service import get_club_settings
+from core.ui_components import inject_base_styles, page_intro
 from generators.odt_generator import generate_document_odt
 from generators.pdf_generator import generate_document_pdf
 
@@ -114,11 +115,15 @@ def _render_document_editor(document_type: str, content_json: dict, prefix: str)
 
 
 initialize_database()
+inject_base_styles()
 
 files_message = st.session_state.pop("files_message", "")
 
-st.title("檔案庫")
-st.caption("文件列表、版本管理、狀態切換與 ODF / PDF 匯出")
+page_intro(
+    "檔案庫",
+    "管理文件列表、版本、狀態與 ODF / PDF 匯出。",
+    eyebrow="File Library",
+)
 
 if files_message:
     st.success(files_message)
