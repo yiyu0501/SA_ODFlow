@@ -24,6 +24,13 @@ TEMPLATE_LIBRARY_CATEGORIES = getattr(
 generate_template_file = template_service.generate_template_file
 list_template_definitions = template_service.list_template_definitions
 
+STATUS_BADGE = {
+    "implemented": ("已實作", "success"),
+    "partial": ("部分實作", "warning"),
+    "registered_only": ("已登錄", "neutral"),
+    "planned": ("規劃中", "neutral"),
+}
+
 
 def _fallback_template_preview_data(template_id: str) -> dict:
     definition = template_service.get_template_definition(template_id)
@@ -72,6 +79,9 @@ def _resolve_download_path(path_value: str | None) -> Path | None:
 
 
 def _ensure_template_download_path(definition: dict) -> tuple[Path | None, str | None]:
+    if not definition.get("supports_blank_download"):
+        return None, "此範本目前僅完成 registry 登錄，尚未提供正式空白範本下載。"
+
     cached_path = _resolve_download_path(
         st.session_state.setdefault("template_downloads", {}).get(definition["id"])
     )
@@ -348,6 +358,11 @@ with left_col:
             category_badge_html(definition["library_category"]),
             badge_html(definition["suggested_format"], tone="neutral"),
         ]
+        status_text, status_tone = STATUS_BADGE.get(
+            definition.get("implementation_status", "registered_only"),
+            ("已登錄", "neutral"),
+        )
+        badges.append(badge_html(status_text, tone=status_tone))
         if definition.get("evaluation_category"):
             badges.append(badge_html(definition["evaluation_category"], tone="neutral"))
         if is_selected:
@@ -385,7 +400,7 @@ with left_col:
                     type="primary",
                 )
             with action_col3:
-                if definition.get("linked_document_type"):
+                if definition.get("supports_generate_document") and definition.get("linked_document_type"):
                     if st.button(
                         "使用此範本建立文件",
                         key=f"use_{definition['id']}",
