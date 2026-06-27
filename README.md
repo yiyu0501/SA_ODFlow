@@ -194,6 +194,7 @@ PDF 目前仍沿用 Task 14 的 PDF generator。未來若要讓 PDF 更貼近 OD
 ## 文件
 
 - 開發規格書：[docs/product_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/product_spec.md)
+- v0.4 UIUX 規格書：[docs/v04_uiux_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v04_uiux_spec.md)
 - 安裝說明：[docs/setup_guide.md](/Users/yiyu/Documents/SA_OPFlow/docs/setup_guide.md)
 - 3 分鐘展示腳本：[docs/demo_script.md](/Users/yiyu/Documents/SA_OPFlow/docs/demo_script.md)
 - 5 分鐘評審展示流程：[docs/judge_demo_flow.md](/Users/yiyu/Documents/SA_OPFlow/docs/judge_demo_flow.md)
