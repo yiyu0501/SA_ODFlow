@@ -6,6 +6,7 @@ ODFlow 是一套學生社團 ODF 文件流與評鑑整理系統，協助社團�
 
 - Streamlit App：[https://sa-odflow.streamlit.app/](https://sa-odflow.streamlit.app/)
 - v0.4 UIUX 第一階段已依 [docs/v04_uiux_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v04_uiux_spec.md) 實作首頁工作台、空白範本中心、生成文件流程骨架與儀表板定位調整。
+- 目前持續進行 UI 視覺細修，重點放在側欄品牌、首頁工作流程、空白範本瀏覽體驗與生成文件的操作層級。
 
 ## 解決問題
 

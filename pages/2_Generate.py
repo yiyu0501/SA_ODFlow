@@ -29,6 +29,7 @@ from core.ui_components import (
     card_html,
     empty_state,
     inject_base_styles,
+    panel_body_html,
     page_intro,
     render_stepper,
 )
@@ -272,8 +273,8 @@ generate_message = st.session_state.pop("generate_message", "")
 
 page_intro(
     "生成文件",
-    "依需求選擇文件類型，填寫內容並預覽匯出。",
-    eyebrow="Create Document",
+    "依三步驟完成文件建立、草稿編修與 ODT / PDF 匯出。",
+    eyebrow="三步驟流程",
 )
 if generate_message:
     st.success(generate_message)
@@ -305,20 +306,23 @@ for index, document_type in enumerate(SUPPORTED_DOCUMENT_TYPES):
         ]
         if active_document_type == document_type:
             badges.append(badge_html("目前選擇", tone="success"))
-        st.markdown(
-            card_html(
-                document_type,
-                DOCUMENT_TYPE_SUMMARIES.get(document_type, "建立正式社團文件。"),
-                badges=badges,
-            ),
-            unsafe_allow_html=True,
-        )
-        if st.button(
-            "選擇這份文件",
-            key=f"select_document_type_{document_type}",
-            use_container_width=True,
-        ):
-            _set_document_type(document_type)
+        with st.container(border=True):
+            st.markdown(
+                panel_body_html(
+                    document_type,
+                    DOCUMENT_TYPE_SUMMARIES.get(document_type, "建立正式社團文件。"),
+                    badges=badges,
+                    eyebrow="文件類型",
+                ),
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                "選擇這份文件",
+                key=f"select_document_type_{document_type}",
+                use_container_width=True,
+                type="primary" if active_document_type == document_type else "secondary",
+            ):
+                _set_document_type(document_type)
 
 st.markdown("### Step 2｜填寫內容")
 st.caption(f"目前文件類型：{active_document_type} ｜ {DOCUMENT_TYPE_SUMMARIES.get(active_document_type, '')}")
@@ -342,7 +346,7 @@ if active_document_type == "會議紀錄":
                 placeholder="請貼上逐字稿、會議摘要或條列內容",
                 height=220,
             )
-            parse_submitted = st.form_submit_button("產生會議紀錄草稿")
+            parse_submitted = st.form_submit_button("產生會議紀錄草稿", type="primary")
         if parse_submitted:
             draft = parse_meeting_minutes(
                 transcript_text=transcript_text,
@@ -367,14 +371,14 @@ if active_document_type == "會議紀錄":
         )
         utility_col1, utility_col2 = st.columns(2, gap="small")
         with utility_col1:
-            if st.button("建立空白草稿", use_container_width=True):
+            if st.button("建立空白草稿", use_container_width=True, type="secondary"):
                 st.session_state["generate_draft_content"] = get_default_document_content("會議紀錄")
                 st.session_state["generate_document_id"] = None
                 st.session_state["generate_evaluation_category"] = recommended_category
                 st.session_state["generate_message"] = "已建立空白會議紀錄草稿。"
                 st.rerun()
         with utility_col2:
-            if st.button("清除目前草稿", use_container_width=True):
+            if st.button("清除目前草稿", use_container_width=True, type="tertiary"):
                 _reset_generate_state("會議紀錄")
                 st.rerun()
 else:
@@ -391,14 +395,14 @@ else:
         draft_content = st.session_state["generate_draft_content"]
     utility_col1, utility_col2 = st.columns(2, gap="small")
     with utility_col1:
-        if st.button("建立空白草稿", use_container_width=True):
+        if st.button("建立空白草稿", use_container_width=True, type="secondary"):
             st.session_state["generate_draft_content"] = get_default_document_content(active_document_type)
             st.session_state["generate_document_id"] = None
             st.session_state["generate_evaluation_category"] = recommended_category
             st.session_state["generate_message"] = f"已建立「{active_document_type}」空白草稿。"
             st.rerun()
     with utility_col2:
-        if st.button("清除目前草稿", use_container_width=True):
+        if st.button("清除目前草稿", use_container_width=True, type="tertiary"):
             _reset_generate_state(active_document_type)
             st.session_state["generate_draft_content"] = get_default_document_content(active_document_type)
             st.rerun()
@@ -434,7 +438,9 @@ else:
             placeholder="例如：補上流程細節、更新分工",
         )
         save_submitted = st.form_submit_button(
-            "儲存為新文件" if active_document_id is None else "儲存為新版本"
+            "儲存為新文件" if active_document_id is None else "儲存為新版本",
+            type="primary",
+            use_container_width=True,
         )
 
     if save_submitted:
@@ -519,14 +525,14 @@ else:
 
             generate_col1, generate_col2 = st.columns(2, gap="small")
             with generate_col1:
-                if st.button("產生 ODT", use_container_width=True):
+                if st.button("產生 ODT", use_container_width=True, type="primary"):
                     odf_path, error = _ensure_export_file(export_document, version, "odt")
                     st.session_state["generate_message"] = (
                         f"已產生 ODT：{odf_path}" if error is None else f"產生 ODT 失敗：{error}"
                     )
                     st.rerun()
             with generate_col2:
-                if st.button("產生 PDF", use_container_width=True):
+                if st.button("產生 PDF", use_container_width=True, type="secondary"):
                     pdf_path, error = _ensure_export_file(export_document, version, "pdf")
                     st.session_state["generate_message"] = (
                         f"已產生 PDF：{pdf_path}" if error is None else f"產生 PDF 失敗：{error}"
@@ -545,6 +551,7 @@ else:
                 mime="application/vnd.oasis.opendocument.text",
                 disabled=not odf_path,
                 use_container_width=True,
+                type="primary",
             )
             st.download_button(
                 "下載 PDF",
@@ -553,5 +560,6 @@ else:
                 mime="application/pdf",
                 disabled=not pdf_path,
                 use_container_width=True,
+                type="secondary",
             )
             st.caption("如需進一步調整版本、狀態與正式版設定，請到「檔案庫」管理。")

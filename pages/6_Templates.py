@@ -9,9 +9,9 @@ import core.template_service as template_service
 from core.database import initialize_database
 from core.ui_components import (
     badge_html,
-    card_html,
     category_badge_html,
     inject_base_styles,
+    panel_body_html,
     page_intro,
     paper_preview_shell,
 )
@@ -236,23 +236,24 @@ st.session_state.setdefault("template_selected_id", all_templates[0]["id"] if al
 
 page_intro(
     "空白範本中心",
-    "提供多種常用文件空白範本，下載 ODT / ODS 檔案進行編輯，快速開始撰寫文件。",
-    eyebrow="Template Center",
+    "直接下載空白 ODT / ODS 範本，或用核心範本帶入生成文件流程。",
+    eyebrow="ODFlow",
 )
 st.caption(
     "本頁可直接下載空白 ODT / ODS 範本；三個核心文件已支援正式 ODT 樣板填入。"
 )
 
-tool_col1, tool_col2 = st.columns((1.6, 1), gap="medium")
+tool_col1, tool_col2 = st.columns((1.6, 0.9), gap="medium")
 with tool_col1:
-    keyword = st.text_input("搜尋範本", placeholder="例如：會議、企劃、名冊、年度計畫")
+    keyword = st.text_input(
+        "搜尋範本 🔎",
+        placeholder="輸入關鍵字，例如：會議、企劃、名冊、年度計畫",
+    )
 with tool_col2:
     category_options = ["全部", *TEMPLATE_LIBRARY_CATEGORIES]
-    selected_category = st.radio(
+    selected_category = st.selectbox(
         "分類篩選",
         options=category_options,
-        horizontal=True,
-        label_visibility="collapsed",
     )
 
 filtered_templates = [
@@ -279,35 +280,62 @@ if filtered_templates:
     )
     st.session_state["template_selected_id"] = selected_definition["id"]
 
-summary_col1, summary_col2 = st.columns((2, 1))
+summary_col1, summary_col2 = st.columns((1.5, 1), gap="medium")
 with summary_col1:
-    st.markdown(
-        card_html(
-            "目前支援的空白範本",
-            f"共 {template_count} 個空白 ODT / ODS 範本，可依日常行政、活動專案、社團運作與財務清冊快速開始。",
-            badges=[
-                badge_html(f"目前顯示 {len(filtered_templates)} 個", tone="primary"),
-                badge_html("A4 文件預覽", tone="neutral"),
-            ],
-        ),
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown(
+            panel_body_html(
+                "目前支援的空白範本",
+                f"共 {template_count} 個空白 ODT / ODS 範本，依日常行政、專案活動、社團運作與財務清冊快速開始。",
+                badges=[
+                    badge_html(f"目前顯示 {len(filtered_templates)} 個", tone="primary"),
+                    badge_html("A4 文件版型近似預覽", tone="neutral"),
+                ],
+                eyebrow="Template Center",
+            ),
+            unsafe_allow_html=True,
+        )
 with summary_col2:
-    st.markdown(
-        card_html(
-            "範本使用方式",
-            "先看右側文件版型近似預覽，再決定直接下載空白範本，或用核心範本進入生成文件流程。",
-            badges=[badge_html("ODT / ODS", tone="neutral")],
-        ),
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown(
+            panel_body_html(
+                "範本使用方式",
+                "先看右側文件版型近似預覽，再決定直接下載空白範本，或用核心範本進入生成文件流程。",
+                badges=[badge_html("ODT / ODS", tone="neutral")],
+                eyebrow="使用說明",
+            ),
+            unsafe_allow_html=True,
+        )
 
-left_col, right_col = st.columns((1.1, 1), gap="large")
+left_col, right_col = st.columns((1.02, 1.18), gap="large")
 
 with left_col:
     st.markdown("### 範本列表")
     if not filtered_templates:
         st.info("目前沒有符合搜尋條件的範本。請調整關鍵字或分類。")
+    else:
+        quick_select_options = {
+            f"{definition['name']}｜{definition['suggested_format']}": definition["id"]
+            for definition in filtered_templates
+        }
+        selected_label = next(
+            (
+                label
+                for label, template_id in quick_select_options.items()
+                if template_id == st.session_state["template_selected_id"]
+            ),
+            next(iter(quick_select_options)),
+        )
+        picked_label = st.selectbox(
+            "快速切換預覽",
+            options=list(quick_select_options.keys()),
+            index=list(quick_select_options.keys()).index(selected_label),
+        )
+        selected_from_picker = quick_select_options[picked_label]
+        if selected_from_picker != st.session_state["template_selected_id"]:
+            st.session_state["template_selected_id"] = selected_from_picker
+            st.rerun()
+
     for definition in filtered_templates:
         download_path, download_error = _ensure_template_download_path(definition)
         mime = (
@@ -325,43 +353,57 @@ with left_col:
         if is_selected:
             badges.append(badge_html("目前預覽中", tone="primary"))
 
-        st.markdown(
-            card_html(definition["name"], definition["usage_description"], badges=badges),
-            unsafe_allow_html=True,
-        )
-        action_col1, action_col2, action_col3 = st.columns(3, gap="small")
-        with action_col1:
-            if st.button("預覽", key=f"preview_{definition['id']}", use_container_width=True):
-                st.session_state["template_selected_id"] = definition["id"]
-                st.rerun()
-        with action_col2:
-            st.download_button(
-                "下載空白範本",
-                data=download_path.read_bytes() if download_path is not None else b"",
-                file_name=download_path.name if download_path is not None else "",
-                mime=mime,
-                disabled=download_path is None,
-                key=f"download_{definition['id']}",
-                use_container_width=True,
+        with st.container(border=True):
+            st.markdown(
+                panel_body_html(
+                    definition["name"],
+                    definition["usage_description"],
+                    badges=badges,
+                    eyebrow="空白範本",
+                ),
+                unsafe_allow_html=True,
             )
-        with action_col3:
-            if definition.get("linked_document_type"):
+            action_col1, action_col2, action_col3 = st.columns((0.78, 1.22, 1.24), gap="small")
+            with action_col1:
                 if st.button(
-                    "使用此範本建立文件",
-                    key=f"use_{definition['id']}",
+                    "預覽",
+                    key=f"preview_{definition['id']}",
                     use_container_width=True,
+                    type="tertiary",
                 ):
-                    _route_to_generate(definition)
-                    if not hasattr(st, "switch_page"):
-                        st.success("已帶入建立流程，請前往「生成文件」繼續。")
-            else:
-                st.button(
-                    "使用此範本建立文件",
-                    key=f"disabled_use_{definition['id']}",
-                    disabled=True,
+                    st.session_state["template_selected_id"] = definition["id"]
+                    st.rerun()
+            with action_col2:
+                st.download_button(
+                    "下載空白範本",
+                    data=download_path.read_bytes() if download_path is not None else b"",
+                    file_name=download_path.name if download_path is not None else "",
+                    mime=mime,
+                    disabled=download_path is None,
+                    key=f"download_{definition['id']}",
                     use_container_width=True,
-                    help="此範本目前提供空白下載，尚未串接到生成文件流程。",
+                    type="primary",
                 )
+            with action_col3:
+                if definition.get("linked_document_type"):
+                    if st.button(
+                        "使用此範本建立文件",
+                        key=f"use_{definition['id']}",
+                        use_container_width=True,
+                        type="secondary",
+                    ):
+                        _route_to_generate(definition)
+                        if not hasattr(st, "switch_page"):
+                            st.success("已帶入建立流程，請前往「生成文件」繼續。")
+                else:
+                    st.button(
+                        "使用此範本建立文件",
+                        key=f"disabled_use_{definition['id']}",
+                        disabled=True,
+                        use_container_width=True,
+                        type="secondary",
+                        help="此範本目前提供空白下載，尚未串接到生成文件流程。",
+                    )
         if download_error:
             st.caption(f"目前無法準備下載：{download_error}")
 
@@ -370,15 +412,18 @@ with right_col:
     if selected_definition is None:
         st.info("請先從左側選擇一份範本。")
     else:
-        st.markdown(
-            card_html(
-                selected_definition["name"],
-                selected_definition["usage_description"],
-                badges=[
-                    category_badge_html(selected_definition["library_category"]),
-                    badge_html(selected_definition["suggested_format"], tone="neutral"),
-                ],
-            ),
-            unsafe_allow_html=True,
-        )
+        with st.container(border=True):
+            st.markdown(
+                panel_body_html(
+                    selected_definition["name"],
+                    selected_definition["usage_description"],
+                    badges=[
+                        category_badge_html(selected_definition["library_category"]),
+                        badge_html(selected_definition["suggested_format"], tone="neutral"),
+                        badge_html("目前預覽中", tone="primary"),
+                    ],
+                    eyebrow="文件版型近似預覽",
+                ),
+                unsafe_allow_html=True,
+            )
         st.markdown(_render_preview_html(selected_definition), unsafe_allow_html=True)
