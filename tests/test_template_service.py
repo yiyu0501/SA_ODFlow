@@ -4,6 +4,7 @@ import runpy
 import tempfile
 import unittest
 import zipfile
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import core.template_service as template_service
@@ -35,6 +36,9 @@ class TemplateServiceTestCase(unittest.TestCase):
     def _read_content_xml(self, output_path: Path) -> str:
         with zipfile.ZipFile(output_path) as archive:
             return archive.read("content.xml").decode("utf-8")
+
+    def _read_content_tree(self, output_path: Path) -> ET.Element:
+        return ET.fromstring(self._read_content_xml(output_path))
 
     def test_registry_contains_twenty_two_formal_templates(self):
         definitions = list_template_definitions()
@@ -78,13 +82,91 @@ class TemplateServiceTestCase(unittest.TestCase):
         ]
         self.assertEqual(
             downloadable,
-            ["meeting_minutes", "meeting_notice", "activity_proposal"],
+            ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"],
         )
 
     def test_canonical_downloadable_templates_generate_files(self):
-        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal"]:
+        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
+
+    def test_income_expense_statement_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("income_expense_statement")
+
+        self.assertEqual(definition["template_key"], "income_expense_statement")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+
+    def test_income_expense_statement_ods_contains_required_sheets(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("income_expense_statement")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+
+        self.assertIn("收支明細", sheet_names)
+        self.assertIn("活動彙總", sheet_names)
+        self.assertIn("類別彙總", sheet_names)
+
+    def test_income_expense_statement_detail_sheet_headers_and_formula_exist(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("income_expense_statement")
+        tree = self._read_content_tree(output_path)
+        detail_sheet = tree.find(".//table:table[@table:name='收支明細']", namespaces)
+        self.assertIsNotNone(detail_sheet)
+
+        text_values = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in detail_sheet.findall(".//text:p", namespaces)
+        ]
+        for header in [
+            "序號",
+            "日期",
+            "類別",
+            "品項",
+            "支出",
+            "收入",
+            "餘額",
+            "代墊人",
+            "是否已撥款",
+            "是否已列入活動結算",
+            "對應活動",
+            "憑證／明細表",
+            "備註",
+        ]:
+            self.assertIn(header, text_values)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in detail_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertTrue(any("[.$B$5]" in formula for formula in formulas))
+        self.assertTrue(any("[.G8]" in formula or "[.G9]" in formula for formula in formulas))
+
+    def test_income_expense_statement_contains_content_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("income_expense_statement")
+        tree = self._read_content_tree(output_path)
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validation_names = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for validation in validations
+        }
+
+        self.assertIn("validation_category", validation_names)
+        self.assertIn("validation_paid_status", validation_names)
+        self.assertIn("validation_settlement_status", validation_names)
 
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
@@ -112,7 +194,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(registry_entry["display_name"], "開會通知單")
 
     def test_generated_formal_templates_do_not_include_forbidden_metadata_body_text(self):
-        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal"]:
+        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"]:
             output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
             for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
@@ -143,6 +225,18 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "活動時間流程表",
                 "活動預算",
             ],
+            "income_expense_statement": [
+                "學年度",
+                "學期",
+                "社團名稱",
+                "期初餘額",
+                "財務負責人",
+                "收支明細",
+                "活動彙總",
+                "類別彙總",
+                "是否已撥款",
+                "是否已列入活動結算",
+            ],
         }
 
         for template_key, required_fields in expected_fields.items():
@@ -155,10 +249,12 @@ class TemplateServiceTestCase(unittest.TestCase):
         minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
         proposal_preview = build_template_preview_data("activity_proposal")
+        income_preview = build_template_preview_data("income_expense_statement")
 
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
+        self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
 
 
 if __name__ == "__main__":

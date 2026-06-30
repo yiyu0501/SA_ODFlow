@@ -298,14 +298,14 @@ FORMAL_TEMPLATE_REGISTRY = [
     _entry(
         "income_expense_statement",
         "經費收支表",
-        ["收支帳冊", "ledger_ods"],
+        ["收支帳冊", "ledger_ods", "收支明細表", "社團經費收支表", "社團帳本", "財務收支表", "經費流水帳", "社團收支明細表"],
         "財務與清冊型",
         "ODS",
         "最高",
-        False,
+        True,
         False,
         "記錄社團日常收入、支出、餘額、代墊與活動結算狀態。",
-        "registered_only",
+        "implemented",
     ),
     _entry(
         "expense_settlement",

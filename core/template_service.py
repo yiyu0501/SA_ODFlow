@@ -466,6 +466,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_minutes": _build_meeting_minutes_preview_data,
         "meeting_notice": _build_meeting_notice_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
+        "income_expense_statement": _build_income_expense_statement_preview_data,
     }
     builder = preview_builders.get(resolved_id, _build_generic_preview_data)
     return builder(definition)
@@ -603,6 +604,41 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
         ],
         "decor": {},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_income_expense_statement_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學 社團經費收支表"],
+        "meta_rows": [
+            ("學年度", "＿＿＿＿"),
+            ("學期", "＿＿＿＿"),
+            ("社團名稱", "＿＿＿＿＿＿＿＿"),
+            ("記帳期間", "＿＿＿＿ 至 ＿＿＿＿"),
+            ("期初餘額", "0"),
+            ("財務負責人", "＿＿＿＿"),
+            ("製表日期", "＿＿＿＿"),
+            ("備註", "＿＿＿＿＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "工作表", "items": ["收支明細", "活動彙總", "類別彙總"]},
+        ],
+        "tables": [
+            {
+                "title": "收支明細",
+                "headers": ["序號", "日期", "類別", "品項", "支出", "收入", "餘額"],
+                "rows": [["1", "", "", "", "", "", ""], ["2", "", "", "", "", "", ""]],
+            },
+            {
+                "title": "狀態追蹤欄位",
+                "headers": ["代墊人", "是否已撥款", "是否已列入活動結算", "對應活動"],
+                "rows": [["", "是 / 否 / 不適用", "是 / 否 / 不適用", ""]],
+            },
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
     }
 
 
