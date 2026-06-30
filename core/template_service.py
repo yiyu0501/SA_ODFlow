@@ -467,6 +467,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_notice": _build_meeting_notice_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
+        "expense_settlement": _build_expense_settlement_preview_data,
     }
     builder = preview_builders.get(resolved_id, _build_generic_preview_data)
     return builder(definition)
@@ -635,6 +636,43 @@ def _build_income_expense_statement_preview_data(definition: dict) -> dict:
                 "title": "狀態追蹤欄位",
                 "headers": ["代墊人", "是否已撥款", "是否已列入活動結算", "對應活動"],
                 "rows": [["", "是 / 否 / 不適用", "是 / 否 / 不適用", ""]],
+            },
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
+    }
+
+
+def _build_expense_settlement_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "社團活動經費收支結算表"],
+        "meta_rows": [
+            ("活動名稱", "＿＿＿＿＿＿＿＿"),
+            ("活動日期", "＿＿＿＿"),
+            ("活動地點", "＿＿＿＿＿＿＿＿"),
+            ("參加人數", "＿＿＿"),
+            ("記錄人", "＿＿＿＿"),
+            ("結算日期", "＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "結算重點", "items": ["預算通過金額", "實際支出金額", "學校補助核銷金額總計", "得補助金額上限"]},
+        ],
+        "tables": [
+            {
+                "title": "經費收支結算明細",
+                "headers": ["項目", "預算通過金額", "實際支出金額", "備註"],
+                "rows": [["場地費", "", "", "學校補助"], ["材料費", "", "", "自籌"]],
+            },
+            {
+                "title": "結算公式區",
+                "headers": ["項目", "預算通過金額", "實際支出金額", "備註"],
+                "rows": [
+                    ["支出金額總計", "自動加總", "自動加總", ""],
+                    ["學校補助核銷金額總計", "MIN 公式", "", ""],
+                    ["得補助金額上限：A × B / C", "自動計算", "", "應以申請金額為上限"],
+                ],
             },
         ],
         "decor": {},

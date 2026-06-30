@@ -74,7 +74,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             if definition["implementation_status"] in {"registered_only", "planned"}:
                 self.assertFalse(definition["supports_blank_download"], definition["id"])
 
-    def test_only_three_formal_templates_currently_support_blank_download(self):
+    def test_current_formal_templates_support_blank_download(self):
         downloadable = [
             definition["template_key"]
             for definition in list_template_definitions()
@@ -82,11 +82,23 @@ class TemplateServiceTestCase(unittest.TestCase):
         ]
         self.assertEqual(
             downloadable,
-            ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"],
+            [
+                "meeting_minutes",
+                "meeting_notice",
+                "activity_proposal",
+                "income_expense_statement",
+                "expense_settlement",
+            ],
         )
 
     def test_canonical_downloadable_templates_generate_files(self):
-        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"]:
+        for template_key in [
+            "meeting_minutes",
+            "meeting_notice",
+            "activity_proposal",
+            "income_expense_statement",
+            "expense_settlement",
+        ]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
 
@@ -192,6 +204,103 @@ class TemplateServiceTestCase(unittest.TestCase):
             self.assertIn(option, paid_condition)
             self.assertIn(option, settlement_condition)
 
+    def test_expense_settlement_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("expense_settlement")
+
+        self.assertEqual(definition["template_key"], "expense_settlement")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+
+    def test_expense_settlement_ods_contains_formal_sheet_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("expense_settlement")
+        tree = self._read_content_tree(output_path)
+        settlement_sheet = tree.find(".//table:table[@table:name='經費收支結算表']", namespaces)
+        self.assertIsNotNone(settlement_sheet)
+
+        text_values = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in settlement_sheet.findall(".//text:p", namespaces)
+        ]
+        for field_name in [
+            "活動名稱",
+            "活動日期",
+            "活動地點",
+            "參加人數",
+            "記錄人",
+            "結算日期",
+            "項目",
+            "預算通過金額",
+            "實際支出金額",
+            "備註",
+            "支出金額總計",
+            "學校補助核銷金額總計",
+            "得補助金額上限：A × B / C",
+            "活動承辦人",
+            "課外組承辦人",
+            "組長",
+            "學務長",
+        ]:
+            self.assertIn(field_name, text_values)
+
+    def test_expense_settlement_ods_contains_expected_formulas(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("expense_settlement")
+        tree = self._read_content_tree(output_path)
+        settlement_sheet = tree.find(".//table:table[@table:name='經費收支結算表']", namespaces)
+        self.assertIsNotNone(settlement_sheet)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in settlement_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=SUM([.B8:.B17])", formulas)
+        self.assertIn("=SUM([.C8:.C17])", formulas)
+        self.assertIn('=SUMIF([.D8:.D17];"學校補助";[.B8:.B17])', formulas)
+        self.assertIn('=SUMIF([.D8:.D17];"學校補助";[.C8:.C17])', formulas)
+        self.assertIn("=IF(SUM([.B8:.B17])=0;0;SUM([.C8:.C17])/SUM([.B8:.B17]))", formulas)
+        self.assertIn(
+            '=IF(SUM([.B8:.B17])=0;0;MIN(SUMIF([.D8:.D17];"學校補助";[.B8:.B17]);SUMIF([.D8:.D17];"學校補助";[.C8:.C17]);SUMIF([.D8:.D17];"學校補助";[.B8:.B17])*(SUM([.C8:.C17])/SUM([.B8:.B17]))))',
+            formulas,
+        )
+
+    def test_expense_settlement_contains_content_validation(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("expense_settlement")
+        tree = self._read_content_tree(output_path)
+        settlement_sheet = tree.find(".//table:table[@table:name='經費收支結算表']", namespaces)
+        self.assertIsNotNone(settlement_sheet)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+
+        self.assertIn("validation_settlement_note", validations_by_name)
+        note_condition = validations_by_name["validation_settlement_note"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        for option in ['"學校補助"', '"校外補助"', '"社團會費"', '"自籌"', '"其他"']:
+            self.assertIn(option, note_condition)
+
+        validated_note_cells = [
+            cell
+            for cell in settlement_sheet.findall(".//table:table-cell", namespaces)
+            if cell.attrib.get("{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name")
+            == "validation_settlement_note"
+        ]
+        self.assertEqual(len(validated_note_cells), 10)
+
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
             generate_template_file("activity_application")
@@ -218,7 +327,13 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(registry_entry["display_name"], "開會通知單")
 
     def test_generated_formal_templates_do_not_include_forbidden_metadata_body_text(self):
-        for template_key in ["meeting_minutes", "meeting_notice", "activity_proposal", "income_expense_statement"]:
+        for template_key in [
+            "meeting_minutes",
+            "meeting_notice",
+            "activity_proposal",
+            "income_expense_statement",
+            "expense_settlement",
+        ]:
             output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
             for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
@@ -261,6 +376,18 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "是否已撥款",
                 "是否已列入活動結算",
             ],
+            "expense_settlement": [
+                "社團活動經費收支結算表",
+                "活動名稱",
+                "活動日期",
+                "活動地點",
+                "參加人數",
+                "記錄人",
+                "預算通過金額",
+                "實際支出金額",
+                "學校補助核銷金額總計",
+                "得補助金額上限：A × B / C",
+            ],
         }
 
         for template_key, required_fields in expected_fields.items():
@@ -274,11 +401,13 @@ class TemplateServiceTestCase(unittest.TestCase):
         notice_preview = build_template_preview_data("會議通知")
         proposal_preview = build_template_preview_data("activity_proposal")
         income_preview = build_template_preview_data("income_expense_statement")
+        settlement_preview = build_template_preview_data("expense_settlement")
 
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
+        self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
 
 
 if __name__ == "__main__":

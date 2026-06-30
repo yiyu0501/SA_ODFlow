@@ -310,14 +310,14 @@ FORMAL_TEMPLATE_REGISTRY = [
     _entry(
         "expense_settlement",
         "經費收支結算表",
-        ["expense_settlement_ods"],
+        ["經費收支表", "活動經費結算表", "社團活動經費收支結算表", "經費結算表", "expense_settlement_ods"],
         "財務與清冊型",
         "ODS",
         "最高",
-        False,
+        True,
         False,
         "整理單一活動預算通過金額、實際支出與補助核銷。",
-        "registered_only",
+        "implemented",
     ),
     _entry(
         "reimbursement_detail",
