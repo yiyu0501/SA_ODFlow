@@ -149,8 +149,15 @@ class TemplateServiceTestCase(unittest.TestCase):
             for cell in detail_sheet.findall(".//table:table-cell", namespaces)
             if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
         ]
-        self.assertTrue(any("[.$B$5]" in formula for formula in formulas))
-        self.assertTrue(any("[.G8]" in formula or "[.G9]" in formula for formula in formulas))
+        self.assertEqual(len(formulas), 200)
+        self.assertIn(
+            "=[.$B$5]+N([.F8])-N([.E8])",
+            formulas,
+        )
+        self.assertIn(
+            "=[.G8]+N([.F9])-N([.E9])",
+            formulas,
+        )
 
     def test_income_expense_statement_contains_content_validations(self):
         namespaces = {
@@ -159,14 +166,31 @@ class TemplateServiceTestCase(unittest.TestCase):
         output_path = generate_template_file("income_expense_statement")
         tree = self._read_content_tree(output_path)
         validations = tree.findall(".//table:content-validation", namespaces)
-        validation_names = {
-            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
             for validation in validations
         }
+        validation_names = set(validations_by_name)
 
         self.assertIn("validation_category", validation_names)
         self.assertIn("validation_paid_status", validation_names)
         self.assertIn("validation_settlement_status", validation_names)
+
+        category_condition = validations_by_name["validation_category"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        self.assertIn('"補助收入"', category_condition)
+        self.assertIn('"活動支出"', category_condition)
+
+        paid_condition = validations_by_name["validation_paid_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        settlement_condition = validations_by_name["validation_settlement_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        for option in ['"是"', '"否"', '"不適用"']:
+            self.assertIn(option, paid_condition)
+            self.assertIn(option, settlement_condition)
 
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:

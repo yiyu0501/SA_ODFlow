@@ -10,12 +10,14 @@ from generators.document_style import BODY_FONT_SIZE_PT, ODF_FONT_FAMILY, TABLE_
 
 INCOME_EXPENSE_CATEGORY_OPTIONS = [
     "結餘",
+    "補助收入",
     "餐食費",
     "交通費",
     "保險費",
     "印刷費",
     "道具費",
     "活動費",
+    "活動支出",
     "器材費",
     "場地費",
     "講師費",
@@ -87,6 +89,18 @@ def _string_cell_xml(
     if validation_name:
         attrs.append(f'table:content-validation-name="{_escape_attr(validation_name)}"')
     return f'<table:table-cell {" ".join(attrs)}>{_paragraph_xml(value, paragraph_style)}</table:table-cell>'
+
+
+def _blank_cell_xml(
+    cell_style: str = "CellBody",
+    paragraph_style: str = "PBody",
+    *,
+    validation_name: str | None = None,
+) -> str:
+    attrs = [f'table:style-name="{cell_style}"']
+    if validation_name:
+        attrs.append(f'table:content-validation-name="{_escape_attr(validation_name)}"')
+    return f'<table:table-cell {" ".join(attrs)}>{_paragraph_xml("", paragraph_style)}</table:table-cell>'
 
 
 def _float_cell_xml(
@@ -165,20 +179,11 @@ def _detail_balance_formula(row_number: int) -> str:
     expense_ref = _same_sheet_ref("E", row_number)
     income_ref = _same_sheet_ref("F", row_number)
     if row_number == DETAIL_FIRST_DATA_ROW:
-        opening_balance_ref = _same_sheet_ref("B", 5, absolute=True)
-        previous_balance_ref = opening_balance_ref
+        previous_balance_ref = _same_sheet_ref("B", 5, absolute=True)
     else:
         previous_balance_ref = _same_sheet_ref("G", row_number - 1)
 
-    return (
-        "of:=IF("
-        f"AND(ISBLANK({expense_ref});ISBLANK({income_ref}));"
-        f"{previous_balance_ref};"
-        f"{previous_balance_ref}"
-        f"+IF(ISBLANK({income_ref});0;{income_ref})"
-        f"-IF(ISBLANK({expense_ref});0;{expense_ref})"
-        ")"
-    )
+    return f"={previous_balance_ref}+N({income_ref})-N({expense_ref})"
 
 
 def _income_expense_styles_xml(column_styles_xml: str) -> str:
@@ -340,8 +345,8 @@ def _income_expense_detail_table_xml() -> str:
                     _string_cell_xml("", "CellDate"),
                     _string_cell_xml("", "CellBody", validation_name="validation_category"),
                     _string_cell_xml("", "CellBody"),
-                    _string_cell_xml("", "CellMoney"),
-                    _string_cell_xml("", "CellMoney"),
+                    _blank_cell_xml("CellMoney"),
+                    _blank_cell_xml("CellMoney"),
                     _float_cell_xml(0, "CellMoneyFormula", formula=_detail_balance_formula(row_number)),
                     _string_cell_xml("", "CellBody"),
                     _string_cell_xml("", "CellBody", validation_name="validation_paid_status"),
@@ -422,17 +427,17 @@ def _build_activity_summary_rows() -> str:
 
     for row_number in range(3, 33):
         activity_ref = _same_sheet_ref("A", row_number)
-        expense_formula = f"of:=SUMIF({criterion_range};{activity_ref};{expense_range})"
-        income_formula = f"of:=SUMIF({criterion_range};{activity_ref};{income_range})"
-        net_formula = f"of:={_same_sheet_ref('C', row_number)}-{_same_sheet_ref('B', row_number)}"
+        expense_formula = f"=SUMIF({criterion_range};{activity_ref};{expense_range})"
+        income_formula = f"=SUMIF({criterion_range};{activity_ref};{income_range})"
+        net_formula = f"={_same_sheet_ref('C', row_number)}-{_same_sheet_ref('B', row_number)}"
         unpaid_formula = (
-            "of:=COUNTIFS("
+            "=COUNTIFS("
             f"{criterion_range};{activity_ref};"
             f"{paid_status_range};\"否\""
             ")"
         )
         unsettled_formula = (
-            "of:=COUNTIFS("
+            "=COUNTIFS("
             f"{criterion_range};{activity_ref};"
             f"{settlement_status_range};\"否\""
             ")"
@@ -511,9 +516,9 @@ def _income_expense_category_summary_table_xml() -> str:
 
     for index, category in enumerate(INCOME_EXPENSE_CATEGORY_OPTIONS, start=3):
         category_ref = _same_sheet_ref("A", index)
-        expense_formula = f"of:=SUMIF({category_range};{category_ref};{expense_range})"
-        income_formula = f"of:=SUMIF({category_range};{category_ref};{income_range})"
-        net_formula = f"of:={_same_sheet_ref('C', index)}-{_same_sheet_ref('B', index)}"
+        expense_formula = f"=SUMIF({category_range};{category_ref};{expense_range})"
+        income_formula = f"=SUMIF({category_range};{category_ref};{income_range})"
+        net_formula = f"={_same_sheet_ref('C', index)}-{_same_sheet_ref('B', index)}"
         rows.append(
             _row_xml(
                 [
@@ -569,6 +574,7 @@ def _build_income_expense_statement_content_xml() -> str:
     xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
     xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
     xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
     office:version="1.2">
   <office:scripts/>
   <office:automatic-styles>
@@ -663,6 +669,7 @@ def _build_legacy_spreadsheet_content_xml(template_definition: dict) -> str:
     xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
     xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
     xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
     office:version="1.2">
   <office:scripts/>
   <office:automatic-styles>
