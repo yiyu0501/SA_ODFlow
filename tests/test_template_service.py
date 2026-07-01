@@ -87,6 +87,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "meeting_notice",
                 "attendance_sheet",
                 "activity_proposal",
+                "activity_application",
                 "activity_result_report",
                 "expense_budget",
                 "income_expense_statement",
@@ -101,6 +102,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_notice",
             "attendance_sheet",
             "activity_proposal",
+            "activity_application",
             "activity_result_report",
             "expense_budget",
             "income_expense_statement",
@@ -232,6 +234,62 @@ class TemplateServiceTestCase(unittest.TestCase):
             "新增工作人員",
             "專案自動化說明",
         ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_activity_application_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("activity_application")
+
+        self.assertEqual(definition["template_key"], "activity_application")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_activity_application_odt_contains_formal_sections(self):
+        output_path = generate_template_file("activity_application")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "臺北市立大學　社團活動申請表",
+            "申請基本資料",
+            "活動名稱",
+            "申請日期",
+            "活動時間，起",
+            "活動時間，止",
+            "活動地點",
+            "主辦社團",
+            "參加人數",
+            "社長",
+            "社長電話",
+            "社團指導老師",
+            "前年社團評鑑",
+            "活動性質",
+            "宗旨與活動內容區",
+            "宗旨：",
+            "活動內容或講題：",
+            "申請人與經費區",
+            "活動申請人",
+            "活動費申請補助",
+            "活動費自籌經費",
+            "合計",
+            "行政簽核保留區",
+            "承辦人",
+            "單位主管",
+            "校長",
+            "使用種類與額度由課外活動組填寫",
+            "請於活動二週前完成申請並隨表附活動企畫書",
+            "申請校內場地，請增附場地申請表",
+            "□ 幹訓或營隊",
+            "□ 學術活動",
+            "□ 學校委辦或代表學校之活動",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_activity_application_excludes_forbidden_metadata_text(self):
+        output_path = generate_template_file("activity_application")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
             self.assertNotIn(forbidden_text, content_xml)
 
     def test_attendance_sheet_registry_entry_is_formal_odt(self):
@@ -755,7 +813,7 @@ class TemplateServiceTestCase(unittest.TestCase):
 
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
-            generate_template_file("activity_application")
+            generate_template_file("activity_schedule")
 
         self.assertIn("尚未提供正式空白範本下載", str(context.exception))
 
@@ -784,6 +842,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_notice",
             "attendance_sheet",
             "activity_proposal",
+            "activity_application",
             "activity_result_report",
             "expense_budget",
             "income_expense_statement",
@@ -848,6 +907,31 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "活動宗旨",
                 "活動時間流程表",
                 "活動預算",
+            ],
+            "activity_application": [
+                "臺北市立大學　社團活動申請表",
+                "申請基本資料",
+                "活動名稱",
+                "申請日期",
+                "活動時間，起",
+                "活動時間，止",
+                "活動地點",
+                "主辦社團",
+                "參加人數",
+                "社長",
+                "社團指導老師",
+                "前年社團評鑑",
+                "活動性質",
+                "宗旨：",
+                "活動內容或講題：",
+                "活動申請人",
+                "活動費申請補助",
+                "活動費自籌經費",
+                "合計",
+                "承辦人",
+                "單位主管",
+                "校長",
+                "使用種類與額度由課外活動組填寫",
             ],
             "activity_result_report": [
                 "社團活動成果報告",
@@ -960,6 +1044,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         notice_preview = build_template_preview_data("會議通知")
         attendance_preview = build_template_preview_data("attendance_sheet")
         proposal_preview = build_template_preview_data("activity_proposal")
+        application_preview = build_template_preview_data("activity_application")
         result_preview = build_template_preview_data("activity_result_report")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
@@ -976,6 +1061,8 @@ class TemplateServiceTestCase(unittest.TestCase):
             ["系級／單位", "姓名", "系級／單位", "姓名"],
         )
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
+        self.assertEqual(application_preview["header_lines"][0], "臺北市立大學　社團活動申請表")
+        self.assertEqual(application_preview["tables"][0]["headers"][0], "活動申請人")
         self.assertEqual(result_preview["header_lines"][1], "社團活動成果報告")
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")

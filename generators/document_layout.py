@@ -65,6 +65,8 @@ def build_document_render_spec(
 def build_template_render_spec(template_definition: dict) -> dict:
     if template_definition["id"] == "meeting_minutes_template_odt":
         return _build_meeting_minutes_template_spec(template_definition)
+    if template_definition["id"] == "activity_application_odt":
+        return _build_activity_application_template_spec(template_definition)
 
     linked_document_type = template_definition.get("linked_document_type")
     if linked_document_type:
@@ -595,6 +597,107 @@ def _build_meeting_minutes_template_spec(template_definition: dict) -> dict:
                 heading="簽核欄位",
                 headers=["製表人", "主席", "社團負責人", "指導老師"],
                 rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
+
+
+def _build_activity_application_template_spec(template_definition: dict) -> dict:
+    evaluation_line = "前年社團評鑑：特優□　優等□　甲等□　乙等□"
+    activity_type_lines = [
+        "□ 幹訓或營隊：具學習目的者。",
+        "□ 學術活動：講演、大型學術、研討座談、展覽、比賽、研習、成果展等。",
+        "□ 刊物出版：週刊、月刊、校刊。",
+        "□ 康樂活動：校內外演奏會、出國演出、參加或主辦校際性比賽。",
+        "□ 社會服務活動：含平時與寒暑假期間。",
+        "□ 發展社團特色活動。",
+        "□ 其他符合社團宗旨之綜合性活動。",
+        "□ 學校委辦或代表學校之活動",
+    ]
+    applicant_funding_rows = [
+        ["活動申請人", "{{applicant_name}}", "系別", "{{applicant_department}}"],
+        ["班別", "{{applicant_class}}", "手機", "{{applicant_phone}}"],
+        ["活動費申請補助", "{{subsidy_amount}} 元", "活動費自籌經費", "{{self_funded_amount}} 元"],
+        ["合計", "{{total_amount}} 元", "", ""],
+    ]
+    admin_rows = [
+        ["本次使用種類", "", "一般補助", "", "專案補助", ""],
+        ["額度", "", "已使用額度，含本次", "", "尚餘額度", ""],
+        ["承辦人", "", "單位主管", "", "組長", ""],
+        ["學務長", "", "會辦單位：總務處", "", "會辦單位：會計室", ""],
+        ["校長", "", "", "", "", ""],
+    ]
+
+    return {
+        "title": "臺北市立大學　社團活動申請表",
+        "page_layout": {
+            "orientation": "landscape",
+            "page_width_cm": "29.7cm",
+            "page_height_cm": "21cm",
+            "margin_top_cm": "0.9cm",
+            "margin_bottom_cm": "0.9cm",
+            "margin_left_cm": "0.9cm",
+            "margin_right_cm": "0.9cm",
+        },
+        "style_overrides": {
+            "title_font_size_pt": 20,
+            "section_font_size_pt": 11,
+            "body_font_size_pt": 10,
+            "table_font_size_pt": 10,
+            "note_font_size_pt": 9,
+            "footer_font_size_pt": 9,
+        },
+        "sections": [
+            _section(
+                "note",
+                text="請於活動二週前完成申請並隨表附活動企畫書\n申請校內場地，請增附場地申請表",
+            ),
+            _section(
+                "info_table",
+                heading="申請基本資料",
+                rows=_info_rows(
+                    [
+                        ("活動名稱", "{{activity_name}}"),
+                        ("活動時間，起", "{{start_year}} 年 {{start_month}} 月 {{start_day}} 日 {{start_hour}} 時 {{start_minute}} 分"),
+                        ("活動時間，止", "{{end_year}} 年 {{end_month}} 月 {{end_day}} 日 {{end_hour}} 時 {{end_minute}} 分"),
+                        ("活動地點", "{{location}}"),
+                        ("申請日期", "{{apply_year}} 年 {{apply_month}} 月 {{apply_day}} 日"),
+                        ("主辦社團", "{{club_name}}"),
+                        ("參加人數", "{{participant_count}} 人"),
+                        ("社長", "{{president_name}}"),
+                        ("社長電話", "{{president_phone}}"),
+                        ("社團指導老師", "{{advisor_name}}"),
+                        ("指導老師電話", "{{advisor_phone}}"),
+                    ],
+                    columns_per_row=2,
+                ),
+                columns=4,
+            ),
+            _section("paragraph", heading="前年社團評鑑", paragraphs=[evaluation_line]),
+            _section("paragraph", heading="活動性質", paragraphs=activity_type_lines),
+            _section(
+                "paragraph",
+                heading="宗旨與活動內容區",
+                paragraphs=[
+                    "宗旨：{{purpose_summary}}",
+                    "活動內容或講題：{{content_summary}}",
+                ],
+            ),
+            _section(
+                "info_table",
+                heading="申請人與經費區",
+                rows=applicant_funding_rows,
+                columns=4,
+            ),
+            _section(
+                "info_table",
+                heading="行政簽核保留區",
+                rows=admin_rows,
+                columns=6,
+            ),
+            _section(
+                "note",
+                text="使用種類與額度由課外活動組填寫",
             ),
         ],
     }
