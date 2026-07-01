@@ -65,6 +65,8 @@ def build_document_render_spec(
 def build_template_render_spec(template_definition: dict) -> dict:
     linked_document_type = template_definition.get("linked_document_type")
     if linked_document_type:
+        if template_definition["id"] == "activity_report_odt":
+            return _build_activity_result_report_template_spec(template_definition)
         content = get_default_document_content(linked_document_type)
         title = template_definition["name"]
         spec = build_document_render_spec(linked_document_type, content, title_override=title)
@@ -402,6 +404,86 @@ def _build_activity_proposal_spec(content: dict) -> list[dict]:
         _section("paragraph", heading="十、附件", paragraphs=display_lines(content.get("attachments"))),
         _section("paragraph", heading="十一、備註", paragraphs=display_lines(content.get("notes"))),
     ]
+
+
+def _build_activity_result_report_template_spec(template_definition: dict) -> dict:
+    meeting_rows = _info_rows(
+        [
+            ("會議性質", "○籌備會議　○檢討會議　○其他"),
+            ("其他會議性質說明", BLANK_LINE_PLACEHOLDER),
+            ("開會日期", BLANK_LINE_PLACEHOLDER),
+            ("開會地點", BLANK_LINE_PLACEHOLDER),
+            ("會議開始時間", BLANK_LINE_PLACEHOLDER),
+            ("會議結束時間", BLANK_LINE_PLACEHOLDER),
+            ("主席", BLANK_LINE_PLACEHOLDER),
+            ("記錄", BLANK_LINE_PLACEHOLDER),
+            ("出席人員", BLANK_LINE_PLACEHOLDER),
+        ],
+        columns_per_row=1,
+    )
+    staff_rows = ensure_table_rows(
+        [
+            ["", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+            ["", "", "", "", "", ""],
+        ],
+        6,
+        minimum_rows=4,
+        placeholder="",
+    )
+    photo_rows = [
+        [
+            "照片黏貼處\n\n\n\n活動照片內容：",
+            "照片黏貼處\n\n\n\n活動照片內容：",
+        ],
+        [
+            "照片黏貼處\n\n\n\n活動照片內容：",
+            "照片黏貼處\n\n\n\n活動照片內容：",
+        ],
+    ]
+
+    return {
+        "title": "臺北市立大學\n社團活動成果報告",
+        "sections": [
+            _section("info_table", heading="一、會議記錄", rows=meeting_rows, columns=2),
+            _section("paragraph", heading="討論內容", paragraphs=[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]),
+            _section("paragraph", heading="臨時動議", paragraphs=[BLANK_LINE_PLACEHOLDER]),
+            _section("paragraph", heading="決議", paragraphs=[BLANK_LINE_PLACEHOLDER]),
+            _section("paragraph", heading="二、活動簡介與記錄", paragraphs=[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]),
+            _section(
+                "table",
+                heading="三、工作人員列表",
+                headers=["工作職稱", "學號", "姓名", "工作職稱", "學號", "姓名"],
+                rows=staff_rows,
+            ),
+            _section("paragraph", heading="四、社員心得", paragraphs=[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]),
+            _section(
+                "table",
+                heading="五、活動照片",
+                headers=["照片一／照片二", "照片三／照片四"],
+                rows=photo_rows,
+            ),
+            _section(
+                "table",
+                heading="六、經費使用摘要",
+                headers=["預算金額", "實際支出", "補助金額", "自籌金額", "備註"],
+                rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, "經費收支結算表另附。"]],
+            ),
+            _section("paragraph", heading="七、檢討與建議", paragraphs=[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]),
+            _section(
+                "bullet_list",
+                heading="八、附件清單",
+                items=["簽到表", "活動照片", "經費收支結算表", "核銷明細", "其他附件"],
+            ),
+            _section(
+                "table",
+                heading="九、簽核區",
+                headers=["製表人", "社團負責人", "指導老師", "審核單位"],
+                rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
 
 
 def _build_activity_report_spec(content: dict) -> list[dict]:
