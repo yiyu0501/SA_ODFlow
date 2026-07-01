@@ -63,6 +63,9 @@ def build_document_render_spec(
 
 
 def build_template_render_spec(template_definition: dict) -> dict:
+    if template_definition["id"] == "meeting_minutes_template_odt":
+        return _build_meeting_minutes_template_spec(template_definition)
+
     linked_document_type = template_definition.get("linked_document_type")
     if linked_document_type:
         if template_definition["id"] == "activity_report_odt":
@@ -483,6 +486,114 @@ def _build_activity_result_report_template_spec(template_definition: dict) -> di
                 "table",
                 heading="九、簽核區",
                 headers=["製表人", "社團負責人", "指導老師", "審核單位"],
+                rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
+
+
+def _build_meeting_minutes_template_spec(template_definition: dict) -> dict:
+    agenda_lines = [
+        "案由一：＿＿＿＿＿＿＿＿＿＿",
+        "說明：＿＿＿＿＿＿＿＿＿＿",
+        "討論：＿＿＿＿＿＿＿＿＿＿",
+        "決議：＿＿＿＿＿＿＿＿＿＿",
+        "表決結果：同意＿＿票，不同意＿＿票，棄權＿＿票。",
+        "負責人：＿＿＿＿＿＿＿＿＿＿",
+        "執行期限：＿＿＿＿＿＿＿＿＿＿",
+        "備註：＿＿＿＿＿＿＿＿＿＿",
+    ]
+    motion_lines = [
+        "案由一：＿＿＿＿＿＿＿＿＿＿",
+        "提案人：＿＿＿＿＿＿＿＿＿＿",
+        "說明：＿＿＿＿＿＿＿＿＿＿",
+        "討論：＿＿＿＿＿＿＿＿＿＿",
+        "決議：＿＿＿＿＿＿＿＿＿＿",
+        "表決結果：同意＿＿票，不同意＿＿票，棄權＿＿票。",
+        "負責人：＿＿＿＿＿＿＿＿＿＿",
+        "備註：＿＿＿＿＿＿＿＿＿＿",
+    ]
+    action_rows = ensure_table_rows(
+        [["1", "", "", "", ""], ["2", "", "", "", ""], ["3", "", "", "", ""]],
+        5,
+        minimum_rows=3,
+        placeholder="",
+    )
+
+    return {
+        "title": "{{school_name}}{{club_name}}\n第{{meeting_number}}次{{meeting_type}}紀錄",
+        "sections": [
+            _section(
+                "lines",
+                lines=[
+                    "{{school_name}}{{club_name}}",
+                    "製作日期：{{document_date}}",
+                ],
+            ),
+            _section(
+                "info_table",
+                heading="基本資料表",
+                rows=_info_rows(
+                    [
+                        ("會議名稱", "{{meeting_title}}"),
+                        ("會議日期", "{{meeting_date}}"),
+                        ("會議時間", "{{start_time}} 至 {{end_time}}"),
+                        ("會議地點", "{{location}}"),
+                        ("主席", "{{chair}}"),
+                        ("記錄人員", "{{recorder}}"),
+                        ("出席人員", "{{attendees}}"),
+                        ("列席人員", "{{observers}}"),
+                        ("請假人員", "{{absentees}}"),
+                        ("缺席人員", "{{missing_members}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="壹、會議開始",
+                paragraphs=[
+                    "一、上次會議決議追蹤",
+                    BLANK_LINE_PLACEHOLDER,
+                    "二、主席致詞",
+                    BLANK_LINE_PLACEHOLDER,
+                ],
+            ),
+            _section(
+                "paragraph",
+                heading="貳、報告事項",
+                paragraphs=[
+                    "一、報告主題：＿＿＿＿＿＿＿＿＿＿",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "內容：＿＿＿＿＿＿＿＿＿＿",
+                    "",
+                    "二、報告主題：＿＿＿＿＿＿＿＿＿＿",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "內容：＿＿＿＿＿＿＿＿＿＿",
+                ],
+            ),
+            _section("paragraph", heading="參、討論事項", paragraphs=agenda_lines + ["", *agenda_lines]),
+            _section(
+                "table",
+                heading="待辦事項",
+                headers=["項次", "事項", "負責人", "期限", "備註"],
+                rows=action_rows,
+            ),
+            _section("paragraph", heading="肆、臨時動議", paragraphs=motion_lines),
+            _section(
+                "paragraph",
+                heading="伍、散會",
+                paragraphs=[
+                    "散會時間：{{end_time}}",
+                    "下次會議時間：{{next_meeting_time}}",
+                    "備註：{{notes}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="簽核欄位",
+                headers=["製表人", "主席", "社團負責人", "指導老師"],
                 rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
             ),
         ],

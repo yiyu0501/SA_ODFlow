@@ -106,7 +106,6 @@ LEGACY_TEMPLATE_DEFINITIONS = {
             ["若已在 Generate 建立草稿，可再用此範本做手動整理。"],
             "2.社團行政_管理運作",
             linked_document_type="會議紀錄",
-            placeholder_template_path="templates/odt_placeholders/meeting_minutes_template.odt",
         ),
         _ods_template(
             "attendance_sheet_ods",
@@ -512,24 +511,55 @@ def _build_meeting_minutes_preview_data(definition: dict) -> dict:
     return {
         "template_name": definition["name"],
         "suggested_format": definition["suggested_format"],
-        "header_lines": ["{{organization_name}}文件", "{{meeting_title}}會議紀錄"],
+        "header_lines": ["{{school_name}}{{club_name}}", "第{{meeting_number}}次{{meeting_type}}紀錄"],
         "meta_rows": [
-            ("會議時間", "{{meeting_date}} {{meeting_time}}"),
-            ("會議地點", "實體：{{physical_location}} / 線上：{{online_location}}"),
+            ("頁首資訊", "{{school_name}}{{club_name}}　製作日期：{{document_date}}"),
+            ("會議名稱", "{{meeting_title}}"),
+            ("會議日期", "{{meeting_date}}"),
+            ("會議時間", "{{start_time}} 至 {{end_time}}"),
+            ("會議地點", "{{location}}"),
             ("主席", "{{chair}}"),
+            ("記錄人員", "{{recorder}}"),
             ("出席人員", "{{attendees}}"),
             ("列席人員", "{{observers}}"),
             ("請假人員", "{{absentees}}"),
-            ("記錄人員", "{{recorder}}"),
+            ("缺席人員", "{{missing_members}}"),
         ],
         "sections": [
             {
-                "title": "壹、會議議程",
-                "items": ["一、報告事項", "二、討論事項", "三、臨時動議", "四、申明與補述"],
-            }
+                "title": "壹、會議開始",
+                "items": ["一、上次會議決議追蹤", "二、主席致詞"],
+            },
+            {
+                "title": "貳、報告事項",
+                "items": ["一、報告主題", "報告人", "內容"],
+            },
+            {
+                "title": "參、討論事項",
+                "items": ["案由一：{{title}}", "決議", "表決結果", "負責人", "執行期限", "備註"],
+            },
+            {
+                "title": "肆、臨時動議",
+                "items": ["案由一：{{motion_title}}", "提案人", "決議"],
+            },
+            {
+                "title": "伍、散會",
+                "items": ["散會時間", "下次會議時間", "備註"],
+            },
         ],
-        "tables": [],
-        "decor": {},
+        "tables": [
+            {
+                "title": "待辦事項",
+                "headers": ["項次", "事項", "負責人", "期限", "備註"],
+                "rows": [["1", "", "", "", ""], ["2", "", "", "", ""]],
+            },
+            {
+                "title": "簽核欄位",
+                "headers": ["製表人", "主席", "社團負責人", "指導老師"],
+                "rows": [["", "", "", ""]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁　共1頁"},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 
