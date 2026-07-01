@@ -286,14 +286,14 @@ FORMAL_TEMPLATE_REGISTRY = [
     _entry(
         "expense_budget",
         "經費預算表",
-        ["活動預算表", "activity_budget_ods"],
+        ["活動預算表", "社團活動預算表", "預算編列表", "活動經費預算表", "經費概算表", "activity_budget_ods"],
         "財務與清冊型",
         "ODS",
         "高",
-        False,
+        True,
         False,
         "編列活動前預算、補助金額、自籌金額與總經費。",
-        "registered_only",
+        "implemented",
     ),
     _entry(
         "income_expense_statement",

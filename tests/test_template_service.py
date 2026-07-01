@@ -86,6 +86,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "meeting_minutes",
                 "meeting_notice",
                 "activity_proposal",
+                "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
                 "reimbursement_detail",
@@ -97,12 +98,144 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_minutes",
             "meeting_notice",
             "activity_proposal",
+            "expense_budget",
             "income_expense_statement",
             "expense_settlement",
             "reimbursement_detail",
         ]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
+
+    def test_expense_budget_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("expense_budget")
+
+        self.assertEqual(definition["template_key"], "expense_budget")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+
+    def test_expense_budget_ods_contains_formal_sheet_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("expense_budget")
+        tree = self._read_content_tree(output_path)
+        budget_sheet = tree.find(".//table:table[@table:name='經費預算表']", namespaces)
+        self.assertIsNotNone(budget_sheet)
+
+        text_values = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in budget_sheet.findall(".//text:p", namespaces)
+        ]
+        for field_name in [
+            "活動名稱",
+            "活動日期",
+            "主辦社團",
+            "活動負責人",
+            "財務負責人",
+            "製表日期",
+            "備註",
+            "序號",
+            "項目類別",
+            "項目",
+            "說明",
+            "數量",
+            "單位",
+            "單價",
+            "金額",
+            "經費來源",
+            "是否申請補助",
+            "預算摘要",
+            "簽核區",
+        ]:
+            self.assertIn(field_name, text_values)
+
+    def test_expense_budget_ods_contains_expected_formulas(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("expense_budget")
+        tree = self._read_content_tree(output_path)
+        budget_sheet = tree.find(".//table:table[@table:name='經費預算表']", namespaces)
+        self.assertIsNotNone(budget_sheet)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in budget_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        amount_formulas = [formula for formula in formulas if formula.startswith("=N([.E")]
+        self.assertEqual(len(amount_formulas), 100)
+        self.assertIn("=N([.E8])*N([.G8])", formulas)
+        self.assertIn("=N([.E107])*N([.G107])", formulas)
+        self.assertIn("=SUM([.H8:.H107])", formulas)
+        self.assertIn('=SUMIF([.J8:.J107];"是";[.H8:.H107])', formulas)
+        self.assertIn('=SUMIF([.I8:.I107];"學校補助";[.H8:.H107])', formulas)
+        self.assertIn('=SUMIF([.I8:.I107];"社團會費";[.H8:.H107])', formulas)
+        self.assertIn('=SUMIF([.I8:.I107];"校外補助";[.H8:.H107])', formulas)
+        self.assertIn('=SUMIF([.I8:.I107];"自籌";[.H8:.H107])', formulas)
+        self.assertIn('=SUMIF([.I8:.I107];"其他";[.H8:.H107])', formulas)
+        self.assertIn(
+            '=SUMIF([.I8:.I107];"社團會費";[.H8:.H107])+SUMIF([.I8:.I107];"自籌";[.H8:.H107])',
+            formulas,
+        )
+        self.assertIn(
+            '=IF(SUM([.H8:.H107])=0;0;(SUMIF([.I8:.I107];"社團會費";[.H8:.H107])+SUMIF([.I8:.I107];"自籌";[.H8:.H107]))/SUM([.H8:.H107]))',
+            formulas,
+        )
+        self.assertIn('=COUNTIF([.J8:.J107];"待確認")', formulas)
+
+    def test_expense_budget_contains_content_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("expense_budget")
+        tree = self._read_content_tree(output_path)
+        budget_sheet = tree.find(".//table:table[@table:name='經費預算表']", namespaces)
+        self.assertIsNotNone(budget_sheet)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+
+        self.assertIn("validation_budget_category", validations_by_name)
+        self.assertIn("validation_budget_funding_source", validations_by_name)
+        self.assertIn("validation_budget_subsidy", validations_by_name)
+
+        category_condition = validations_by_name["validation_budget_category"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        funding_source_condition = validations_by_name["validation_budget_funding_source"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        subsidy_condition = validations_by_name["validation_budget_subsidy"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+
+        for option in ['"場地費"', '"講師費"', '"交通費"', '"餐費"', '"材料費"', '"其他"']:
+            self.assertIn(option, category_condition)
+        for option in ['"學校補助"', '"社團會費"', '"校外補助"', '"自籌"', '"其他"']:
+            self.assertIn(option, funding_source_condition)
+        for option in ['"是"', '"否"', '"待確認"']:
+            self.assertIn(option, subsidy_condition)
+
+        validation_name_counts = {
+            "validation_budget_category": 0,
+            "validation_budget_funding_source": 0,
+            "validation_budget_subsidy": 0,
+        }
+        for cell in budget_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        self.assertEqual(validation_name_counts["validation_budget_category"], 100)
+        self.assertEqual(validation_name_counts["validation_budget_funding_source"], 100)
+        self.assertEqual(validation_name_counts["validation_budget_subsidy"], 100)
 
     def test_income_expense_statement_registry_entry_is_formal_ods(self):
         definition = get_template_definition("income_expense_statement")
@@ -466,6 +599,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_minutes",
             "meeting_notice",
             "activity_proposal",
+            "expense_budget",
             "income_expense_statement",
             "expense_settlement",
             "reimbursement_detail",
@@ -524,6 +658,30 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "學校補助核銷金額總計",
                 "得補助金額上限：A × B / C",
             ],
+            "expense_budget": [
+                "經費預算表",
+                "活動名稱",
+                "活動日期",
+                "主辦社團",
+                "活動負責人",
+                "財務負責人",
+                "製表日期",
+                "項目類別",
+                "項目",
+                "說明",
+                "數量",
+                "單位",
+                "單價",
+                "金額",
+                "經費來源",
+                "是否申請補助",
+                "預算摘要",
+                "活動總預算",
+                "申請補助總額",
+                "自籌總額",
+                "自籌比例",
+                "簽核區",
+            ],
             "reimbursement_detail": [
                 "社團活動核銷明細表",
                 "活動名稱",
@@ -558,6 +716,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
         proposal_preview = build_template_preview_data("activity_proposal")
+        budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
         reimbursement_preview = build_template_preview_data("reimbursement_detail")
@@ -565,6 +724,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
+        self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
         self.assertEqual(reimbursement_preview["header_lines"][1], "社團活動核銷明細表")

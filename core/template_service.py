@@ -466,6 +466,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_minutes": _build_meeting_minutes_preview_data,
         "meeting_notice": _build_meeting_notice_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
+        "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
         "reimbursement_detail": _build_reimbursement_detail_preview_data,
@@ -606,6 +607,39 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
         ],
         "decor": {},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_expense_budget_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "「活動名稱」經費預算表"],
+        "meta_rows": [
+            ("活動名稱", "＿＿＿＿＿＿＿＿"),
+            ("活動日期", "＿＿＿＿"),
+            ("主辦社團", "＿＿＿＿＿＿＿＿"),
+            ("活動負責人", "＿＿＿＿"),
+            ("財務負責人", "＿＿＿＿"),
+            ("製表日期", "＿＿＿＿"),
+            ("備註", "＿＿＿＿＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "預算摘要", "items": ["活動總預算", "申請補助總額", "自籌總額", "自籌比例", "待確認補助項目數"]},
+            {"title": "簽核區", "items": ["製表人", "社團負責人", "指導老師", "審核單位"]},
+        ],
+        "tables": [
+            {
+                "title": "經費預算表格區",
+                "headers": ["序號", "項目類別", "項目", "說明", "數量", "單位", "單價", "金額", "經費來源", "是否申請補助"],
+                "rows": [
+                    ["1", "材料費", "活動材料", "工作坊材料包", "10", "份", "120", "自動計算", "學校補助", "是"],
+                    ["2", "餐費", "工作人員餐費", "工作人員 20 人", "20", "份", "100", "自動計算", "自籌", "否"],
+                ],
+            }
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
     }
 
 

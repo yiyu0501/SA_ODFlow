@@ -32,6 +32,28 @@ INCOME_EXPENSE_CATEGORY_OPTIONS = [
     "其他支出",
 ]
 YES_NO_NA_OPTIONS = ["是", "否", "不適用"]
+EXPENSE_BUDGET_CATEGORY_OPTIONS = [
+    "場地費",
+    "講師費",
+    "交通費",
+    "餐費",
+    "保險費",
+    "文宣費",
+    "印刷費",
+    "材料費",
+    "器材費",
+    "獎品費",
+    "雜支",
+    "其他",
+]
+EXPENSE_BUDGET_FUNDING_SOURCE_OPTIONS = [
+    "學校補助",
+    "社團會費",
+    "校外補助",
+    "自籌",
+    "其他",
+]
+EXPENSE_BUDGET_SUBSIDY_OPTIONS = ["是", "否", "待確認"]
 EXPENSE_SETTLEMENT_NOTE_OPTIONS = [
     "學校補助",
     "校外補助",
@@ -94,6 +116,23 @@ DETAIL_HEADER_ROW = 7
 DETAIL_FIRST_DATA_ROW = 8
 DETAIL_ROW_COUNT = 200
 DETAIL_LAST_DATA_ROW = DETAIL_FIRST_DATA_ROW + DETAIL_ROW_COUNT - 1
+EXPENSE_BUDGET_SHEET_NAME = "經費預算表"
+EXPENSE_BUDGET_HEADERS = [
+    "序號",
+    "項目類別",
+    "項目",
+    "說明",
+    "數量",
+    "單位",
+    "單價",
+    "金額",
+    "經費來源",
+    "是否申請補助",
+    "備註",
+]
+EXPENSE_BUDGET_FIRST_DATA_ROW = 8
+EXPENSE_BUDGET_ROW_COUNT = 100
+EXPENSE_BUDGET_LAST_DATA_ROW = EXPENSE_BUDGET_FIRST_DATA_ROW + EXPENSE_BUDGET_ROW_COUNT - 1
 EXPENSE_SETTLEMENT_SHEET_NAME = "經費收支結算表"
 EXPENSE_SETTLEMENT_HEADERS = [
     "項目",
@@ -281,9 +320,16 @@ def _detail_balance_formula(row_number: int) -> str:
 def _income_expense_styles_xml(column_styles_xml: str) -> str:
     return f"""
     {column_styles_xml}
+    <number:number-style style:name="NNumber">
+      <number:number number:min-integer-digits="1" number:decimal-places="0"/>
+    </number:number-style>
     <number:number-style style:name="NAmount">
       <number:number number:min-integer-digits="1" number:decimal-places="0" number:grouping="true"/>
     </number:number-style>
+    <number:percentage-style style:name="NPercent">
+      <number:number number:min-integer-digits="1" number:decimal-places="2"/>
+      <number:text>%</number:text>
+    </number:percentage-style>
     <number:date-style style:name="NDate" number:automatic-order="true">
       <number:year number:style="long"/>
       <number:text>/</number:text>
@@ -338,6 +384,9 @@ def _income_expense_styles_xml(column_styles_xml: str) -> str:
     <style:style style:name="CellBody" style:family="table-cell">
       <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm"/>
     </style:style>
+    <style:style style:name="CellNumber" style:family="table-cell" style:data-style-name="NNumber">
+      <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm"/>
+    </style:style>
     <style:style style:name="CellMoney" style:family="table-cell" style:data-style-name="NAmount">
       <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm"/>
     </style:style>
@@ -356,10 +405,173 @@ def _income_expense_styles_xml(column_styles_xml: str) -> str:
     <style:style style:name="CellSummaryFormula" style:family="table-cell" style:data-style-name="NAmount">
       <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm" fo:background-color="#f8fafc"/>
     </style:style>
+    <style:style style:name="CellSummaryPercent" style:family="table-cell" style:data-style-name="NPercent">
+      <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm" fo:background-color="#f8fafc"/>
+    </style:style>
     <style:style style:name="CellBlank" style:family="table-cell">
       <style:table-cell-properties fo:border="none" fo:padding="0.08cm"/>
     </style:style>
 """
+
+
+def _expense_budget_item_amount_formula(row_number: int) -> str:
+    quantity_ref = _same_sheet_ref("E", row_number)
+    unit_price_ref = _same_sheet_ref("G", row_number)
+    return f"=N({quantity_ref})*N({unit_price_ref})"
+
+
+def _expense_budget_value_label_row(
+    left_label: str,
+    right_label: str,
+    *,
+    left_value_style: str = "CellValue",
+    right_value_style: str = "CellValue",
+) -> str:
+    return _row_xml(
+        [
+            _string_cell_xml(left_label, "CellLabel", "PLabel"),
+            _string_cell_xml("", left_value_style),
+            _string_cell_xml(right_label, "CellLabel", "PLabel"),
+            _string_cell_xml("", right_value_style),
+        ]
+    )
+
+
+def _expense_budget_summary_row(
+    first_label: str,
+    first_formula: str,
+    second_label: str = "",
+    second_formula: str | None = None,
+    third_label: str = "",
+    third_formula: str | None = None,
+) -> str:
+    cells = [
+        _string_cell_xml(first_label, "CellSummaryText", "PLabel", span=2),
+        _covered_cells_xml(1),
+        _float_cell_xml(0, "CellSummaryFormula", formula=first_formula),
+    ]
+    if second_label:
+        cells.extend(
+            [
+                _string_cell_xml(second_label, "CellSummaryText", "PLabel", span=2),
+                _covered_cells_xml(1),
+                _float_cell_xml(0, "CellSummaryFormula", formula=second_formula or "=0"),
+            ]
+        )
+    else:
+        cells.extend([_string_cell_xml("", "CellSummaryText", span=3), _covered_cells_xml(2)])
+    if third_label:
+        cells.extend(
+            [
+                _string_cell_xml(third_label, "CellSummaryText", "PLabel", span=2),
+                _covered_cells_xml(1),
+                _float_cell_xml(0, "CellSummaryFormula", formula=third_formula or "=0"),
+            ]
+        )
+    else:
+        cells.extend([_string_cell_xml("", "CellSummaryText", span=3), _covered_cells_xml(2)])
+    return _row_xml(cells, "RowSummary")
+
+
+def _expense_budget_summary_rows() -> list[str]:
+    amount_range = (
+        f"[.H{EXPENSE_BUDGET_FIRST_DATA_ROW}:.H{EXPENSE_BUDGET_LAST_DATA_ROW}]"
+    )
+    funding_range = (
+        f"[.I{EXPENSE_BUDGET_FIRST_DATA_ROW}:.I{EXPENSE_BUDGET_LAST_DATA_ROW}]"
+    )
+    subsidy_range = (
+        f"[.J{EXPENSE_BUDGET_FIRST_DATA_ROW}:.J{EXPENSE_BUDGET_LAST_DATA_ROW}]"
+    )
+    total_formula = f"=SUM({amount_range})"
+    subsidy_total_formula = f'=SUMIF({subsidy_range};"是";{amount_range})'
+    school_formula = f'=SUMIF({funding_range};"學校補助";{amount_range})'
+    club_fee_formula = f'=SUMIF({funding_range};"社團會費";{amount_range})'
+    external_formula = f'=SUMIF({funding_range};"校外補助";{amount_range})'
+    self_funded_formula = f'=SUMIF({funding_range};"自籌";{amount_range})'
+    other_formula = f'=SUMIF({funding_range};"其他";{amount_range})'
+    self_total_formula = (
+        f'=SUMIF({funding_range};"社團會費";{amount_range})+'
+        f'SUMIF({funding_range};"自籌";{amount_range})'
+    )
+    ratio_formula = (
+        f'=IF(SUM({amount_range})=0;0;('
+        f'SUMIF({funding_range};"社團會費";{amount_range})+'
+        f'SUMIF({funding_range};"自籌";{amount_range})'
+        f')/SUM({amount_range}))'
+    )
+    pending_formula = f'=COUNTIF({subsidy_range};"待確認")'
+
+    rows = [
+        _expense_budget_summary_row(
+            "活動總預算",
+            total_formula,
+            "申請補助總額",
+            subsidy_total_formula,
+            "自籌總額",
+            self_total_formula,
+        ),
+        _expense_budget_summary_row(
+            "學校補助預算",
+            school_formula,
+            "社團會費預算",
+            club_fee_formula,
+            "校外補助預算",
+            external_formula,
+        ),
+        _expense_budget_summary_row(
+            "自籌預算",
+            self_funded_formula,
+            "其他經費預算",
+            other_formula,
+            "待確認補助項目數",
+            pending_formula,
+        ),
+    ]
+    rows.append(
+        _row_xml(
+            [
+                _string_cell_xml("自籌比例", "CellSummaryText", "PLabel", span=2),
+                _covered_cells_xml(1),
+                _float_cell_xml(0, "CellSummaryPercent", formula=ratio_formula),
+                _string_cell_xml("以活動總預算為分母", "CellSummaryText", "PBody", span=8),
+                _covered_cells_xml(7),
+            ],
+            "RowSummary",
+        )
+    )
+    return rows
+
+
+def _expense_budget_signature_rows() -> list[str]:
+    return [
+        _row_xml(
+            [
+                _string_cell_xml("製表人", "CellSummaryHeader", "PHeader", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("社團負責人", "CellSummaryHeader", "PHeader", span=3),
+                _covered_cells_xml(2),
+                _string_cell_xml("指導老師", "CellSummaryHeader", "PHeader", span=3),
+                _covered_cells_xml(2),
+                _string_cell_xml("審核單位", "CellSummaryHeader", "PHeader", span=3),
+                _covered_cells_xml(2),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("", "CellSummaryText", "PBody", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("", "CellSummaryText", "PBody", span=3),
+                _covered_cells_xml(2),
+                _string_cell_xml("", "CellSummaryText", "PBody", span=3),
+                _covered_cells_xml(2),
+                _string_cell_xml("", "CellSummaryText", "PBody", span=3),
+                _covered_cells_xml(2),
+            ],
+            "RowSummary",
+        ),
+    ]
 
 
 def _expense_settlement_value_label_row(
@@ -915,6 +1127,161 @@ def _expense_settlement_table_xml() -> str:
     )
 
 
+def _expense_budget_table_xml() -> str:
+    column_widths = [
+        "1.1cm",
+        "2.4cm",
+        "3.1cm",
+        "4.2cm",
+        "1.7cm",
+        "1.8cm",
+        "2.1cm",
+        "2.3cm",
+        "2.5cm",
+        "2.6cm",
+        "3.0cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [_string_cell_xml("臺北市立大學", "CellBlank", "PTitle", span=11), _covered_cells_xml(10)],
+            "RowTitle",
+        ),
+        _row_xml(
+            [_string_cell_xml("「活動名稱」經費預算表", "CellBlank", "PTitle", span=11), _covered_cells_xml(10)],
+            "RowTitle",
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(11)]),
+        _expense_budget_value_label_row("活動名稱", "活動日期"),
+        _expense_budget_value_label_row("主辦社團", "活動負責人"),
+        _expense_budget_value_label_row("財務負責人", "製表日期", right_value_style="CellDate"),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in EXPENSE_BUDGET_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(EXPENSE_BUDGET_FIRST_DATA_ROW, EXPENSE_BUDGET_LAST_DATA_ROW + 1):
+        serial_number = row_number - EXPENSE_BUDGET_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellNumber"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_budget_category"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _blank_cell_xml("CellNumber"),
+                    _string_cell_xml("", "CellBody"),
+                    _blank_cell_xml("CellMoney"),
+                    _float_cell_xml(0, "CellMoneyFormula", formula=_expense_budget_item_amount_formula(row_number)),
+                    _string_cell_xml("", "CellBody", validation_name="validation_budget_funding_source"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_budget_subsidy"),
+                    _string_cell_xml("", "CellBody"),
+                ]
+            )
+        )
+
+    rows.extend(
+        [
+            _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(11)]),
+            _row_xml(
+                [
+                    _string_cell_xml("預算摘要", "CellSummaryHeader", "PHeader", span=11),
+                    _covered_cells_xml(10),
+                ],
+                "RowHeader",
+            ),
+            *_expense_budget_summary_rows(),
+            _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(11)]),
+            _row_xml(
+                [
+                    _string_cell_xml("備註", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue", span=10),
+                    _covered_cells_xml(9),
+                ]
+            ),
+            _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(11)]),
+            _row_xml(
+                [
+                    _string_cell_xml("簽核區", "CellSummaryHeader", "PHeader", span=11),
+                    _covered_cells_xml(10),
+                ],
+                "RowHeader",
+            ),
+            *_expense_budget_signature_rows(),
+        ]
+    )
+
+    return (
+        f'<table:table table:name="{EXPENSE_BUDGET_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_expense_budget_content_xml() -> str:
+    column_styles_xml, _ = _column_styles_xml(
+        [
+            "1.1cm",
+            "2.4cm",
+            "3.1cm",
+            "4.2cm",
+            "1.7cm",
+            "1.8cm",
+            "2.1cm",
+            "2.3cm",
+            "2.5cm",
+            "2.6cm",
+            "3.0cm",
+        ]
+    )
+    validations_xml = "".join(
+        [
+            _validation_xml(
+                "validation_budget_category",
+                EXPENSE_BUDGET_CATEGORY_OPTIONS,
+                "請從項目類別清單選擇。",
+            ),
+            _validation_xml(
+                "validation_budget_funding_source",
+                EXPENSE_BUDGET_FUNDING_SOURCE_OPTIONS,
+                "請從經費來源清單選擇。",
+            ),
+            _validation_xml(
+                "validation_budget_subsidy",
+                EXPENSE_BUDGET_SUBSIDY_OPTIONS,
+                "請從是否申請補助清單選擇。",
+            ),
+        ]
+    )
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(column_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      <table:content-validations>
+        {validations_xml}
+      </table:content-validations>
+      {_expense_budget_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _build_expense_settlement_content_xml() -> str:
     column_styles_xml, _ = _column_styles_xml(["6.6cm", "3.6cm", "3.6cm", "5.0cm"])
     validations_xml = _validation_xml_with_message_type(
@@ -1302,6 +1669,8 @@ def _build_legacy_spreadsheet_content_xml(template_definition: dict) -> str:
 
 def _build_spreadsheet_content_xml(template_definition: dict) -> str:
     template_id = template_definition.get("id") or template_definition.get("template_key")
+    if template_id == "expense_budget":
+        return _build_expense_budget_content_xml()
     if template_id == "income_expense_statement":
         return _build_income_expense_statement_content_xml()
     if template_id == "expense_settlement":
