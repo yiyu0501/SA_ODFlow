@@ -89,6 +89,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_proposal",
                 "activity_application",
                 "activity_result_report",
+                "activity_schedule",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -104,6 +105,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "activity_application",
             "activity_result_report",
+            "activity_schedule",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -291,6 +293,120 @@ class TemplateServiceTestCase(unittest.TestCase):
 
         for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
             self.assertNotIn(forbidden_text, content_xml)
+
+    def test_activity_schedule_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("activity_schedule")
+
+        self.assertEqual(definition["template_key"], "activity_schedule")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_activity_schedule_ods_contains_required_sheets_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("activity_schedule")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+        self.assertIn("粗流", sheet_names)
+        self.assertIn("細流", sheet_names)
+
+        overview_sheet = tree.find(".//table:table[@table:name='粗流']", namespaces)
+        detail_sheet = tree.find(".//table:table[@table:name='細流']", namespaces)
+        self.assertIsNotNone(overview_sheet)
+        self.assertIsNotNone(detail_sheet)
+
+        overview_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in overview_sheet.findall(".//text:p", namespaces)
+        ]
+        detail_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in detail_sheet.findall(".//text:p", namespaces)
+        ]
+
+        for field_name in [
+            "活動流程表",
+            "社團名稱",
+            "活動名稱",
+            "活動日期",
+            "活動地點",
+            "主辦單位",
+            "活動負責人",
+            "時間",
+            "時長",
+            "場控／主持",
+            "場地布置時間",
+            "報到時間",
+            "活動開始時間",
+            "活動結束時間",
+            "場復時間",
+            "製表人",
+        ]:
+            self.assertIn(field_name, overview_text)
+
+        for field_name in [
+            "活動流程表",
+            "社團名稱",
+            "活動名稱",
+            "活動日期",
+            "活動地點",
+            "主辦單位",
+            "活動負責人",
+            "大活動時間",
+            "大活動名稱",
+            "細時間",
+            "組別／區域",
+            "事項",
+            "備註",
+            "器材",
+            "負責人",
+            "人員",
+            "確認與簽核區",
+            "製表人",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(field_name, detail_text)
+
+    def test_activity_schedule_ods_reserves_overview_and_detail_rows(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("activity_schedule")
+        tree = self._read_content_tree(output_path)
+        overview_sheet = tree.find(".//table:table[@table:name='粗流']", namespaces)
+        detail_sheet = tree.find(".//table:table[@table:name='細流']", namespaces)
+        self.assertIsNotNone(overview_sheet)
+        self.assertIsNotNone(detail_sheet)
+
+        def count_blank_data_rows(sheet: ET.Element, marker: str) -> int:
+            rows = sheet.findall("./table:table-row", namespaces)
+            marker_index = None
+            for index, row in enumerate(rows):
+                values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+                if marker in values:
+                    marker_index = index
+                    break
+            self.assertIsNotNone(marker_index)
+
+            blank_count = 0
+            for row in rows[marker_index + 1 :]:
+                values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+                if any(values):
+                    break
+                blank_count += 1
+            return blank_count
+
+        self.assertGreaterEqual(count_blank_data_rows(overview_sheet, "時間"), 20)
+        self.assertGreaterEqual(count_blank_data_rows(detail_sheet, "大活動時間"), 80)
 
     def test_attendance_sheet_registry_entry_is_formal_odt(self):
         definition = get_template_definition("attendance_sheet")
@@ -813,7 +929,7 @@ class TemplateServiceTestCase(unittest.TestCase):
 
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
-            generate_template_file("activity_schedule")
+            generate_template_file("work_assignment")
 
         self.assertIn("尚未提供正式空白範本下載", str(context.exception))
 
@@ -844,6 +960,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "activity_application",
             "activity_result_report",
+            "activity_schedule",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -961,6 +1078,39 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "附件清單",
                 "簽核區",
             ],
+            "activity_schedule": [
+                "活動流程表",
+                "粗流",
+                "細流",
+                "社團名稱",
+                "活動名稱",
+                "活動日期",
+                "活動地點",
+                "主辦單位",
+                "活動負責人",
+                "時間",
+                "時長",
+                "場控／主持",
+                "大活動時間",
+                "大活動名稱",
+                "細時間",
+                "組別／區域",
+                "事項",
+                "備註",
+                "器材",
+                "負責人",
+                "人員",
+                "場地布置時間",
+                "報到時間",
+                "活動開始時間",
+                "活動結束時間",
+                "場復時間",
+                "重要注意事項",
+                "確認與簽核區",
+                "製表人",
+                "社團負責人",
+                "指導老師",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -1046,6 +1196,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         proposal_preview = build_template_preview_data("activity_proposal")
         application_preview = build_template_preview_data("activity_application")
         result_preview = build_template_preview_data("activity_result_report")
+        schedule_preview = build_template_preview_data("activity_schedule")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -1064,6 +1215,12 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(application_preview["header_lines"][0], "臺北市立大學　社團活動申請表")
         self.assertEqual(application_preview["tables"][0]["headers"][0], "活動申請人")
         self.assertEqual(result_preview["header_lines"][1], "社團活動成果報告")
+        self.assertEqual(schedule_preview["header_lines"][0], "活動流程表")
+        self.assertEqual(schedule_preview["tables"][0]["title"], "粗流")
+        self.assertEqual(
+            schedule_preview["tables"][1]["headers"],
+            ["大活動時間", "大活動名稱", "細時間", "組別／區域", "事項", "備註", "器材", "負責人", "人員"],
+        )
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")

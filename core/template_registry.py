@@ -206,10 +206,11 @@ FORMAL_TEMPLATE_REGISTRY = [
         "專案活動型",
         "ODS",
         "中",
-        False,
+        True,
         False,
         "安排活動粗流、細流、器材與現場負責人。",
-        "registered_only",
+        "implemented",
+        preview_type="activity_schedule",
     ),
     _entry(
         "work_assignment",

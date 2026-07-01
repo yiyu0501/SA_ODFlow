@@ -165,6 +165,22 @@ REIMBURSEMENT_HEADERS = [
 REIMBURSEMENT_FIRST_DATA_ROW = 8
 REIMBURSEMENT_ROW_COUNT = 100
 REIMBURSEMENT_LAST_DATA_ROW = REIMBURSEMENT_FIRST_DATA_ROW + REIMBURSEMENT_ROW_COUNT - 1
+ACTIVITY_SCHEDULE_OVERVIEW_SHEET_NAME = "粗流"
+ACTIVITY_SCHEDULE_DETAIL_SHEET_NAME = "細流"
+ACTIVITY_SCHEDULE_OVERVIEW_HEADERS = ["時間", "時長", "活動名稱", "場控／主持", "備註"]
+ACTIVITY_SCHEDULE_DETAIL_HEADERS = [
+    "大活動時間",
+    "大活動名稱",
+    "細時間",
+    "組別／區域",
+    "事項",
+    "備註",
+    "器材",
+    "負責人",
+    "人員",
+]
+ACTIVITY_SCHEDULE_OVERVIEW_ROW_COUNT = 20
+ACTIVITY_SCHEDULE_DETAIL_ROW_COUNT = 80
 
 
 def _escape_attr(value: str) -> str:
@@ -407,6 +423,65 @@ def _income_expense_styles_xml(column_styles_xml: str) -> str:
     </style:style>
     <style:style style:name="CellSummaryPercent" style:family="table-cell" style:data-style-name="NPercent">
       <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm" fo:background-color="#f8fafc"/>
+    </style:style>
+    <style:style style:name="CellBlank" style:family="table-cell">
+      <style:table-cell-properties fo:border="none" fo:padding="0.08cm"/>
+    </style:style>
+"""
+
+
+def _activity_schedule_table_styles_xml(column_styles_xml: str) -> str:
+    return f"""
+    {column_styles_xml}
+    <style:style style:name="RowDefault" style:family="table-row">
+      <style:table-row-properties style:row-height="0.7cm"/>
+    </style:style>
+    <style:style style:name="RowTitle" style:family="table-row">
+      <style:table-row-properties style:row-height="0.88cm"/>
+    </style:style>
+    <style:style style:name="RowHeader" style:family="table-row">
+      <style:table-row-properties style:row-height="0.78cm"/>
+    </style:style>
+    <style:style style:name="RowSummary" style:family="table-row">
+      <style:table-row-properties style:row-height="0.72cm"/>
+    </style:style>
+    <style:style style:name="PTitle" style:family="paragraph">
+      <style:paragraph-properties fo:text-align="center"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="15pt" fo:font-weight="bold"/>
+    </style:style>
+    <style:style style:name="PHeader" style:family="paragraph">
+      <style:paragraph-properties fo:text-align="center"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TABLE_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+    </style:style>
+    <style:style style:name="PLabel" style:family="paragraph">
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{BODY_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+    </style:style>
+    <style:style style:name="PBody" style:family="paragraph">
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TABLE_FONT_SIZE_PT}pt"/>
+    </style:style>
+    <style:style style:name="PSmall" style:family="paragraph">
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="9pt"/>
+    </style:style>
+    <style:style style:name="CellTitle" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #4b5563" fo:padding="0.14cm" fo:background-color="#f8fafc"/>
+    </style:style>
+    <style:style style:name="CellLabel" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #6b7280" fo:padding="0.12cm" fo:background-color="#eef2ff"/>
+    </style:style>
+    <style:style style:name="CellValue" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #9ca3af" fo:padding="0.12cm"/>
+    </style:style>
+    <style:style style:name="CellHeader" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #374151" fo:padding="0.1cm" fo:background-color="#dbeafe"/>
+    </style:style>
+    <style:style style:name="CellBody" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm"/>
+    </style:style>
+    <style:style style:name="CellSummaryHeader" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #4b5563" fo:padding="0.1cm" fo:background-color="#e5e7eb"/>
+    </style:style>
+    <style:style style:name="CellSummaryText" style:family="table-cell">
+      <style:table-cell-properties fo:border="0.03cm solid #cbd5e1" fo:padding="0.09cm"/>
     </style:style>
     <style:style style:name="CellBlank" style:family="table-cell">
       <style:table-cell-properties fo:border="none" fo:padding="0.08cm"/>
@@ -1667,6 +1742,226 @@ def _build_legacy_spreadsheet_content_xml(template_definition: dict) -> str:
 """
 
 
+def _activity_schedule_overview_table_xml() -> str:
+    column_widths = ["3.1cm", "2.2cm", "6.0cm", "3.6cm", "4.4cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("活動流程表", "CellTitle", "PTitle", span=5),
+                _covered_cells_xml(4),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("活動日期", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動地點", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("主辦單位", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動負責人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("聯絡方式", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("版本／修訂日期", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("", "CellValue"),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(5)]),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in ACTIVITY_SCHEDULE_OVERVIEW_HEADERS],
+            "RowHeader",
+        ),
+    ]
+    rows.extend(
+        _row_xml([_string_cell_xml("", "CellBody") for _ in ACTIVITY_SCHEDULE_OVERVIEW_HEADERS])
+        for _ in range(ACTIVITY_SCHEDULE_OVERVIEW_ROW_COUNT)
+    )
+    rows.extend(
+        [
+            _row_xml([_string_cell_xml("", "CellBlank") for _ in range(5)]),
+            _row_xml(
+                [
+                    _string_cell_xml("工作提醒", "CellSummaryHeader", "PHeader", span=5),
+                    _covered_cells_xml(4),
+                ],
+                "RowHeader",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("場地布置時間", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue"),
+                    _string_cell_xml("報到時間", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue"),
+                    _string_cell_xml("", "CellValue"),
+                ]
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("活動開始時間", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue"),
+                    _string_cell_xml("活動結束時間", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue"),
+                    _string_cell_xml("", "CellValue"),
+                ]
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("場復時間", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue"),
+                    _string_cell_xml("重要注意事項", "CellLabel", "PLabel"),
+                    _string_cell_xml("", "CellValue", span=2),
+                    _covered_cells_xml(1),
+                ]
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("製表人", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText"),
+                    _string_cell_xml("活動負責人", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText"),
+                    _string_cell_xml("", "CellSummaryText"),
+                ],
+                "RowSummary",
+            ),
+        ]
+    )
+    return (
+        f'<table:table table:name="{ACTIVITY_SCHEDULE_OVERVIEW_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _activity_schedule_detail_table_xml() -> str:
+    column_widths = ["3.1cm", "4.0cm", "2.4cm", "3.2cm", "5.0cm", "3.6cm", "3.6cm", "2.8cm", "3.8cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("活動流程表", "CellTitle", "PTitle", span=9),
+                _covered_cells_xml(8),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("活動名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("活動日期", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("活動地點", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("主辦單位", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("活動負責人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(9)]),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in ACTIVITY_SCHEDULE_DETAIL_HEADERS],
+            "RowHeader",
+        ),
+    ]
+    rows.extend(
+        _row_xml([_string_cell_xml("", "CellBody") for _ in ACTIVITY_SCHEDULE_DETAIL_HEADERS])
+        for _ in range(ACTIVITY_SCHEDULE_DETAIL_ROW_COUNT)
+    )
+    rows.extend(
+        [
+            _row_xml([_string_cell_xml("", "CellBlank") for _ in range(9)]),
+            _row_xml(
+                [
+                    _string_cell_xml("確認與簽核區", "CellSummaryHeader", "PHeader", span=9),
+                    _covered_cells_xml(8),
+                ],
+                "RowHeader",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("製表人", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText"),
+                    _string_cell_xml("活動負責人", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText"),
+                    _string_cell_xml("社團負責人", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText"),
+                    _string_cell_xml("指導老師", "CellSummaryHeader", "PHeader"),
+                    _string_cell_xml("", "CellSummaryText", span=2),
+                    _covered_cells_xml(1),
+                ],
+                "RowSummary",
+            ),
+        ]
+    )
+    return (
+        f'<table:table table:name="{ACTIVITY_SCHEDULE_DETAIL_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_activity_schedule_content_xml() -> str:
+    overview_styles_xml, _ = _column_styles_xml(["3.1cm", "2.2cm", "6.0cm", "3.6cm", "4.4cm"])
+    detail_styles_xml, _ = _column_styles_xml(["3.1cm", "4.0cm", "2.4cm", "3.2cm", "5.0cm", "3.6cm", "3.6cm", "2.8cm", "3.8cm"])
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_activity_schedule_table_styles_xml(overview_styles_xml + detail_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      {_activity_schedule_overview_table_xml()}
+      {_activity_schedule_detail_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _build_spreadsheet_content_xml(template_definition: dict) -> str:
     template_id = template_definition.get("id") or template_definition.get("template_key")
     if template_id == "expense_budget":
@@ -1677,6 +1972,8 @@ def _build_spreadsheet_content_xml(template_definition: dict) -> str:
         return _build_expense_settlement_content_xml()
     if template_id == "reimbursement_detail":
         return _build_reimbursement_detail_content_xml()
+    if template_id == "activity_schedule":
+        return _build_activity_schedule_content_xml()
     return _build_legacy_spreadsheet_content_xml(template_definition)
 
 
