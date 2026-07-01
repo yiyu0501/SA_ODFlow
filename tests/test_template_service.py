@@ -85,6 +85,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             [
                 "meeting_minutes",
                 "meeting_notice",
+                "attendance_sheet",
                 "activity_proposal",
                 "activity_result_report",
                 "expense_budget",
@@ -98,6 +99,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         for template_key in [
             "meeting_minutes",
             "meeting_notice",
+            "attendance_sheet",
             "activity_proposal",
             "activity_result_report",
             "expense_budget",
@@ -167,6 +169,62 @@ class TemplateServiceTestCase(unittest.TestCase):
             "新增工作人員",
             "專案自動化說明",
         ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_attendance_sheet_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("attendance_sheet")
+
+        self.assertEqual(definition["template_key"], "attendance_sheet")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_attendance_sheet_odt_contains_formal_sections(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("attendance_sheet")
+        content_xml = self._read_content_xml(output_path)
+        tree = self._read_content_tree(output_path)
+
+        for required_text in [
+            "簽到表",
+            "日期與時間",
+            "活動地點",
+            "活動名稱",
+            "主辦單位",
+            "系級／單位",
+            "姓名",
+            "應到人數",
+            "實到人數",
+            "請假人數",
+            "缺席人數",
+            "備註",
+            "製表人",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+        sign_in_table = tree.find(".//table:table[@table:name='簽到明細']", namespaces)
+        self.assertIsNotNone(sign_in_table)
+        rows = sign_in_table.findall("./table:table-row", namespaces)
+        self.assertGreaterEqual(len(rows), 16)
+
+        header_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in rows[0].findall(".//text:p", namespaces)
+        ]
+        self.assertEqual(header_text, ["系級／單位", "姓名", "系級／單位", "姓名"])
+
+    def test_attendance_sheet_excludes_signature_column_and_metadata_text(self):
+        output_path = generate_template_file("attendance_sheet")
+        content_xml = self._read_content_xml(output_path)
+
+        self.assertNotIn("簽名", content_xml)
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
             self.assertNotIn(forbidden_text, content_xml)
 
     def test_expense_budget_registry_entry_is_formal_ods(self):
@@ -661,6 +719,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         for template_key in [
             "meeting_minutes",
             "meeting_notice",
+            "attendance_sheet",
             "activity_proposal",
             "activity_result_report",
             "expense_budget",
@@ -691,6 +750,22 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "開會時間",
                 "開會地點",
                 "主持人",
+            ],
+            "attendance_sheet": [
+                "簽到表",
+                "日期與時間",
+                "活動地點",
+                "活動名稱",
+                "主辦單位",
+                "系級／單位",
+                "姓名",
+                "應到人數",
+                "實到人數",
+                "請假人數",
+                "缺席人數",
+                "製表人",
+                "社團負責人",
+                "指導老師",
             ],
             "activity_proposal": [
                 "活動主題",
@@ -807,6 +882,7 @@ class TemplateServiceTestCase(unittest.TestCase):
     def test_preview_data_supports_canonical_and_legacy_aliases(self):
         minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
+        attendance_preview = build_template_preview_data("attendance_sheet")
         proposal_preview = build_template_preview_data("activity_proposal")
         result_preview = build_template_preview_data("activity_result_report")
         budget_preview = build_template_preview_data("expense_budget")
@@ -816,6 +892,11 @@ class TemplateServiceTestCase(unittest.TestCase):
 
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
+        self.assertEqual(attendance_preview["header_lines"][1], "「{{event_name}}」簽到表")
+        self.assertEqual(
+            attendance_preview["tables"][0]["headers"],
+            ["系級／單位", "姓名", "系級／單位", "姓名"],
+        )
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
         self.assertEqual(result_preview["header_lines"][1], "社團活動成果報告")
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
