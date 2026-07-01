@@ -39,6 +39,39 @@ EXPENSE_SETTLEMENT_NOTE_OPTIONS = [
     "自籌",
     "其他",
 ]
+REIMBURSEMENT_RECEIPT_TYPE_OPTIONS = [
+    "發票",
+    "電子發票證明聯",
+    "收據",
+    "免用統一發票收據",
+    "匯款證明",
+    "付款截圖",
+    "領據",
+    "其他",
+]
+REIMBURSEMENT_FUNDING_SOURCE_OPTIONS = [
+    "學校補助",
+    "校外補助",
+    "社團會費",
+    "自籌",
+    "其他",
+]
+REIMBURSEMENT_PAYMENT_METHOD_OPTIONS = [
+    "現金",
+    "轉帳",
+    "信用卡",
+    "金融卡",
+    "行動支付",
+    "匯款",
+    "其他",
+]
+REIMBURSEMENT_RECEIPT_STATUS_OPTIONS = [
+    "已附",
+    "待補",
+    "遺失",
+    "不核銷",
+    "不適用",
+]
 INCOME_EXPENSE_HEADERS = [
     "序號",
     "日期",
@@ -73,6 +106,26 @@ EXPENSE_SETTLEMENT_ROW_COUNT = 10
 EXPENSE_SETTLEMENT_LAST_DATA_ROW = (
     EXPENSE_SETTLEMENT_FIRST_DATA_ROW + EXPENSE_SETTLEMENT_ROW_COUNT - 1
 )
+REIMBURSEMENT_SHEET_NAME = "核銷明細表"
+REIMBURSEMENT_HEADERS = [
+    "序號",
+    "支出日期",
+    "對應經費項目",
+    "品名／用途",
+    "店家／受款單位",
+    "單據類型",
+    "單據號碼",
+    "經費來源",
+    "支付方式",
+    "墊付款人",
+    "金額",
+    "憑證狀態",
+    "附件檔名／連結",
+    "備註",
+]
+REIMBURSEMENT_FIRST_DATA_ROW = 8
+REIMBURSEMENT_ROW_COUNT = 100
+REIMBURSEMENT_LAST_DATA_ROW = REIMBURSEMENT_FIRST_DATA_ROW + REIMBURSEMENT_ROW_COUNT - 1
 
 
 def _escape_attr(value: str) -> str:
@@ -429,6 +482,79 @@ def _expense_settlement_signature_rows() -> list[str]:
                 _string_cell_xml("學務長", "CellLabel", "PLabel"),
                 _string_cell_xml("", "CellValue"),
             ]
+        ),
+    ]
+
+
+def _reimbursement_value_label_row(
+    left_label: str,
+    right_label: str,
+    *,
+    left_value_style: str = "CellValue",
+    right_value_style: str = "CellValue",
+) -> str:
+    return _row_xml(
+        [
+            _string_cell_xml(left_label, "CellLabel", "PLabel"),
+            _string_cell_xml("", left_value_style),
+            _string_cell_xml(right_label, "CellLabel", "PLabel"),
+            _string_cell_xml("", right_value_style),
+        ]
+    )
+
+
+def _reimbursement_summary_formula_rows() -> list[str]:
+    funding_range = (
+        f"[.H{REIMBURSEMENT_FIRST_DATA_ROW}:.H{REIMBURSEMENT_LAST_DATA_ROW}]"
+    )
+    amount_range = (
+        f"[.K{REIMBURSEMENT_FIRST_DATA_ROW}:.K{REIMBURSEMENT_LAST_DATA_ROW}]"
+    )
+    status_range = (
+        f"[.L{REIMBURSEMENT_FIRST_DATA_ROW}:.L{REIMBURSEMENT_LAST_DATA_ROW}]"
+    )
+    receipt_number_range = (
+        f"[.G{REIMBURSEMENT_FIRST_DATA_ROW}:.G{REIMBURSEMENT_LAST_DATA_ROW}]"
+    )
+
+    return [
+        _row_xml(
+            [
+                _string_cell_xml("支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=SUM({amount_range})"),
+                _string_cell_xml("學校補助支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMIF({funding_range};"學校補助";{amount_range})'),
+                _string_cell_xml("校外補助支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMIF({funding_range};"校外補助";{amount_range})'),
+                _string_cell_xml("社團會費支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMIF({funding_range};"社團會費";{amount_range})'),
+                _string_cell_xml("自籌支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMIF({funding_range};"自籌";{amount_range})'),
+                _string_cell_xml("其他支出總金額", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMIF({funding_range};"其他";{amount_range})'),
+                _string_cell_xml("", "CellSummaryText"),
+                _string_cell_xml("", "CellSummaryText"),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("已附憑證筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"已附")'),
+                _string_cell_xml("待補憑證筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"待補")'),
+                _string_cell_xml("遺失憑證筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"遺失")'),
+                _string_cell_xml("不核銷筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"不核銷")'),
+                _string_cell_xml("單據張數合計", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=SUMPRODUCT(N(LEN({receipt_number_range})>0))'),
+                _string_cell_xml("", "CellSummaryText"),
+                _string_cell_xml("", "CellSummaryText"),
+                _string_cell_xml("", "CellSummaryText"),
+                _string_cell_xml("", "CellSummaryText"),
+            ],
+            "RowSummary",
         ),
     ]
 
@@ -824,6 +950,157 @@ def _build_expense_settlement_content_xml() -> str:
 """
 
 
+def _reimbursement_detail_table_xml() -> str:
+    column_widths = [
+        "1.1cm",
+        "2.2cm",
+        "3.1cm",
+        "3.3cm",
+        "3.3cm",
+        "2.9cm",
+        "2.4cm",
+        "2.6cm",
+        "2.3cm",
+        "2.6cm",
+        "2.2cm",
+        "2.4cm",
+        "3.2cm",
+        "2.8cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [_string_cell_xml("臺北市立大學", "CellBlank", "PTitle", span=14), _covered_cells_xml(13)],
+            "RowTitle",
+        ),
+        _row_xml(
+            [_string_cell_xml("社團活動核銷明細表", "CellBlank", "PTitle", span=14), _covered_cells_xml(13)],
+            "RowTitle",
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(14)]),
+        _reimbursement_value_label_row("活動名稱", "活動日期", right_value_style="CellDate"),
+        _reimbursement_value_label_row("主辦社團", "活動負責人"),
+        _reimbursement_value_label_row("財務負責人", "製表日期", right_value_style="CellDate"),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in REIMBURSEMENT_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(REIMBURSEMENT_FIRST_DATA_ROW, REIMBURSEMENT_LAST_DATA_ROW + 1):
+        serial_number = row_number - REIMBURSEMENT_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellBody"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_receipt_type"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_funding_source"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_payment_method"),
+                    _string_cell_xml("", "CellBody"),
+                    _blank_cell_xml("CellMoney"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_receipt_status"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                ]
+            )
+        )
+
+    rows.extend(
+        [
+            _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(14)]),
+            _row_xml(
+                [
+                    _string_cell_xml("統計摘要區", "CellSummaryHeader", "PHeader", span=14),
+                    _covered_cells_xml(13),
+                ],
+                "RowHeader",
+            ),
+            *_reimbursement_summary_formula_rows(),
+            _row_xml([_string_cell_xml("", "CellBlank", "PBody") for _ in range(14)]),
+            _row_xml(
+                [
+                    _string_cell_xml("備註區", "CellSummaryHeader", "PHeader", span=14),
+                    _covered_cells_xml(13),
+                ],
+                "RowHeader",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("可在此補充單據遺失、補件進度、付款差異或附件說明。", "CellSummaryText", "PBody", span=14),
+                    _covered_cells_xml(13),
+                ],
+                "RowSummary",
+            ),
+        ]
+    )
+
+    return (
+        f'<table:table table:name="{REIMBURSEMENT_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_reimbursement_detail_content_xml() -> str:
+    column_styles_xml, _ = _column_styles_xml(
+        [
+            "1.1cm",
+            "2.2cm",
+            "3.1cm",
+            "3.3cm",
+            "3.3cm",
+            "2.9cm",
+            "2.4cm",
+            "2.6cm",
+            "2.3cm",
+            "2.6cm",
+            "2.2cm",
+            "2.4cm",
+            "3.2cm",
+            "2.8cm",
+        ]
+    )
+    validations_xml = "".join(
+        [
+            _validation_xml("validation_receipt_type", REIMBURSEMENT_RECEIPT_TYPE_OPTIONS, "請從單據類型清單選擇。"),
+            _validation_xml("validation_funding_source", REIMBURSEMENT_FUNDING_SOURCE_OPTIONS, "請從經費來源清單選擇。"),
+            _validation_xml("validation_payment_method", REIMBURSEMENT_PAYMENT_METHOD_OPTIONS, "請從支付方式清單選擇。"),
+            _validation_xml("validation_receipt_status", REIMBURSEMENT_RECEIPT_STATUS_OPTIONS, "請從憑證狀態清單選擇。"),
+        ]
+    )
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(column_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      <table:content-validations>
+        {validations_xml}
+      </table:content-validations>
+      {_reimbursement_detail_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _build_income_expense_statement_content_xml() -> str:
     column_styles_xml, _ = _column_styles_xml(
         [
@@ -1029,6 +1306,8 @@ def _build_spreadsheet_content_xml(template_definition: dict) -> str:
         return _build_income_expense_statement_content_xml()
     if template_id == "expense_settlement":
         return _build_expense_settlement_content_xml()
+    if template_id == "reimbursement_detail":
+        return _build_reimbursement_detail_content_xml()
     return _build_legacy_spreadsheet_content_xml(template_definition)
 
 
