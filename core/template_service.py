@@ -466,6 +466,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_minutes": _build_meeting_minutes_preview_data,
         "meeting_notice": _build_meeting_notice_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
+        "activity_result_report": _build_activity_result_report_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
@@ -603,6 +604,48 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
                 "title": "活動預算",
                 "headers": ["項目", "說明", "數量 / 單位", "單價", "金額", "預算來源", "備註"],
                 "rows": [["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]],
+            },
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_activity_result_report_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "社團活動成果報告"],
+        "meta_rows": [],
+        "sections": [
+            {"title": "會議記錄", "items": ["會議性質", "開會日期", "開會地點", "主席", "出席人員", "討論內容", "臨時動議", "決議"]},
+            {"title": "活動簡介與記錄", "items": ["活動實際辦理情形", "參與情況", "活動成果", "重要紀錄"]},
+            {"title": "社員心得", "items": ["心得內容", "參與者回饋"]},
+            {"title": "附件清單", "items": ["簽到表", "活動照片", "經費收支結算表", "核銷明細", "其他附件"]},
+        ],
+        "tables": [
+            {
+                "title": "工作人員列表",
+                "headers": ["工作職稱", "學號", "姓名", "工作職稱", "學號", "姓名"],
+                "rows": [["", "", "", "", "", ""], ["", "", "", "", "", ""]],
+            },
+            {
+                "title": "活動照片區",
+                "headers": ["照片一／照片二", "照片三／照片四"],
+                "rows": [
+                    ["照片黏貼處\n\n活動照片內容：", "照片黏貼處\n\n活動照片內容："],
+                    ["照片黏貼處\n\n活動照片內容：", "照片黏貼處\n\n活動照片內容："],
+                ],
+            },
+            {
+                "title": "經費使用摘要",
+                "headers": ["預算金額", "實際支出", "補助金額", "自籌金額", "備註"],
+                "rows": [["", "", "", "", "經費收支結算表另附。"]],
+            },
+            {
+                "title": "簽核區",
+                "headers": ["製表人", "社團負責人", "指導老師", "審核單位"],
+                "rows": [["", "", "", ""]],
             },
         ],
         "decor": {},

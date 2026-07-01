@@ -102,7 +102,8 @@ def _table_xml(
 
 
 def _render_sections(spec: dict) -> str:
-    body_parts = [_heading_xml(spec["title"], "PTitle", level=1)]
+    title_lines = [line.strip() for line in str(spec["title"] or "").split("\n") if line.strip()] or [""]
+    body_parts = [_heading_xml(line, "PTitle", level=1) for line in title_lines]
 
     for section in spec["sections"]:
         kind = section["kind"]
@@ -230,6 +231,10 @@ def _minimal_odt_files(content_xml: str) -> dict[str, str]:
     <style:default-style style:family="paragraph">
       <style:text-properties style:font-name="FormalCJK" fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{BODY_FONT_SIZE_PT}pt"/>
     </style:default-style>
+    <style:style style:name="Footer" style:family="paragraph">
+      <style:paragraph-properties fo:text-align="center"/>
+      <style:text-properties style:font-name="FormalCJK" fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="10pt"/>
+    </style:style>
   </office:styles>
   <office:automatic-styles>
     <style:page-layout style:name="pm1">
@@ -237,7 +242,11 @@ def _minimal_odt_files(content_xml: str) -> dict[str, str]:
     </style:page-layout>
   </office:automatic-styles>
   <office:master-styles>
-    <style:master-page style:name="Standard" style:page-layout-name="pm1"/>
+    <style:master-page style:name="Standard" style:page-layout-name="pm1">
+      <style:footer>
+        <text:p text:style-name="Footer">第<text:page-number text:select-page="current">1</text:page-number>頁　共<text:page-count>1</text:page-count>頁</text:p>
+      </style:footer>
+    </style:master-page>
   </office:master-styles>
 </office:document-styles>
 """,

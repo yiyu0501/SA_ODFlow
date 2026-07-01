@@ -86,6 +86,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "meeting_minutes",
                 "meeting_notice",
                 "activity_proposal",
+                "activity_result_report",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -98,6 +99,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_minutes",
             "meeting_notice",
             "activity_proposal",
+            "activity_result_report",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -105,6 +107,67 @@ class TemplateServiceTestCase(unittest.TestCase):
         ]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
+
+    def test_activity_result_report_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("activity_result_report")
+
+        self.assertEqual(definition["template_key"], "activity_result_report")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+
+    def test_activity_result_report_odt_contains_formal_sections(self):
+        output_path = generate_template_file("activity_result_report")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "臺北市立大學",
+            "社團活動成果報告",
+            "一、會議記錄",
+            "會議性質",
+            "開會日期",
+            "開會地點",
+            "主席",
+            "記錄",
+            "出席人員",
+            "討論內容",
+            "臨時動議",
+            "決議",
+            "二、活動簡介與記錄",
+            "三、工作人員列表",
+            "工作職稱",
+            "學號",
+            "姓名",
+            "四、社員心得",
+            "五、活動照片",
+            "照片黏貼處",
+            "活動照片內容：",
+            "六、經費使用摘要",
+            "預算金額",
+            "實際支出",
+            "補助金額",
+            "自籌金額",
+            "七、檢討與建議",
+            "八、附件清單",
+            "九、簽核區",
+            "製表人",
+            "社團負責人",
+            "指導老師",
+            "審核單位",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_activity_result_report_odt_excludes_ui_operation_text(self):
+        output_path = generate_template_file("activity_result_report")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in [
+            "新增會議記錄",
+            "上傳照片",
+            "新增工作人員",
+            "專案自動化說明",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
 
     def test_expense_budget_registry_entry_is_formal_ods(self):
         definition = get_template_definition("expense_budget")
@@ -599,6 +662,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_minutes",
             "meeting_notice",
             "activity_proposal",
+            "activity_result_report",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -633,6 +697,34 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "活動宗旨",
                 "活動時間流程表",
                 "活動預算",
+            ],
+            "activity_result_report": [
+                "社團活動成果報告",
+                "會議性質",
+                "開會日期",
+                "開會地點",
+                "主席",
+                "記錄",
+                "出席人員",
+                "討論內容",
+                "臨時動議",
+                "決議",
+                "活動簡介與記錄",
+                "工作人員列表",
+                "工作職稱",
+                "學號",
+                "姓名",
+                "社員心得",
+                "活動照片",
+                "照片黏貼處",
+                "活動照片內容：",
+                "經費使用摘要",
+                "預算金額",
+                "實際支出",
+                "補助金額",
+                "自籌金額",
+                "附件清單",
+                "簽核區",
             ],
             "income_expense_statement": [
                 "學年度",
@@ -716,6 +808,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
         proposal_preview = build_template_preview_data("activity_proposal")
+        result_preview = build_template_preview_data("activity_result_report")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -724,6 +817,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
+        self.assertEqual(result_preview["header_lines"][1], "社團活動成果報告")
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
