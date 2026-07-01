@@ -110,6 +110,69 @@ class TemplateServiceTestCase(unittest.TestCase):
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
 
+    def test_meeting_minutes_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("meeting_minutes")
+
+        self.assertEqual(definition["template_key"], "meeting_minutes")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertTrue(definition["supports_generate_document"])
+
+    def test_meeting_minutes_odt_contains_formal_sections(self):
+        output_path = generate_template_file("meeting_minutes")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "第{{meeting_number}}次{{meeting_type}}紀錄",
+            "製作日期：{{document_date}}",
+            "基本資料表",
+            "會議名稱",
+            "會議日期",
+            "會議時間",
+            "會議地點",
+            "主席",
+            "記錄人員",
+            "出席人員",
+            "列席人員",
+            "請假人員",
+            "缺席人員",
+            "壹、會議開始",
+            "一、上次會議決議追蹤",
+            "二、主席致詞",
+            "貳、報告事項",
+            "報告人",
+            "參、討論事項",
+            "案由一：",
+            "說明：",
+            "討論：",
+            "決議：",
+            "表決結果：同意＿＿票，不同意＿＿票，棄權＿＿票。",
+            "負責人：",
+            "執行期限：",
+            "待辦事項",
+            "項次",
+            "事項",
+            "期限",
+            "肆、臨時動議",
+            "提案人：",
+            "伍、散會",
+            "散會時間：{{end_time}}",
+            "下次會議時間：{{next_meeting_time}}",
+            "簽核欄位",
+            "製表人",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_meeting_minutes_excludes_forbidden_metadata_text(self):
+        output_path = generate_template_file("meeting_minutes")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
+            self.assertNotIn(forbidden_text, content_xml)
+
     def test_activity_result_report_registry_entry_is_formal_odt(self):
         definition = get_template_definition("activity_result_report")
 
@@ -735,12 +798,25 @@ class TemplateServiceTestCase(unittest.TestCase):
     def test_core_blank_templates_keep_required_formal_fields(self):
         expected_fields = {
             "meeting_minutes": [
+                "第{{meeting_number}}次{{meeting_type}}紀錄",
+                "製作日期：{{document_date}}",
+                "會議名稱",
+                "會議日期",
                 "會議時間",
+                "會議地點",
                 "主席",
+                "列席人員",
+                "缺席人員",
                 "出席人員",
                 "記錄人員",
-                "報告事項",
-                "討論事項",
+                "壹、會議開始",
+                "貳、報告事項",
+                "參、討論事項",
+                "表決結果",
+                "待辦事項",
+                "肆、臨時動議",
+                "伍、散會",
+                "簽核欄位",
             ],
             "meeting_notice": [
                 "受文者",
@@ -890,7 +966,9 @@ class TemplateServiceTestCase(unittest.TestCase):
         settlement_preview = build_template_preview_data("expense_settlement")
         reimbursement_preview = build_template_preview_data("reimbursement_detail")
 
-        self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
+        self.assertEqual(minutes_preview["header_lines"][0], "{{school_name}}{{club_name}}")
+        self.assertEqual(minutes_preview["header_lines"][1], "第{{meeting_number}}次{{meeting_type}}紀錄")
+        self.assertEqual(minutes_preview["tables"][0]["headers"], ["項次", "事項", "負責人", "期限", "備註"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(attendance_preview["header_lines"][1], "「{{event_name}}」簽到表")
         self.assertEqual(
