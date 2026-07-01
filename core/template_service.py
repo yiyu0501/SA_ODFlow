@@ -161,6 +161,16 @@ LEGACY_TEMPLATE_DEFINITIONS = {
             linked_document_type="活動企劃書",
             placeholder_template_path="templates/odt_placeholders/activity_proposal_template.odt",
         ),
+        _odt_template(
+            "activity_application_odt",
+            "活動申請表",
+            "行政申請",
+            "用於送交學校行政流程審核的一頁式活動申請表。",
+            ["活動名稱", "活動時間", "活動地點", "申請日期", "主辦社團", "參加人數"],
+            ["前年社團評鑑", "活動性質", "宗旨", "活動內容或講題", "活動申請人", "行政簽核保留區"],
+            ["應維持 A4 橫式一頁，行政欄位由學校審核單位填寫。"],
+            "6.社團活動_社團活動",
+        ),
         _ods_template(
             "activity_rundown_coarse_ods",
             "活動粗流程表",
@@ -466,6 +476,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_notice": _build_meeting_notice_preview_data,
         "attendance_sheet": _build_attendance_sheet_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
+        "activity_application": _build_activity_application_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
@@ -639,6 +650,57 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
         ],
         "decor": {},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_activity_application_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學　社團活動申請表"],
+        "meta_rows": [
+            ("注意事項", "請於活動二週前完成申請並隨表附活動企畫書"),
+            ("注意事項", "申請校內場地，請增附場地申請表"),
+            ("活動名稱", "{{activity_name}}"),
+            ("活動時間", "{{start_date}} {{start_time}} 起至 {{end_date}} {{end_time}} 止"),
+            ("活動地點", "{{location}}"),
+            ("申請日期", "{{application_date}}"),
+            ("主辦社團", "{{club_name}}"),
+            ("參加人數", "{{participant_count}} 人"),
+        ],
+        "sections": [
+            {"title": "前年社團評鑑", "items": ["特優□　優等□　甲等□　乙等□"]},
+            {
+                "title": "活動性質",
+                "items": [
+                    "□ 幹訓或營隊",
+                    "□ 學術活動",
+                    "□ 刊物出版",
+                    "□ 康樂活動",
+                    "□ 社會服務活動",
+                    "□ 發展社團特色活動",
+                    "□ 其他符合社團宗旨之綜合性活動",
+                    "□ 學校委辦或代表學校之活動",
+                ],
+            },
+            {"title": "宗旨", "items": ["{{purpose_summary}}"]},
+            {"title": "活動內容或講題", "items": ["{{content_summary}}"]},
+            {"title": "使用種類與額度由課外活動組填寫", "items": []},
+        ],
+        "tables": [
+            {
+                "title": "申請人與經費區",
+                "headers": ["活動申請人", "系別", "班別", "手機", "申請補助", "自籌經費", "合計"],
+                "rows": [["{{applicant_name}}", "{{applicant_department}}", "{{applicant_class}}", "{{applicant_phone}}", "{{subsidy_amount}}", "{{self_funded_amount}}", "{{total_amount}}"]],
+            },
+            {
+                "title": "行政簽核區",
+                "headers": ["承辦人", "單位主管", "組長", "學務長", "會辦單位", "校長"],
+                "rows": [["", "", "", "", "", ""]],
+            },
+        ],
+        "decor": {"page_footer": "A4 橫式一頁預覽"},
+        "footnote": "此為橫式行政表單預覽，實際格式以下載 ODT 為準。",
     }
 
 

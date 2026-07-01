@@ -134,7 +134,14 @@ def _render_sections(spec: dict) -> str:
     return "\n".join(body_parts)
 
 
-def _wrap_text_document(body: str) -> str:
+def _wrap_text_document(body: str, style_overrides: dict | None = None) -> str:
+    style_overrides = style_overrides or {}
+    body_font_size_pt = style_overrides.get("body_font_size_pt", BODY_FONT_SIZE_PT)
+    title_font_size_pt = style_overrides.get("title_font_size_pt", TITLE_FONT_SIZE_PT)
+    section_font_size_pt = style_overrides.get("section_font_size_pt", SECTION_FONT_SIZE_PT)
+    table_font_size_pt = style_overrides.get("table_font_size_pt", TABLE_FONT_SIZE_PT)
+    note_font_size_pt = style_overrides.get("note_font_size_pt", NOTE_FONT_SIZE_PT)
+
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content
     xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
@@ -147,31 +154,31 @@ def _wrap_text_document(body: str) -> str:
   <office:automatic-styles>
     <style:style style:name="PBody" style:family="paragraph">
       <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0.14cm" fo:line-height="130%"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{BODY_FONT_SIZE_PT}pt"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{body_font_size_pt}pt"/>
     </style:style>
     <style:style style:name="PTitle" style:family="paragraph">
       <style:paragraph-properties fo:text-align="center" fo:margin-top="0cm" fo:margin-bottom="0.35cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TITLE_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{title_font_size_pt}pt" fo:font-weight="bold"/>
     </style:style>
     <style:style style:name="PSection" style:family="paragraph">
       <style:paragraph-properties fo:margin-top="0.28cm" fo:margin-bottom="0.14cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{SECTION_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{section_font_size_pt}pt" fo:font-weight="bold"/>
     </style:style>
     <style:style style:name="PLabel" style:family="paragraph">
       <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TABLE_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{table_font_size_pt}pt" fo:font-weight="bold"/>
     </style:style>
     <style:style style:name="PTableHeader" style:family="paragraph">
       <style:paragraph-properties fo:text-align="center" fo:margin-top="0cm" fo:margin-bottom="0cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TABLE_FONT_SIZE_PT}pt" fo:font-weight="bold"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{table_font_size_pt}pt" fo:font-weight="bold"/>
     </style:style>
     <style:style style:name="PTableBody" style:family="paragraph">
       <style:paragraph-properties fo:margin-top="0cm" fo:margin-bottom="0cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{TABLE_FONT_SIZE_PT}pt"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{table_font_size_pt}pt"/>
     </style:style>
     <style:style style:name="PNote" style:family="paragraph">
       <style:paragraph-properties fo:margin-top="0.08cm" fo:margin-bottom="0.08cm"/>
-      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{NOTE_FONT_SIZE_PT}pt"/>
+      <style:text-properties fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{note_font_size_pt}pt"/>
     </style:style>
     <text:list-style style:name="ListDefault">
       <text:list-level-style-bullet text:level="1" text:bullet-char="•">
@@ -212,7 +219,27 @@ def _wrap_text_document(body: str) -> str:
 """
 
 
-def _minimal_odt_files(content_xml: str) -> dict[str, str]:
+def _minimal_odt_files(
+    content_xml: str,
+    page_layout: dict | None = None,
+    footer_font_size_pt: int | float = 10,
+) -> dict[str, str]:
+    page_layout = page_layout or {}
+    orientation = page_layout.get("orientation", "portrait")
+    if orientation == "landscape":
+        default_page_width = PAGE_HEIGHT_CM
+        default_page_height = PAGE_WIDTH_CM
+    else:
+        default_page_width = PAGE_WIDTH_CM
+        default_page_height = PAGE_HEIGHT_CM
+
+    page_width = page_layout.get("page_width_cm", default_page_width)
+    page_height = page_layout.get("page_height_cm", default_page_height)
+    margin_top = page_layout.get("margin_top_cm", PAGE_MARGIN_CM)
+    margin_bottom = page_layout.get("margin_bottom_cm", PAGE_MARGIN_CM)
+    margin_left = page_layout.get("margin_left_cm", PAGE_MARGIN_CM)
+    margin_right = page_layout.get("margin_right_cm", PAGE_MARGIN_CM)
+
     return {
         "mimetype": "application/vnd.oasis.opendocument.text",
         "content.xml": content_xml,
@@ -233,12 +260,12 @@ def _minimal_odt_files(content_xml: str) -> dict[str, str]:
     </style:default-style>
     <style:style style:name="Footer" style:family="paragraph">
       <style:paragraph-properties fo:text-align="center"/>
-      <style:text-properties style:font-name="FormalCJK" fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="10pt"/>
+      <style:text-properties style:font-name="FormalCJK" fo:font-family="{escape(ODF_FONT_FAMILY)}" fo:font-size="{footer_font_size_pt}pt"/>
     </style:style>
   </office:styles>
   <office:automatic-styles>
     <style:page-layout style:name="pm1">
-      <style:page-layout-properties fo:page-width="{PAGE_WIDTH_CM}" fo:page-height="{PAGE_HEIGHT_CM}" style:print-orientation="portrait" fo:margin-top="{PAGE_MARGIN_CM}" fo:margin-bottom="{PAGE_MARGIN_CM}" fo:margin-left="{PAGE_MARGIN_CM}" fo:margin-right="{PAGE_MARGIN_CM}"/>
+      <style:page-layout-properties fo:page-width="{page_width}" fo:page-height="{page_height}" style:print-orientation="{orientation}" fo:margin-top="{margin_top}" fo:margin-bottom="{margin_bottom}" fo:margin-left="{margin_left}" fo:margin-right="{margin_right}"/>
     </style:page-layout>
   </office:automatic-styles>
   <office:master-styles>
@@ -338,5 +365,15 @@ def generate_odt_template(
     output_path: Path | str,
 ) -> Path:
     spec = build_template_render_spec(template_definition)
-    content_xml = _wrap_text_document(_render_sections(spec))
-    return _write_odf_package(Path(output_path), _minimal_odt_files(content_xml))
+    style_overrides = spec.get("style_overrides")
+    page_layout = spec.get("page_layout")
+    footer_font_size_pt = (style_overrides or {}).get("footer_font_size_pt", 10)
+    content_xml = _wrap_text_document(_render_sections(spec), style_overrides=style_overrides)
+    return _write_odf_package(
+        Path(output_path),
+        _minimal_odt_files(
+            content_xml,
+            page_layout=page_layout,
+            footer_font_size_pt=footer_font_size_pt,
+        ),
+    )
