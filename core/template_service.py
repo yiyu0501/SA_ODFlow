@@ -465,6 +465,7 @@ def build_template_preview_data(template_id: str) -> dict:
     preview_builders = {
         "meeting_minutes": _build_meeting_minutes_preview_data,
         "meeting_notice": _build_meeting_notice_preview_data,
+        "attendance_sheet": _build_attendance_sheet_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
@@ -607,6 +608,45 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
             },
         ],
         "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_attendance_sheet_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}} {{club_name}}", "「{{event_name}}」簽到表"],
+        "meta_rows": [
+            ("日期與時間", "{{event_date}} {{start_time}} 至 {{end_time}}"),
+            ("活動地點", "{{location}}"),
+            ("活動名稱", "{{event_name}}"),
+            ("主辦單位", "{{organizer}}"),
+        ],
+        "sections": [
+            {
+                "title": "統計與備註",
+                "items": ["應到人數", "實到人數", "請假人數", "缺席人數", "備註"],
+            },
+            {
+                "title": "簽核欄位",
+                "items": ["製表人", "社團負責人", "指導老師"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "雙欄簽到表",
+                "headers": ["系級／單位", "姓名", "系級／單位", "姓名"],
+                "rows": [
+                    ["", "", "", ""],
+                    ["", "", "", ""],
+                    ["", "", "", ""],
+                ],
+            }
+        ],
+        "decor": {
+            "page_footer": "第1頁　共1頁",
+        },
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 

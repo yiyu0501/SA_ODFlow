@@ -79,6 +79,9 @@ def build_template_render_spec(template_definition: dict) -> dict:
         )
         return spec
 
+    if template_definition["id"] == "attendance_sheet_ods":
+        return _build_attendance_sheet_template_spec(template_definition)
+
     special_template_builders = {
         "meeting_notice_odt": lambda: build_document_render_spec(
             "開會通知單",
@@ -481,6 +484,62 @@ def _build_activity_result_report_template_spec(template_definition: dict) -> di
                 heading="九、簽核區",
                 headers=["製表人", "社團負責人", "指導老師", "審核單位"],
                 rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
+
+
+def _build_attendance_sheet_template_spec(template_definition: dict) -> dict:
+    sign_in_rows = ensure_table_rows(
+        [["", "", "", ""] for _ in range(15)],
+        4,
+        minimum_rows=15,
+        placeholder="",
+    )
+    summary_rows = [
+        ["應到人數", BLANK_LINE_PLACEHOLDER, "實到人數", BLANK_LINE_PLACEHOLDER],
+        ["請假人數", BLANK_LINE_PLACEHOLDER, "缺席人數", BLANK_LINE_PLACEHOLDER],
+        ["備註", "請參與者依序填寫系級／單位與姓名。", "", ""],
+    ]
+    signoff_rows = [
+        ["製表人", BLANK_LINE_PLACEHOLDER, "社團負責人", BLANK_LINE_PLACEHOLDER],
+        ["指導老師", BLANK_LINE_PLACEHOLDER, "", ""],
+    ]
+
+    return {
+        "title": "{{school_name}} {{club_name}}\n「{{event_name}}」簽到表",
+        "sections": [
+            _section(
+                "info_table",
+                heading="活動基本資料",
+                rows=_info_rows(
+                    [
+                        ("日期與時間", "{{event_date}} {{start_time}} 至 {{end_time}}"),
+                        ("活動地點", "{{location}}"),
+                        ("活動名稱", "{{event_name}}"),
+                        ("主辦單位", "{{organizer}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "table",
+                heading="簽到明細",
+                headers=["系級／單位", "姓名", "系級／單位", "姓名"],
+                rows=sign_in_rows,
+            ),
+            _section(
+                "info_table",
+                heading="統計與備註",
+                rows=summary_rows,
+                columns=4,
+            ),
+            _section(
+                "info_table",
+                heading="簽核欄位",
+                rows=signoff_rows,
+                columns=4,
             ),
         ],
     }
