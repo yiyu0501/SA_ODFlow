@@ -88,6 +88,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_proposal",
                 "income_expense_statement",
                 "expense_settlement",
+                "reimbursement_detail",
             ],
         )
 
@@ -98,6 +99,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "income_expense_statement",
             "expense_settlement",
+            "reimbursement_detail",
         ]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
@@ -301,6 +303,139 @@ class TemplateServiceTestCase(unittest.TestCase):
         ]
         self.assertEqual(len(validated_note_cells), 10)
 
+    def test_reimbursement_detail_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("reimbursement_detail")
+
+        self.assertEqual(definition["template_key"], "reimbursement_detail")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+
+    def test_reimbursement_detail_ods_contains_formal_sheet_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("reimbursement_detail")
+        tree = self._read_content_tree(output_path)
+        detail_sheet = tree.find(".//table:table[@table:name='核銷明細表']", namespaces)
+        self.assertIsNotNone(detail_sheet)
+
+        text_values = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in detail_sheet.findall(".//text:p", namespaces)
+        ]
+        for field_name in [
+            "活動名稱",
+            "活動日期",
+            "主辦社團",
+            "活動負責人",
+            "財務負責人",
+            "製表日期",
+            "序號",
+            "支出日期",
+            "對應經費項目",
+            "品名／用途",
+            "店家／受款單位",
+            "單據類型",
+            "單據號碼",
+            "經費來源",
+            "支付方式",
+            "墊付款人",
+            "金額",
+            "憑證狀態",
+            "附件檔名／連結",
+            "備註",
+            "統計摘要區",
+            "備註區",
+        ]:
+            self.assertIn(field_name, text_values)
+
+    def test_reimbursement_detail_ods_contains_expected_formulas(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("reimbursement_detail")
+        tree = self._read_content_tree(output_path)
+        detail_sheet = tree.find(".//table:table[@table:name='核銷明細表']", namespaces)
+        self.assertIsNotNone(detail_sheet)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in detail_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=SUM([.K8:.K107])", formulas)
+        self.assertIn('=SUMIF([.H8:.H107];"學校補助";[.K8:.K107])', formulas)
+        self.assertIn('=SUMIF([.H8:.H107];"校外補助";[.K8:.K107])', formulas)
+        self.assertIn('=SUMIF([.H8:.H107];"社團會費";[.K8:.K107])', formulas)
+        self.assertIn('=SUMIF([.H8:.H107];"自籌";[.K8:.K107])', formulas)
+        self.assertIn('=SUMIF([.H8:.H107];"其他";[.K8:.K107])', formulas)
+        self.assertIn('=COUNTIF([.L8:.L107];"已附")', formulas)
+        self.assertIn('=COUNTIF([.L8:.L107];"待補")', formulas)
+        self.assertIn('=COUNTIF([.L8:.L107];"遺失")', formulas)
+        self.assertIn('=COUNTIF([.L8:.L107];"不核銷")', formulas)
+        self.assertIn('=SUMPRODUCT(N(LEN([.G8:.G107])>0))', formulas)
+
+    def test_reimbursement_detail_contains_content_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("reimbursement_detail")
+        tree = self._read_content_tree(output_path)
+        detail_sheet = tree.find(".//table:table[@table:name='核銷明細表']", namespaces)
+        self.assertIsNotNone(detail_sheet)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+
+        self.assertIn("validation_receipt_type", validations_by_name)
+        self.assertIn("validation_funding_source", validations_by_name)
+        self.assertIn("validation_payment_method", validations_by_name)
+        self.assertIn("validation_receipt_status", validations_by_name)
+
+        receipt_type_condition = validations_by_name["validation_receipt_type"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        funding_source_condition = validations_by_name["validation_funding_source"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        payment_method_condition = validations_by_name["validation_payment_method"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        receipt_status_condition = validations_by_name["validation_receipt_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+
+        for option in ['"發票"', '"電子發票證明聯"', '"收據"', '"匯款證明"', '"其他"']:
+            self.assertIn(option, receipt_type_condition)
+        for option in ['"學校補助"', '"校外補助"', '"社團會費"', '"自籌"', '"其他"']:
+            self.assertIn(option, funding_source_condition)
+        for option in ['"現金"', '"轉帳"', '"信用卡"', '"金融卡"', '"行動支付"', '"匯款"', '"其他"']:
+            self.assertIn(option, payment_method_condition)
+        for option in ['"已附"', '"待補"', '"遺失"', '"不核銷"', '"不適用"']:
+            self.assertIn(option, receipt_status_condition)
+
+        validation_name_counts = {
+            "validation_receipt_type": 0,
+            "validation_funding_source": 0,
+            "validation_payment_method": 0,
+            "validation_receipt_status": 0,
+        }
+        for cell in detail_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        self.assertEqual(validation_name_counts["validation_receipt_type"], 100)
+        self.assertEqual(validation_name_counts["validation_funding_source"], 100)
+        self.assertEqual(validation_name_counts["validation_payment_method"], 100)
+        self.assertEqual(validation_name_counts["validation_receipt_status"], 100)
+
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
             generate_template_file("activity_application")
@@ -333,6 +468,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "income_expense_statement",
             "expense_settlement",
+            "reimbursement_detail",
         ]:
             output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
@@ -388,6 +524,28 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "學校補助核銷金額總計",
                 "得補助金額上限：A × B / C",
             ],
+            "reimbursement_detail": [
+                "社團活動核銷明細表",
+                "活動名稱",
+                "活動日期",
+                "主辦社團",
+                "活動負責人",
+                "財務負責人",
+                "製表日期",
+                "支出日期",
+                "對應經費項目",
+                "品名／用途",
+                "店家／受款單位",
+                "單據類型",
+                "單據號碼",
+                "經費來源",
+                "支付方式",
+                "墊付款人",
+                "金額",
+                "憑證狀態",
+                "附件檔名／連結",
+                "統計摘要區",
+            ],
         }
 
         for template_key, required_fields in expected_fields.items():
@@ -402,12 +560,14 @@ class TemplateServiceTestCase(unittest.TestCase):
         proposal_preview = build_template_preview_data("activity_proposal")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
+        reimbursement_preview = build_template_preview_data("reimbursement_detail")
 
         self.assertIn("{{organization_name}}文件", minutes_preview["header_lines"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
+        self.assertEqual(reimbursement_preview["header_lines"][1], "社團活動核銷明細表")
 
 
 if __name__ == "__main__":

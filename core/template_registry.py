@@ -322,14 +322,14 @@ FORMAL_TEMPLATE_REGISTRY = [
     _entry(
         "reimbursement_detail",
         "核銷明細表",
-        ["reimbursement_detail_ods"],
+        ["單據明細表", "支出明細表", "收據明細表", "活動核銷明細表", "財務憑證明細表", "reimbursement_detail_ods"],
         "財務與清冊型",
         "ODS",
         "高",
-        False,
+        True,
         False,
         "整理單據、發票、付款方式、墊付款人與憑證狀態。",
-        "registered_only",
+        "implemented",
     ),
     _entry(
         "inventory",

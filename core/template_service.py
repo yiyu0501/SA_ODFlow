@@ -468,6 +468,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "activity_proposal": _build_activity_proposal_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
+        "reimbursement_detail": _build_reimbursement_detail_preview_data,
     }
     builder = preview_builders.get(resolved_id, _build_generic_preview_data)
     return builder(definition)
@@ -674,6 +675,37 @@ def _build_expense_settlement_preview_data(definition: dict) -> dict:
                     ["得補助金額上限：A × B / C", "自動計算", "", "應以申請金額為上限"],
                 ],
             },
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
+    }
+
+
+def _build_reimbursement_detail_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "社團活動核銷明細表"],
+        "meta_rows": [
+            ("活動名稱", "＿＿＿＿＿＿＿＿"),
+            ("活動日期", "＿＿＿＿"),
+            ("主辦社團", "＿＿＿＿＿＿＿＿"),
+            ("活動負責人", "＿＿＿＿"),
+            ("財務負責人", "＿＿＿＿"),
+            ("製表日期", "＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "統計摘要", "items": ["支出總金額", "各經費來源金額", "各憑證狀態筆數", "單據張數合計"]},
+        ],
+        "tables": [
+            {
+                "title": "核銷明細表格區",
+                "headers": ["序號", "支出日期", "對應經費項目", "品名／用途", "單據類型", "經費來源", "支付方式", "金額", "憑證狀態"],
+                "rows": [
+                    ["1", "", "材料費", "活動材料", "發票", "學校補助", "現金", "", "已附"],
+                    ["2", "", "餐費", "工作人員餐費", "收據", "自籌", "轉帳", "", "待補"],
+                ],
+            }
         ],
         "decor": {},
         "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
