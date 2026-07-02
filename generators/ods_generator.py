@@ -181,6 +181,45 @@ ACTIVITY_SCHEDULE_DETAIL_HEADERS = [
 ]
 ACTIVITY_SCHEDULE_OVERVIEW_ROW_COUNT = 20
 ACTIVITY_SCHEDULE_DETAIL_ROW_COUNT = 80
+WORK_ASSIGNMENT_PHASE_OPTIONS = ["活動前", "活動中", "活動後", "全程", "其他"]
+WORK_ASSIGNMENT_GROUP_OPTIONS = [
+    "總籌組",
+    "行政組",
+    "活動組",
+    "場器組",
+    "宣傳組",
+    "報名組",
+    "攝影組",
+    "財務組",
+    "文書組",
+    "接待組",
+    "機動組",
+    "其他",
+]
+WORK_ASSIGNMENT_STATUS_OPTIONS = ["未開始", "處理中", "已完成", "待確認", "延後", "取消"]
+WORK_ASSIGNMENT_PRIORITY_OPTIONS = ["高", "中", "低"]
+WORK_ASSIGNMENT_SHEET_NAME = "工作分配總表"
+WORK_ASSIGNMENT_SUMMARY_SHEET_NAME = "統計摘要"
+WORK_ASSIGNMENT_HEADERS = [
+    "序號",
+    "階段",
+    "組別",
+    "工作項目",
+    "工作內容",
+    "負責人",
+    "協助人員",
+    "開始日期",
+    "完成期限",
+    "狀態",
+    "優先程度",
+    "所需資源",
+    "對應流程時間",
+    "備註",
+]
+WORK_ASSIGNMENT_HEADER_ROW = 7
+WORK_ASSIGNMENT_FIRST_DATA_ROW = 8
+WORK_ASSIGNMENT_ROW_COUNT = 100
+WORK_ASSIGNMENT_LAST_DATA_ROW = WORK_ASSIGNMENT_FIRST_DATA_ROW + WORK_ASSIGNMENT_ROW_COUNT - 1
 
 
 def _escape_attr(value: str) -> str:
@@ -331,6 +370,46 @@ def _detail_balance_formula(row_number: int) -> str:
         previous_balance_ref = _same_sheet_ref("G", row_number - 1)
 
     return f"={previous_balance_ref}+N({income_ref})-N({expense_ref})"
+
+
+def _work_assignment_title_range() -> str:
+    return _sheet_range_ref(
+        WORK_ASSIGNMENT_SHEET_NAME,
+        "D",
+        WORK_ASSIGNMENT_FIRST_DATA_ROW,
+        "D",
+        WORK_ASSIGNMENT_LAST_DATA_ROW,
+    )
+
+
+def _work_assignment_status_range() -> str:
+    return _sheet_range_ref(
+        WORK_ASSIGNMENT_SHEET_NAME,
+        "J",
+        WORK_ASSIGNMENT_FIRST_DATA_ROW,
+        "J",
+        WORK_ASSIGNMENT_LAST_DATA_ROW,
+    )
+
+
+def _work_assignment_priority_range() -> str:
+    return _sheet_range_ref(
+        WORK_ASSIGNMENT_SHEET_NAME,
+        "K",
+        WORK_ASSIGNMENT_FIRST_DATA_ROW,
+        "K",
+        WORK_ASSIGNMENT_LAST_DATA_ROW,
+    )
+
+
+def _work_assignment_deadline_range() -> str:
+    return _sheet_range_ref(
+        WORK_ASSIGNMENT_SHEET_NAME,
+        "I",
+        WORK_ASSIGNMENT_FIRST_DATA_ROW,
+        "I",
+        WORK_ASSIGNMENT_LAST_DATA_ROW,
+    )
 
 
 def _income_expense_styles_xml(column_styles_xml: str) -> str:
@@ -1742,6 +1821,285 @@ def _build_legacy_spreadsheet_content_xml(template_definition: dict) -> str:
 """
 
 
+def _work_assignment_content_validations_xml() -> str:
+    return "".join(
+        [
+            _validation_xml("validation_work_phase", WORK_ASSIGNMENT_PHASE_OPTIONS, "請從階段清單選擇。"),
+            _validation_xml("validation_work_group", WORK_ASSIGNMENT_GROUP_OPTIONS, "請從組別清單選擇，或依實際需要手動調整。"),
+            _validation_xml("validation_work_status", WORK_ASSIGNMENT_STATUS_OPTIONS, "請從狀態清單選擇。"),
+            _validation_xml("validation_work_priority", WORK_ASSIGNMENT_PRIORITY_OPTIONS, "請從優先程度清單選擇。"),
+        ]
+    )
+
+
+def _work_assignment_main_table_xml() -> str:
+    column_widths = [
+        "1.2cm",
+        "2.0cm",
+        "2.3cm",
+        "3.2cm",
+        "4.8cm",
+        "2.3cm",
+        "2.8cm",
+        "2.2cm",
+        "2.2cm",
+        "1.9cm",
+        "1.9cm",
+        "3.0cm",
+        "2.8cm",
+        "2.8cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("工作分配表", "CellTitle", "PTitle", span=14),
+                _covered_cells_xml(13),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動日期", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellDate"),
+                _string_cell_xml("活動地點", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("主辦單位", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("活動總召", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellDate"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("備註", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=13),
+                _covered_cells_xml(12),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(14)]),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in WORK_ASSIGNMENT_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(WORK_ASSIGNMENT_FIRST_DATA_ROW, WORK_ASSIGNMENT_LAST_DATA_ROW + 1):
+        serial_number = row_number - WORK_ASSIGNMENT_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellNumber"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_work_phase"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_work_group"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_work_status"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_work_priority"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                ],
+                "RowDefault",
+            )
+        )
+
+    rows.extend(
+        [
+            _row_xml([_string_cell_xml("", "CellBlank") for _ in range(14)]),
+            _row_xml(
+                [
+                    _string_cell_xml("重要提醒", "CellSummaryHeader", "PHeader", span=14),
+                    _covered_cells_xml(13),
+                ],
+                "RowHeader",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("工作項目若延後或取消，請在備註補充原因與替代方案。", "CellSummaryText", "PBody", span=14),
+                    _covered_cells_xml(13),
+                ],
+                "RowSummary",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("聯絡窗口", "CellSummaryHeader", "PHeader", span=2),
+                    _string_cell_xml("", "CellSummaryText", span=5),
+                    _covered_cells_xml(4),
+                    _string_cell_xml("活動負責人", "CellSummaryHeader", "PHeader", span=2),
+                    _string_cell_xml("", "CellSummaryText", span=5),
+                    _covered_cells_xml(4),
+                ],
+                "RowSummary",
+            ),
+            _row_xml(
+                [
+                    _string_cell_xml("製表人", "CellSummaryHeader", "PHeader", span=2),
+                    _string_cell_xml("", "CellSummaryText", span=3),
+                    _covered_cells_xml(2),
+                    _string_cell_xml("社團負責人", "CellSummaryHeader", "PHeader", span=2),
+                    _string_cell_xml("", "CellSummaryText", span=3),
+                    _covered_cells_xml(2),
+                    _string_cell_xml("指導老師", "CellSummaryHeader", "PHeader", span=2),
+                    _string_cell_xml("", "CellSummaryText", span=2),
+                    _covered_cells_xml(1),
+                ],
+                "RowSummary",
+            ),
+        ]
+    )
+
+    return (
+        f'<table:table table:name="{WORK_ASSIGNMENT_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _work_assignment_summary_table_xml() -> str:
+    column_widths = ["4.2cm", "2.6cm", "4.0cm", "4.2cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    title_range = _work_assignment_title_range()
+    status_range = _work_assignment_status_range()
+    priority_range = _work_assignment_priority_range()
+    deadline_range = _work_assignment_deadline_range()
+
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("統計摘要", "CellTitle", "PTitle", span=4),
+                _covered_cells_xml(3),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("工作項目總數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=COUNTA({title_range})"),
+                _string_cell_xml("未開始件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"未開始")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("處理中件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"處理中")'),
+                _string_cell_xml("已完成件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"已完成")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("待確認件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"待確認")'),
+                _string_cell_xml("延後件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"延後")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("取消件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"取消")'),
+                _string_cell_xml("高優先工作數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({priority_range};"高")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("完成率", "CellSummaryText", "PLabel"),
+                _float_cell_xml(
+                    0,
+                    "CellSummaryPercent",
+                    formula=f'=IF(COUNTA({title_range})=0;0;COUNTIF({status_range};"已完成")/COUNTA({title_range}))',
+                ),
+                _string_cell_xml("逾期未完成件數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(
+                    0,
+                    "CellSummaryFormula",
+                    formula=f'=COUNTIFS({deadline_range};"<"&TODAY();{status_range};"<>已完成";{status_range};"<>取消")',
+                ),
+            ],
+            "RowSummary",
+        ),
+    ]
+
+    return (
+        f'<table:table table:name="{WORK_ASSIGNMENT_SUMMARY_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_work_assignment_content_xml() -> str:
+    main_styles_xml, _ = _column_styles_xml(
+        [
+            "1.2cm",
+            "2.0cm",
+            "2.3cm",
+            "3.2cm",
+            "4.8cm",
+            "2.3cm",
+            "2.8cm",
+            "2.2cm",
+            "2.2cm",
+            "1.9cm",
+            "1.9cm",
+            "3.0cm",
+            "2.8cm",
+            "2.8cm",
+        ]
+    )
+    summary_styles_xml, _ = _column_styles_xml(["4.2cm", "2.6cm", "4.0cm", "4.2cm"])
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(main_styles_xml + summary_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      {_work_assignment_content_validations_xml()}
+      {_work_assignment_main_table_xml()}
+      {_work_assignment_summary_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _activity_schedule_overview_table_xml() -> str:
     column_widths = ["3.1cm", "2.2cm", "6.0cm", "3.6cm", "4.4cm"]
     _, columns_xml = _column_styles_xml(column_widths)
@@ -1974,6 +2332,8 @@ def _build_spreadsheet_content_xml(template_definition: dict) -> str:
         return _build_reimbursement_detail_content_xml()
     if template_id == "activity_schedule":
         return _build_activity_schedule_content_xml()
+    if template_id == "work_assignment":
+        return _build_work_assignment_content_xml()
     return _build_legacy_spreadsheet_content_xml(template_definition)
 
 

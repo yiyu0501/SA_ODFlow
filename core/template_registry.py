@@ -215,14 +215,15 @@ FORMAL_TEMPLATE_REGISTRY = [
     _entry(
         "work_assignment",
         "工作分配表",
-        ["工作分工表", "staff_assignment_ods"],
+        ["工作分工表", "工作人員分配表", "活動工作分配表", "任務分工表", "工作進度表", "活動分工表", "staff_assignment_ods"],
         "專案活動型",
         "ODS",
         "高",
-        False,
+        True,
         False,
         "追蹤活動前中後工作項目、負責人與完成狀態。",
-        "registered_only",
+        "implemented",
+        preview_type="work_assignment",
     ),
     _entry(
         "annual_plan",
