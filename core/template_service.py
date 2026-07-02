@@ -482,6 +482,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "activity_schedule": _build_activity_schedule_preview_data,
         "work_assignment": _build_work_assignment_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
+        "annual_plan": _build_annual_plan_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
@@ -1037,6 +1038,68 @@ def _build_activity_result_report_preview_data(definition: dict) -> dict:
             },
         ],
         "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_annual_plan_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}}{{club_name}}", "{{academic_year}}年度計畫"],
+        "meta_rows": [
+            ("學年度", "{{academic_year}} 學年度"),
+            ("社團名稱", "臺北市立大學 {{club_name}}"),
+            ("社團類別", "{{club_category}}"),
+            ("社長", "{{president}}"),
+            ("指導老師", "{{advisor}}"),
+            ("主要聯絡人", "{{contact_person}}"),
+            ("聯絡電話", "{{contact_phone}}"),
+            ("聯絡信箱", "{{contact_email}}"),
+            ("製表日期", "{{created_date}}"),
+        ],
+        "sections": [
+            {
+                "title": "年度目標",
+                "items": ["社團發展目標", "活動辦理目標", "組織經營目標"],
+            },
+            {
+                "title": "預期成果",
+                "items": ["活動成果", "社員參與成果", "組織運作成果", "文件與評鑑成果"],
+            },
+            {
+                "title": "備註",
+                "items": ["本年度活動安排將依學校行事曆調整。"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "年度活動規劃",
+                "headers": ["預計月份", "活動名稱", "活動類型", "活動目的", "預計對象", "預計人數", "負責組別", "備註"],
+                "rows": [["9 月", "期初社員大會", "社員大會", "建立新學期運作方向", "全體社員", "50", "活動組", "評鑑重點活動"]],
+            },
+            {
+                "title": "社課或例行活動規劃",
+                "headers": ["預計週次／日期", "社課或例行活動名稱", "內容概要", "負責人", "預計地點", "備註"],
+                "rows": [["第 1 週", "社團入門課", "介紹社團宗旨與年度方向", "教學組", "社辦", ""]],
+            },
+            {
+                "title": "幹部與組別分工",
+                "headers": ["職稱／組別", "姓名", "主要職責", "年度重點工作", "備註"],
+                "rows": [["社長", "", "統籌社團運作", "年度活動規劃、對外聯繫", ""]],
+            },
+            {
+                "title": "年度預算概估",
+                "headers": ["類別", "項目", "預估金額", "經費來源", "備註"],
+                "rows": [["收入", "社團會費", "10000", "社團會費", ""], ["支出", "社課材料費", "8000", "社團會費", ""]],
+            },
+            {
+                "title": "評鑑資料準備方向",
+                "headers": ["評鑑資料類型", "預計蒐集內容", "負責人", "備註"],
+                "rows": [["活動企畫書", "年度主要活動企畫書", "文書", ""]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁／共1頁"},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 
