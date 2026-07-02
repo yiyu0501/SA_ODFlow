@@ -483,6 +483,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "work_assignment": _build_work_assignment_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
         "annual_plan": _build_annual_plan_preview_data,
+        "member_roster": _build_member_roster_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
@@ -1101,6 +1102,63 @@ def _build_annual_plan_preview_data(definition: dict) -> dict:
         ],
         "decor": {"page_footer": "第1頁／共1頁"},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_member_roster_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "{{club_name}} 社員名冊"],
+        "meta_rows": [
+            ("學年度", "{{academic_year}} 學年度"),
+            ("社團名稱", "臺北市立大學 {{club_name}}"),
+            ("製表日期", "{{created_date}}"),
+            ("製表人", "{{created_by}}"),
+            ("備註", "{{note}}"),
+        ],
+        "sections": [
+            {
+                "title": "統計摘要",
+                "items": ["社員總數", "有效社員數", "幹部人數", "已繳社費人數", "未繳社費人數", "畢業社員數", "退出社員數"],
+            }
+        ],
+        "tables": [
+            {
+                "title": "社員名冊",
+                "headers": [
+                    "序號",
+                    "姓名",
+                    "學號",
+                    "系級／班級",
+                    "身分別",
+                    "入社日期",
+                    "社員狀態",
+                    "社費狀態",
+                    "手機",
+                    "Email",
+                    "LINE ID／聯絡方式",
+                    "緊急聯絡人",
+                    "備註",
+                ],
+                "rows": [
+                    ["1", "王小明", "U1234567", "城發三", "一般社員", "2026/09/01", "有效", "已繳", "0912-345-678", "member1@example.com", "line_member_1", "王大明", ""],
+                    ["2", "李小華", "U2345678", "教育二", "幹部", "2026/09/02", "有效", "未繳", "0923-456-789", "member2@example.com", "line_member_2", "李小美", ""],
+                ],
+            },
+            {
+                "title": "統計摘要",
+                "headers": ["統計項目", "數值"],
+                "rows": [
+                    ["社員總數", "2"],
+                    ["有效社員數", "2"],
+                    ["已繳社費人數", "1"],
+                    ["未繳社費人數", "1"],
+                ],
+            },
+        ],
+        "decor": {"page_footer": "社員資料與統計摘要預覽"},
+        "footnote": "此為 ODS 版型預覽，實際格式以下載 ODS 為準。",
     }
 
 

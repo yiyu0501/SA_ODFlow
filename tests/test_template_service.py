@@ -94,6 +94,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_schedule",
                 "work_assignment",
                 "annual_plan",
+                "member_roster",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -114,6 +115,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_schedule",
             "work_assignment",
             "annual_plan",
+            "member_roster",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -457,6 +459,174 @@ class TemplateServiceTestCase(unittest.TestCase):
             "新增活動",
             "建立活動專案",
             "自動產生評鑑 ZIP",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_member_roster_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("member_roster")
+
+        self.assertEqual(definition["template_key"], "member_roster")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_member_roster_ods_contains_required_sheets_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("member_roster")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+        self.assertIn("社員名冊", sheet_names)
+        self.assertIn("統計摘要", sheet_names)
+
+        roster_sheet = tree.find(".//table:table[@table:name='社員名冊']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(roster_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        roster_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in roster_sheet.findall(".//text:p", namespaces)
+        ]
+        summary_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in summary_sheet.findall(".//text:p", namespaces)
+        ]
+
+        for field_name in [
+            "臺北市立大學",
+            "{{club_name}} 社員名冊",
+            "學年度",
+            "社團名稱",
+            "製表日期",
+            "製表人",
+            "備註",
+            "序號",
+            "姓名",
+            "學號",
+            "系級／班級",
+            "身分別",
+            "入社日期",
+            "社員狀態",
+            "社費狀態",
+            "手機",
+            "Email",
+            "LINE ID／聯絡方式",
+            "緊急聯絡人",
+        ]:
+            self.assertIn(field_name, roster_text)
+
+        for field_name in [
+            "統計摘要",
+            "社員總數",
+            "有效社員數",
+            "幹部人數",
+            "已繳社費人數",
+            "未繳社費人數",
+            "畢業社員數",
+            "退出社員數",
+            "各系級人數統計",
+        ]:
+            self.assertIn(field_name, summary_text)
+
+    def test_member_roster_ods_reserves_rows_has_formulas_and_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("member_roster")
+        tree = self._read_content_tree(output_path)
+        roster_sheet = tree.find(".//table:table[@table:name='社員名冊']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(roster_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        rows = roster_sheet.findall("./table:table-row", namespaces)
+        header_index = None
+        for index, row in enumerate(rows):
+            values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+            if "序號" in values and "姓名" in values and "社費狀態" in values:
+                header_index = index
+                break
+        self.assertIsNotNone(header_index)
+
+        blank_count = 0
+        for row in rows[header_index + 1 :]:
+            values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+            if any(values):
+                break
+            blank_count += 1
+        self.assertGreaterEqual(blank_count, 200)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+        self.assertIn("validation_member_type", validations_by_name)
+        self.assertIn("validation_member_status", validations_by_name)
+        self.assertIn("validation_fee_status", validations_by_name)
+
+        member_type_condition = validations_by_name["validation_member_type"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        member_status_condition = validations_by_name["validation_member_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        fee_status_condition = validations_by_name["validation_fee_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        for option in ['"一般社員"', '"幹部"', '"社長"', '"副社長"', '"顧問"', '"畢業社員"', '"校外人士"', '"其他"']:
+            self.assertIn(option, member_type_condition)
+        for option in ['"有效"', '"暫停"', '"退出"', '"畢業"', '"觀察中"', '"其他"']:
+            self.assertIn(option, member_status_condition)
+        for option in ['"已繳"', '"未繳"', '"免繳"', '"部分繳交"', '"不適用"']:
+            self.assertIn(option, fee_status_condition)
+
+        validation_name_counts = {
+            "validation_member_type": 0,
+            "validation_member_status": 0,
+            "validation_fee_status": 0,
+        }
+        for cell in roster_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        self.assertEqual(validation_name_counts["validation_member_type"], 200)
+        self.assertEqual(validation_name_counts["validation_member_status"], 200)
+        self.assertEqual(validation_name_counts["validation_fee_status"], 200)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in summary_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=COUNTA(['社員名冊'.$B$8:'社員名冊'.$B$207])", formulas)
+        self.assertIn('=COUNTIF([\'社員名冊\'.$G$8:\'社員名冊\'.$G$207];"有效")', formulas)
+        self.assertIn(
+            '=COUNTIF([\'社員名冊\'.$E$8:\'社員名冊\'.$E$207];"幹部")+COUNTIF([\'社員名冊\'.$E$8:\'社員名冊\'.$E$207];"社長")+COUNTIF([\'社員名冊\'.$E$8:\'社員名冊\'.$E$207];"副社長")',
+            formulas,
+        )
+        self.assertIn('=COUNTIF([\'社員名冊\'.$H$8:\'社員名冊\'.$H$207];"已繳")', formulas)
+        self.assertIn('=COUNTIF([\'社員名冊\'.$H$8:\'社員名冊\'.$H$207];"未繳")', formulas)
+
+    def test_member_roster_excludes_forbidden_metadata_and_ui_operation_text(self):
+        output_path = generate_template_file("member_roster")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增社員",
+            "匯入名冊",
+            "產生簽到表",
+            "自動排序",
         ]:
             self.assertNotIn(forbidden_text, content_xml)
 
@@ -1356,6 +1526,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_review_minutes",
             "activity_schedule",
             "work_assignment",
+            "member_roster",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -1679,6 +1850,33 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "預計蒐集內容",
                 "備註",
             ],
+            "member_roster": [
+                "臺北市立大學",
+                "{{club_name}} 社員名冊",
+                "學年度",
+                "社團名稱",
+                "製表日期",
+                "製表人",
+                "備註",
+                "序號",
+                "姓名",
+                "學號",
+                "系級／班級",
+                "身分別",
+                "入社日期",
+                "社員狀態",
+                "社費狀態",
+                "手機",
+                "Email",
+                "LINE ID／聯絡方式",
+                "緊急聯絡人",
+                "社員總數",
+                "有效社員數",
+                "幹部人數",
+                "已繳社費人數",
+                "未繳社費人數",
+                "各系級人數統計",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -1769,6 +1967,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         schedule_preview = build_template_preview_data("activity_schedule")
         work_assignment_preview = build_template_preview_data("work_assignment")
         annual_plan_preview = build_template_preview_data("annual_plan")
+        member_roster_preview = build_template_preview_data("member_roster")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -1826,6 +2025,14 @@ class TemplateServiceTestCase(unittest.TestCase):
             annual_plan_preview["tables"][4]["headers"],
             ["評鑑資料類型", "預計蒐集內容", "負責人", "備註"],
         )
+        self.assertEqual(member_roster_preview["header_lines"][0], "臺北市立大學")
+        self.assertEqual(member_roster_preview["header_lines"][1], "{{club_name}} 社員名冊")
+        self.assertEqual(member_roster_preview["meta_rows"][0][0], "學年度")
+        self.assertEqual(
+            member_roster_preview["tables"][0]["headers"],
+            ["序號", "姓名", "學號", "系級／班級", "身分別", "入社日期", "社員狀態", "社費狀態", "手機", "Email", "LINE ID／聯絡方式", "緊急聯絡人", "備註"],
+        )
+        self.assertEqual(member_roster_preview["tables"][1]["title"], "統計摘要")
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
