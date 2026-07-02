@@ -65,6 +65,8 @@ def build_document_render_spec(
 def build_template_render_spec(template_definition: dict) -> dict:
     if template_definition["id"] == "meeting_minutes_template_odt":
         return _build_meeting_minutes_template_spec(template_definition)
+    if template_definition["id"] == "meeting_agenda_odt":
+        return _build_meeting_agenda_template_spec(template_definition)
     if template_definition["id"] == "activity_application_odt":
         return _build_activity_application_template_spec(template_definition)
     if template_definition["id"] == "activity_review_minutes_odt":
@@ -93,11 +95,6 @@ def build_template_render_spec(template_definition: dict) -> dict:
         "meeting_notice_odt": lambda: build_document_render_spec(
             "開會通知單",
             get_default_document_content("開會通知單"),
-            title_override=template_definition["name"],
-        ),
-        "meeting_agenda_odt": lambda: build_document_render_spec(
-            "會議議程",
-            get_default_document_content("會議議程"),
             title_override=template_definition["name"],
         ),
     }
@@ -599,6 +596,140 @@ def _build_meeting_minutes_template_spec(template_definition: dict) -> dict:
                 heading="簽核欄位",
                 headers=["製表人", "主席", "社團負責人", "指導老師"],
                 rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
+
+
+def _build_meeting_agenda_template_spec(template_definition: dict) -> dict:
+    schedule_rows = ensure_table_rows(
+        [["1", "", "", "", "", "", ""], ["2", "", "", "", "", "", ""], ["3", "", "", "", "", "", ""]],
+        7,
+        minimum_rows=10,
+        placeholder="",
+    )
+    discussion_rows = ensure_table_rows(
+        [["案由一", "", "", ""], ["案由二", "", "", ""], ["案由三", "", "", ""]],
+        4,
+        minimum_rows=3,
+        placeholder="",
+    )
+    signoff_rows = [
+        ["主席", BLANK_LINE_PLACEHOLDER, "紀錄", BLANK_LINE_PLACEHOLDER],
+        ["社團負責人", BLANK_LINE_PLACEHOLDER, "指導老師", BLANK_LINE_PLACEHOLDER],
+    ]
+
+    return {
+        "title": "{{organization_name}}\n第{{meeting_number}}次{{meeting_type}}議程",
+        "sections": [
+            _section(
+                "lines",
+                lines=[
+                    "{{organization_name}}",
+                    "製作日期：{{document_date}}",
+                ],
+            ),
+            _section(
+                "info_table",
+                heading="會議基本資料",
+                rows=_info_rows(
+                    [
+                        ("社團名稱", "{{organization_name}}"),
+                        ("會議名稱", "{{meeting_title}}"),
+                        ("會議日期", "{{meeting_date}}"),
+                        ("會議時間", "{{start_time}} 至 {{end_time}}"),
+                        ("會議地點", "{{location}}"),
+                        ("召集人", "{{convener}}"),
+                        ("主席", "{{chair}}"),
+                        ("紀錄", "{{recorder}}"),
+                        ("出席人員", "{{attendees}}"),
+                        ("列席人員", "{{observers}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="會議目的",
+                paragraphs=["{{meeting_purpose}}"],
+            ),
+            _section(
+                "table",
+                heading="會議議程（議程表）",
+                headers=["項次", "時間", "議程項目", "說明", "報告／負責人", "預計時間", "備註"],
+                rows=schedule_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="報告事項",
+                paragraphs=[
+                    "一、上次會議決議追蹤",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "預計時間：＿＿＿＿＿＿＿＿＿＿",
+                    "內容摘要：＿＿＿＿＿＿＿＿＿＿",
+                    "相關附件：＿＿＿＿＿＿＿＿＿＿",
+                    "",
+                    "二、社團近期事項報告",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "預計時間：＿＿＿＿＿＿＿＿＿＿",
+                    "內容摘要：＿＿＿＿＿＿＿＿＿＿",
+                    "相關附件：＿＿＿＿＿＿＿＿＿＿",
+                    "",
+                    "三、財務或活動進度報告",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "預計時間：＿＿＿＿＿＿＿＿＿＿",
+                    "內容摘要：＿＿＿＿＿＿＿＿＿＿",
+                    "相關附件：＿＿＿＿＿＿＿＿＿＿",
+                    "",
+                    "四、其他報告事項",
+                    "報告人：＿＿＿＿＿＿＿＿＿＿",
+                    "預計時間：＿＿＿＿＿＿＿＿＿＿",
+                    "內容摘要：＿＿＿＿＿＿＿＿＿＿",
+                    "相關附件：＿＿＿＿＿＿＿＿＿＿",
+                ],
+            ),
+            _section(
+                "table",
+                heading="討論事項",
+                headers=["案由", "說明", "擬辦方式", "決議欄"],
+                rows=discussion_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="臨時動議",
+                paragraphs=[
+                    "一、臨時動議時間預留：＿＿＿＿＿＿＿＿＿＿",
+                    "二、說明：臨時動議由出席人員於會議中提出，經主席確認後進行討論。",
+                ],
+            ),
+            _section(
+                "paragraph",
+                heading="會前準備事項",
+                paragraphs=[
+                    "1. 詳閱附件資料。",
+                    "2. 確認會議時間與地點。",
+                    "3. 若無法出席，請提前向聯絡人請假。",
+                    "4. 如需提案或補充資料，請於會前提供給主持人或承辦人。",
+                    "5. 線上會議請提前確認網路、設備與會議連結。",
+                ],
+            ),
+            _section(
+                "paragraph",
+                heading="附件資料",
+                paragraphs=[
+                    "附件一：上次會議紀錄",
+                    "附件二：活動企畫書",
+                    "附件三：經費預算表",
+                    "附件四：工作分配表",
+                    "附件五：其他附件",
+                ],
+            ),
+            _section(
+                "info_table",
+                heading="簽核區",
+                rows=signoff_rows,
+                columns=4,
             ),
         ],
     }

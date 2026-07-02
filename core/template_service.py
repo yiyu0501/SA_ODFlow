@@ -474,6 +474,7 @@ def build_template_preview_data(template_id: str) -> dict:
     preview_builders = {
         "meeting_minutes": _build_meeting_minutes_preview_data,
         "meeting_notice": _build_meeting_notice_preview_data,
+        "meeting_agenda": _build_meeting_agenda_preview_data,
         "attendance_sheet": _build_attendance_sheet_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_application": _build_activity_application_preview_data,
@@ -605,6 +606,73 @@ def _build_meeting_notice_preview_data(definition: dict) -> dict:
             "binding_marks": ["裝", "訂"],
             "page_footer": "第1頁　共1頁",
         },
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_meeting_agenda_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{organization_name}}", "第{{meeting_number}}次{{meeting_type}}議程"],
+        "meta_rows": [
+            ("頁首資訊", "{{organization_name}}　製作日期：{{document_date}}"),
+            ("社團名稱", "{{organization_name}}"),
+            ("會議名稱", "{{meeting_title}}"),
+            ("會議日期", "{{meeting_date}}"),
+            ("會議時間", "{{start_time}} 至 {{end_time}}"),
+            ("會議地點", "{{location}}"),
+            ("召集人", "{{convener}}"),
+            ("主席", "{{chair}}"),
+            ("紀錄", "{{recorder}}"),
+            ("出席人員", "{{attendees}}"),
+            ("列席人員", "{{observers}}"),
+        ],
+        "sections": [
+            {"title": "會議目的", "items": ["{{meeting_purpose}}"]},
+            {
+                "title": "報告事項",
+                "items": [
+                    "一、上次會議決議追蹤",
+                    "二、社團近期事項報告",
+                    "三、財務或活動進度報告",
+                    "四、其他報告事項",
+                ],
+            },
+            {
+                "title": "臨時動議",
+                "items": ["一、臨時動議時間預留", "二、說明：臨時動議由出席人員於會議中提出"],
+            },
+            {
+                "title": "會前準備事項",
+                "items": ["詳閱附件資料", "確認會議時間與地點", "如需請假請提前通知", "線上會議請確認設備"],
+            },
+            {
+                "title": "附件資料",
+                "items": ["上次會議紀錄", "活動企畫書", "經費預算表", "工作分配表", "其他附件"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "議程表",
+                "headers": ["項次", "時間", "議程項目", "說明", "報告／負責人", "預計時間", "備註"],
+                "rows": [
+                    ["1", "19:00-19:10", "主席致詞與確認出席", "", "主席", "10 分鐘", ""],
+                    ["2", "19:10-19:25", "活動補助要點草案說明", "", "提案人", "15 分鐘", "附件一"],
+                ],
+            },
+            {
+                "title": "討論事項",
+                "headers": ["案由", "說明", "擬辦方式", "決議欄"],
+                "rows": [["案由一", "", "討論後表決", ""], ["案由二", "", "報告後備查", ""]],
+            },
+            {
+                "title": "簽核區",
+                "headers": ["主席", "紀錄", "社團負責人", "指導老師"],
+                "rows": [["", "", "", ""]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁／共1頁"},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 
