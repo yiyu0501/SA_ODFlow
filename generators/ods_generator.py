@@ -220,6 +220,46 @@ WORK_ASSIGNMENT_HEADER_ROW = 7
 WORK_ASSIGNMENT_FIRST_DATA_ROW = 8
 WORK_ASSIGNMENT_ROW_COUNT = 100
 WORK_ASSIGNMENT_LAST_DATA_ROW = WORK_ASSIGNMENT_FIRST_DATA_ROW + WORK_ASSIGNMENT_ROW_COUNT - 1
+MEMBER_ROSTER_MEMBER_TYPE_OPTIONS = [
+    "一般社員",
+    "幹部",
+    "社長",
+    "副社長",
+    "顧問",
+    "畢業社員",
+    "校外人士",
+    "其他",
+]
+MEMBER_ROSTER_STATUS_OPTIONS = [
+    "有效",
+    "暫停",
+    "退出",
+    "畢業",
+    "觀察中",
+    "其他",
+]
+MEMBER_ROSTER_FEE_STATUS_OPTIONS = ["已繳", "未繳", "免繳", "部分繳交", "不適用"]
+MEMBER_ROSTER_SHEET_NAME = "社員名冊"
+MEMBER_ROSTER_SUMMARY_SHEET_NAME = "統計摘要"
+MEMBER_ROSTER_HEADERS = [
+    "序號",
+    "姓名",
+    "學號",
+    "系級／班級",
+    "身分別",
+    "入社日期",
+    "社員狀態",
+    "社費狀態",
+    "手機",
+    "Email",
+    "LINE ID／聯絡方式",
+    "緊急聯絡人",
+    "備註",
+]
+MEMBER_ROSTER_HEADER_ROW = 7
+MEMBER_ROSTER_FIRST_DATA_ROW = 8
+MEMBER_ROSTER_ROW_COUNT = 200
+MEMBER_ROSTER_LAST_DATA_ROW = MEMBER_ROSTER_FIRST_DATA_ROW + MEMBER_ROSTER_ROW_COUNT - 1
 
 
 def _escape_attr(value: str) -> str:
@@ -409,6 +449,56 @@ def _work_assignment_deadline_range() -> str:
         WORK_ASSIGNMENT_FIRST_DATA_ROW,
         "I",
         WORK_ASSIGNMENT_LAST_DATA_ROW,
+    )
+
+
+def _member_roster_name_range() -> str:
+    return _sheet_range_ref(
+        MEMBER_ROSTER_SHEET_NAME,
+        "B",
+        MEMBER_ROSTER_FIRST_DATA_ROW,
+        "B",
+        MEMBER_ROSTER_LAST_DATA_ROW,
+    )
+
+
+def _member_roster_department_range() -> str:
+    return _sheet_range_ref(
+        MEMBER_ROSTER_SHEET_NAME,
+        "D",
+        MEMBER_ROSTER_FIRST_DATA_ROW,
+        "D",
+        MEMBER_ROSTER_LAST_DATA_ROW,
+    )
+
+
+def _member_roster_member_type_range() -> str:
+    return _sheet_range_ref(
+        MEMBER_ROSTER_SHEET_NAME,
+        "E",
+        MEMBER_ROSTER_FIRST_DATA_ROW,
+        "E",
+        MEMBER_ROSTER_LAST_DATA_ROW,
+    )
+
+
+def _member_roster_status_range() -> str:
+    return _sheet_range_ref(
+        MEMBER_ROSTER_SHEET_NAME,
+        "G",
+        MEMBER_ROSTER_FIRST_DATA_ROW,
+        "G",
+        MEMBER_ROSTER_LAST_DATA_ROW,
+    )
+
+
+def _member_roster_fee_range() -> str:
+    return _sheet_range_ref(
+        MEMBER_ROSTER_SHEET_NAME,
+        "H",
+        MEMBER_ROSTER_FIRST_DATA_ROW,
+        "H",
+        MEMBER_ROSTER_LAST_DATA_ROW,
     )
 
 
@@ -2320,6 +2410,290 @@ def _build_activity_schedule_content_xml() -> str:
 """
 
 
+def _member_roster_content_validations_xml() -> str:
+    return "".join(
+        [
+            _validation_xml(
+                "validation_member_type",
+                MEMBER_ROSTER_MEMBER_TYPE_OPTIONS,
+                "請從身分別清單選擇。",
+            ),
+            _validation_xml(
+                "validation_member_status",
+                MEMBER_ROSTER_STATUS_OPTIONS,
+                "請從社員狀態清單選擇。",
+            ),
+            _validation_xml(
+                "validation_fee_status",
+                MEMBER_ROSTER_FEE_STATUS_OPTIONS,
+                "請從社費狀態清單選擇。",
+            ),
+        ]
+    )
+
+
+def _member_roster_main_table_xml() -> str:
+    column_widths = [
+        "1.1cm",
+        "2.4cm",
+        "2.6cm",
+        "3.0cm",
+        "2.5cm",
+        "2.6cm",
+        "2.4cm",
+        "2.5cm",
+        "2.8cm",
+        "4.0cm",
+        "3.8cm",
+        "3.4cm",
+        "3.2cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("臺北市立大學", "CellTitle", "PTitle", span=13),
+                _covered_cells_xml(12),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("{{club_name}} 社員名冊", "CellTitle", "PTitle", span=13),
+                _covered_cells_xml(12),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue", span=3),
+                _covered_cells_xml(2),
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("製表人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=4),
+                _covered_cells_xml(3),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("備註", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=12),
+                _covered_cells_xml(11),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(13)]),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in MEMBER_ROSTER_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(MEMBER_ROSTER_FIRST_DATA_ROW, MEMBER_ROSTER_LAST_DATA_ROW + 1):
+        serial_number = row_number - MEMBER_ROSTER_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellNumber"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody", validation_name="validation_member_type"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody", validation_name="validation_member_status"),
+                    _blank_cell_xml("CellBody", validation_name="validation_fee_status"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                    _blank_cell_xml("CellBody"),
+                ],
+                "RowDefault",
+            )
+        )
+
+    return (
+        f'<table:table table:name="{MEMBER_ROSTER_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _member_roster_summary_table_xml() -> str:
+    column_widths = ["4.4cm", "2.6cm", "4.4cm", "2.8cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    name_range = _member_roster_name_range()
+    department_range = _member_roster_department_range()
+    member_type_range = _member_roster_member_type_range()
+    status_range = _member_roster_status_range()
+    fee_range = _member_roster_fee_range()
+
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("統計摘要", "CellTitle", "PTitle", span=4),
+                _covered_cells_xml(3),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("製表人", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellValue"),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(4)]),
+        _row_xml(
+            [
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("社員總數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=COUNTA({name_range})"),
+                _string_cell_xml("有效社員數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"有效")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("幹部人數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(
+                    0,
+                    "CellSummaryFormula",
+                    formula=(
+                        f'=COUNTIF({member_type_range};"幹部")+'
+                        f'COUNTIF({member_type_range};"社長")+'
+                        f'COUNTIF({member_type_range};"副社長")'
+                    ),
+                ),
+                _string_cell_xml("已繳社費人數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({fee_range};"已繳")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("未繳社費人數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({fee_range};"未繳")'),
+                _string_cell_xml("畢業社員數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"畢業")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("退出社員數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"退出")'),
+                _string_cell_xml("各系級人數統計", "CellSummaryText", "PLabel"),
+                _string_cell_xml("可依實際系級自行補齊", "CellSummaryText", "PBody"),
+            ],
+            "RowSummary",
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(4)]),
+        _row_xml(
+            [
+                _string_cell_xml("各系級人數統計", "CellSummaryHeader", "PHeader", span=4),
+                _covered_cells_xml(3),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("系級／班級", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("人數", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("說明", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("備註", "CellSummaryHeader", "PHeader"),
+            ],
+            "RowHeader",
+        ),
+    ]
+
+    for _ in range(6):
+        rows.append(
+            _row_xml(
+                [
+                    _blank_cell_xml("CellSummaryText"),
+                    _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({department_range};[.A{len(rows)+1}])'),
+                    _blank_cell_xml("CellSummaryText"),
+                    _blank_cell_xml("CellSummaryText"),
+                ],
+                "RowSummary",
+            )
+        )
+
+    return (
+        f'<table:table table:name="{MEMBER_ROSTER_SUMMARY_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_member_roster_content_xml() -> str:
+    main_styles_xml, _ = _column_styles_xml(
+        [
+            "1.1cm",
+            "2.4cm",
+            "2.6cm",
+            "3.0cm",
+            "2.5cm",
+            "2.6cm",
+            "2.4cm",
+            "2.5cm",
+            "2.8cm",
+            "4.0cm",
+            "3.8cm",
+            "3.4cm",
+            "3.2cm",
+        ]
+    )
+    summary_styles_xml, _ = _column_styles_xml(["4.4cm", "2.6cm", "4.4cm", "2.8cm"])
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(main_styles_xml + summary_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      {_member_roster_content_validations_xml()}
+      {_member_roster_main_table_xml()}
+      {_member_roster_summary_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _build_spreadsheet_content_xml(template_definition: dict) -> str:
     template_id = template_definition.get("id") or template_definition.get("template_key")
     if template_id == "expense_budget":
@@ -2334,6 +2708,8 @@ def _build_spreadsheet_content_xml(template_definition: dict) -> str:
         return _build_activity_schedule_content_xml()
     if template_id == "work_assignment":
         return _build_work_assignment_content_xml()
+    if template_id in {"member_roster", "member_roster_ods"}:
+        return _build_member_roster_content_xml()
     return _build_legacy_spreadsheet_content_xml(template_definition)
 
 
