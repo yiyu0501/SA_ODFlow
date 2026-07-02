@@ -89,6 +89,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_proposal",
                 "activity_application",
                 "activity_result_report",
+                "activity_review_minutes",
                 "activity_schedule",
                 "work_assignment",
                 "expense_budget",
@@ -106,6 +107,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "activity_application",
             "activity_result_report",
+            "activity_review_minutes",
             "activity_schedule",
             "work_assignment",
             "expense_budget",
@@ -237,6 +239,83 @@ class TemplateServiceTestCase(unittest.TestCase):
             "上傳照片",
             "新增工作人員",
             "專案自動化說明",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_activity_review_minutes_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("activity_review_minutes")
+
+        self.assertEqual(definition["template_key"], "activity_review_minutes")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertTrue(definition["supports_generate_document"])
+
+    def test_activity_review_minutes_odt_contains_formal_sections(self):
+        output_path = generate_template_file("activity_review_minutes")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "活動檢討會紀錄",
+            "會議基本資料",
+            "社團名稱",
+            "活動名稱",
+            "會議名稱",
+            "會議日期",
+            "會議時間",
+            "會議地點",
+            "主席",
+            "紀錄",
+            "出席人員",
+            "列席人員",
+            "請假人員",
+            "缺席人員",
+            "活動執行情形",
+            "活動是否如期完成",
+            "實際參與人數",
+            "活動流程是否依原企畫執行",
+            "與原企畫差異",
+            "重要成果",
+            "特殊狀況",
+            "檢討事項",
+            "項次",
+            "檢討項目",
+            "實際情形",
+            "問題說明",
+            "改進建議",
+            "負責人",
+            "完成期限",
+            "備註",
+            "做得好的地方",
+            "各組回饋",
+            "後續追蹤事項",
+            "待辦事項",
+            "預定完成日期",
+            "追蹤狀態",
+            "下次活動建議",
+            "可延續的做法",
+            "應避免的問題",
+            "需要提前準備的事項",
+            "會議決議",
+            "決議內容",
+            "臨時動議",
+            "散會時間",
+            "本次會議於 {{meeting_end_time}} 散會。",
+            "簽核欄位",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_activity_review_minutes_excludes_ui_operation_and_metadata_text(self):
+        output_path = generate_template_file("activity_review_minutes")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增檢討事項",
+            "新增追蹤事項",
+            "匯入活動資料",
+            "匯入會議紀錄",
         ]:
             self.assertNotIn(forbidden_text, content_xml)
 
@@ -1133,6 +1212,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_proposal",
             "activity_application",
             "activity_result_report",
+            "activity_review_minutes",
             "activity_schedule",
             "work_assignment",
             "expense_budget",
@@ -1251,6 +1331,55 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "自籌金額",
                 "附件清單",
                 "簽核區",
+            ],
+            "activity_review_minutes": [
+                "活動檢討會紀錄",
+                "會議基本資料",
+                "社團名稱",
+                "活動名稱",
+                "會議名稱",
+                "會議日期",
+                "會議時間",
+                "會議地點",
+                "主席",
+                "紀錄",
+                "出席人員",
+                "列席人員",
+                "請假人員",
+                "缺席人員",
+                "活動執行情形",
+                "活動是否如期完成",
+                "實際參與人數",
+                "活動流程是否依原企畫執行",
+                "與原企畫差異",
+                "重要成果",
+                "特殊狀況",
+                "檢討事項",
+                "項次",
+                "檢討項目",
+                "實際情形",
+                "問題說明",
+                "改進建議",
+                "負責人",
+                "完成期限",
+                "備註",
+                "做得好的地方",
+                "各組回饋",
+                "後續追蹤事項",
+                "待辦事項",
+                "預定完成日期",
+                "追蹤狀態",
+                "下次活動建議",
+                "可延續的做法",
+                "應避免的問題",
+                "需要提前準備的事項",
+                "會議決議",
+                "決議內容",
+                "臨時動議",
+                "散會時間",
+                "簽核欄位",
+                "社團負責人",
+                "指導老師",
             ],
             "activity_schedule": [
                 "活動流程表",
@@ -1405,6 +1534,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         proposal_preview = build_template_preview_data("activity_proposal")
         application_preview = build_template_preview_data("activity_application")
         result_preview = build_template_preview_data("activity_result_report")
+        review_preview = build_template_preview_data("activity_review_minutes")
         schedule_preview = build_template_preview_data("activity_schedule")
         work_assignment_preview = build_template_preview_data("work_assignment")
         budget_preview = build_template_preview_data("expense_budget")
@@ -1425,6 +1555,16 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(application_preview["header_lines"][0], "臺北市立大學　社團活動申請表")
         self.assertEqual(application_preview["tables"][0]["headers"][0], "活動申請人")
         self.assertEqual(result_preview["header_lines"][1], "社團活動成果報告")
+        self.assertEqual(review_preview["header_lines"][1], "「{{activity_name}}」活動檢討會紀錄")
+        self.assertEqual(review_preview["meta_rows"][0][0], "社團名稱")
+        self.assertEqual(
+            review_preview["tables"][0]["headers"],
+            ["項次", "檢討項目", "實際情形", "問題說明", "改進建議", "負責人", "完成期限", "備註"],
+        )
+        self.assertEqual(
+            review_preview["tables"][1]["headers"],
+            ["項次", "待辦事項", "負責人", "預定完成日期", "追蹤狀態", "備註"],
+        )
         self.assertEqual(schedule_preview["header_lines"][0], "活動流程表")
         self.assertEqual(schedule_preview["tables"][0]["title"], "粗流")
         self.assertEqual(

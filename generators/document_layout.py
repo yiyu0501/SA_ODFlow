@@ -67,6 +67,8 @@ def build_template_render_spec(template_definition: dict) -> dict:
         return _build_meeting_minutes_template_spec(template_definition)
     if template_definition["id"] == "activity_application_odt":
         return _build_activity_application_template_spec(template_definition)
+    if template_definition["id"] == "activity_review_minutes_odt":
+        return _build_activity_review_minutes_template_spec(template_definition)
 
     linked_document_type = template_definition.get("linked_document_type")
     if linked_document_type:
@@ -698,6 +700,127 @@ def _build_activity_application_template_spec(template_definition: dict) -> dict
             _section(
                 "note",
                 text="使用種類與額度由課外活動組填寫",
+            ),
+        ],
+    }
+
+
+def _build_activity_review_minutes_template_spec(template_definition: dict) -> dict:
+    review_rows = ensure_table_rows(
+        [["1", "", "", "", "", "", "", ""], ["2", "", "", "", "", "", "", ""], ["3", "", "", "", "", "", "", ""]],
+        8,
+        minimum_rows=3,
+        placeholder="",
+    )
+    follow_up_rows = ensure_table_rows(
+        [["1", "", "", "", "", ""], ["2", "", "", "", "", ""]],
+        6,
+        minimum_rows=2,
+        placeholder="",
+    )
+    resolution_rows = ensure_table_rows(
+        [["1", "", "", ""], ["2", "", "", ""]],
+        4,
+        minimum_rows=2,
+        placeholder="",
+    )
+
+    return {
+        "title": "{{school_name}}{{club_name}}\n「{{activity_name}}」活動檢討會紀錄",
+        "sections": [
+            _section(
+                "info_table",
+                heading="會議基本資料",
+                rows=_info_rows(
+                    [
+                        ("社團名稱", "{{club_name}}"),
+                        ("活動名稱", "{{activity_name}}"),
+                        ("會議名稱", "「{{activity_name}}」活動檢討會"),
+                        ("會議日期", "{{meeting_date}}"),
+                        ("會議時間", "{{meeting_start_time}} 至 {{meeting_end_time}}"),
+                        ("會議地點", "{{meeting_location}}"),
+                        ("主席", "{{chair}}"),
+                        ("紀錄", "{{recorder}}"),
+                        ("出席人員", "{{attendees}}"),
+                        ("列席人員", "{{observers}}"),
+                        ("請假人員", "{{absentees}}"),
+                        ("缺席人員", "{{missing_members}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="活動執行情形",
+                paragraphs=[
+                    "活動是否如期完成：{{completed_as_planned}}",
+                    "實際參與人數：{{actual_participant_count}}",
+                    "活動流程是否依原企畫執行：{{flow_followed_plan}}",
+                    "與原企畫差異：{{plan_difference}}",
+                    "重要成果：{{key_outcomes}}",
+                    "特殊狀況：{{special_cases}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="檢討事項",
+                headers=["項次", "檢討項目", "實際情形", "問題說明", "改進建議", "負責人", "完成期限", "備註"],
+                rows=review_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="做得好的地方",
+                paragraphs=[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER],
+            ),
+            _section(
+                "paragraph",
+                heading="各組回饋",
+                paragraphs=[
+                    "行政組：＿＿＿＿＿＿＿＿＿＿",
+                    "場器組：＿＿＿＿＿＿＿＿＿＿",
+                    "活動組：＿＿＿＿＿＿＿＿＿＿",
+                    "財務組：＿＿＿＿＿＿＿＿＿＿",
+                    "美宣組：＿＿＿＿＿＿＿＿＿＿",
+                    "機動組：＿＿＿＿＿＿＿＿＿＿",
+                ],
+            ),
+            _section(
+                "table",
+                heading="後續追蹤事項",
+                headers=["項次", "待辦事項", "負責人", "預定完成日期", "追蹤狀態", "備註"],
+                rows=follow_up_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="下次活動建議",
+                paragraphs=[
+                    "可延續的做法：＿＿＿＿＿＿＿＿＿＿",
+                    "應避免的問題：＿＿＿＿＿＿＿＿＿＿",
+                    "需要提前準備的事項：＿＿＿＿＿＿＿＿＿＿",
+                ],
+            ),
+            _section(
+                "table",
+                heading="會議決議",
+                headers=["項次", "決議內容", "負責人", "完成期限"],
+                rows=resolution_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="臨時動議",
+                paragraphs=[BLANK_LINE_PLACEHOLDER],
+            ),
+            _section(
+                "paragraph",
+                heading="散會時間",
+                paragraphs=["本次會議於 {{meeting_end_time}} 散會。"],
+            ),
+            _section(
+                "table",
+                heading="簽核欄位",
+                headers=["主席", "紀錄", "社團負責人", "指導老師"],
+                rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
             ),
         ],
     }

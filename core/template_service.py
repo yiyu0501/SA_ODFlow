@@ -477,6 +477,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "attendance_sheet": _build_attendance_sheet_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_application": _build_activity_application_preview_data,
+        "activity_review_minutes": _build_activity_review_minutes_preview_data,
         "activity_schedule": _build_activity_schedule_preview_data,
         "work_assignment": _build_work_assignment_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
@@ -703,6 +704,81 @@ def _build_activity_application_preview_data(definition: dict) -> dict:
         ],
         "decor": {"page_footer": "A4 橫式一頁預覽"},
         "footnote": "此為橫式行政表單預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_activity_review_minutes_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}}{{club_name}}", "「{{activity_name}}」活動檢討會紀錄"],
+        "meta_rows": [
+            ("社團名稱", "{{club_name}}"),
+            ("活動名稱", "{{activity_name}}"),
+            ("會議名稱", "「{{activity_name}}」活動檢討會"),
+            ("會議日期", "{{meeting_date}}"),
+            ("會議時間", "{{meeting_start_time}} 至 {{meeting_end_time}}"),
+            ("會議地點", "{{meeting_location}}"),
+            ("主席", "{{chair}}"),
+            ("紀錄", "{{recorder}}"),
+            ("出席人員", "{{attendees}}"),
+            ("列席人員", "{{observers}}"),
+            ("請假人員", "{{absentees}}"),
+            ("缺席人員", "{{missing_members}}"),
+        ],
+        "sections": [
+            {
+                "title": "活動執行情形",
+                "items": [
+                    "活動是否如期完成",
+                    "實際參與人數",
+                    "活動流程是否依原企畫執行",
+                    "與原企畫差異",
+                    "重要成果",
+                    "特殊狀況",
+                ],
+            },
+            {
+                "title": "做得好的地方",
+                "items": ["亮點一", "亮點二"],
+            },
+            {
+                "title": "各組回饋",
+                "items": ["行政組", "場器組", "活動組", "財務組", "美宣組", "機動組"],
+            },
+            {
+                "title": "下次活動建議",
+                "items": ["可延續的做法", "應避免的問題", "需要提前準備的事項"],
+            },
+            {
+                "title": "散會時間",
+                "items": ["本次會議於 {{meeting_end_time}} 散會。"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "檢討事項",
+                "headers": ["項次", "檢討項目", "實際情形", "問題說明", "改進建議", "負責人", "完成期限", "備註"],
+                "rows": [["1", "", "", "", "", "", "", ""], ["2", "", "", "", "", "", "", ""]],
+            },
+            {
+                "title": "後續追蹤事項",
+                "headers": ["項次", "待辦事項", "負責人", "預定完成日期", "追蹤狀態", "備註"],
+                "rows": [["1", "", "", "", "", ""], ["2", "", "", "", "", ""]],
+            },
+            {
+                "title": "會議決議",
+                "headers": ["項次", "決議內容", "負責人", "完成期限"],
+                "rows": [["1", "", "", ""], ["2", "", "", ""]],
+            },
+            {
+                "title": "簽核欄位",
+                "headers": ["主席", "紀錄", "社團負責人", "指導老師"],
+                "rows": [["", "", "", ""]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁　共1頁"},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 
 
