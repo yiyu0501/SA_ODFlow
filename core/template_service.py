@@ -478,6 +478,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_application": _build_activity_application_preview_data,
         "activity_schedule": _build_activity_schedule_preview_data,
+        "work_assignment": _build_work_assignment_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
@@ -747,6 +748,70 @@ def _build_activity_schedule_preview_data(definition: dict) -> dict:
             },
         ],
         "decor": {"page_footer": "粗流 / 細流 預覽"},
+        "footnote": "此為 ODS 版型預覽，實際格式以下載 ODS 為準。",
+    }
+
+
+def _build_work_assignment_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["工作分配表"],
+        "meta_rows": [
+            ("社團名稱", "{{club_name}}"),
+            ("活動名稱", "{{activity_name}}"),
+            ("活動日期", "{{activity_date}}"),
+            ("活動地點", "{{activity_location}}"),
+            ("主辦單位", "{{organizer}}"),
+            ("活動總召", "{{project_owner}}"),
+            ("製表日期", "{{created_date}}"),
+        ],
+        "sections": [
+            {
+                "title": "重要提醒",
+                "items": ["重要工作應優先確認負責人與完成期限。", "活動前工作若延後，應立即更新備註與替代方案。"],
+            },
+            {
+                "title": "確認與聯絡區",
+                "items": ["聯絡窗口", "製表人", "活動負責人", "社團負責人", "指導老師"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "工作分配總表",
+                "headers": [
+                    "序號",
+                    "階段",
+                    "組別",
+                    "工作項目",
+                    "工作內容",
+                    "負責人",
+                    "協助人員",
+                    "開始日期",
+                    "完成期限",
+                    "狀態",
+                    "優先程度",
+                    "所需資源",
+                    "對應流程時間",
+                    "備註",
+                ],
+                "rows": [
+                    ["1", "活動前", "宣傳組", "發布報名表", "整理報名資訊並發佈表單", "王小明", "李小華", "2026/07/01", "2026/07/05", "處理中", "高", "表單連結", "活動前一週", ""],
+                    ["2", "活動中", "場器組", "報到桌設置", "完成簽到表、名牌與動線安排", "陳小安", "機動組", "2026/07/10", "2026/07/10", "未開始", "中", "簽到表、桌椅", "08:30-09:00", ""],
+                ],
+            },
+            {
+                "title": "統計摘要",
+                "headers": ["統計項目", "數值"],
+                "rows": [
+                    ["工作項目總數", "2"],
+                    ["已完成件數", "0"],
+                    ["高優先工作數", "1"],
+                    ["完成率", "0%"],
+                ],
+            },
+        ],
+        "decor": {"page_footer": "工作分配與進度追蹤預覽"},
         "footnote": "此為 ODS 版型預覽，實際格式以下載 ODS 為準。",
     }
 

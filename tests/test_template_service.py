@@ -90,6 +90,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_application",
                 "activity_result_report",
                 "activity_schedule",
+                "work_assignment",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -106,6 +107,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_application",
             "activity_result_report",
             "activity_schedule",
+            "work_assignment",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -407,6 +409,177 @@ class TemplateServiceTestCase(unittest.TestCase):
 
         self.assertGreaterEqual(count_blank_data_rows(overview_sheet, "時間"), 20)
         self.assertGreaterEqual(count_blank_data_rows(detail_sheet, "大活動時間"), 80)
+
+    def test_work_assignment_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("work_assignment")
+
+        self.assertEqual(definition["template_key"], "work_assignment")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_work_assignment_ods_contains_required_sheets_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("work_assignment")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+        self.assertIn("工作分配總表", sheet_names)
+        self.assertIn("統計摘要", sheet_names)
+
+        main_sheet = tree.find(".//table:table[@table:name='工作分配總表']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(main_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        text_values = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in main_sheet.findall(".//text:p", namespaces)
+        ]
+        for field_name in [
+            "工作分配表",
+            "社團名稱",
+            "活動名稱",
+            "活動日期",
+            "活動地點",
+            "主辦單位",
+            "活動總召",
+            "製表日期",
+            "備註",
+            "序號",
+            "階段",
+            "組別",
+            "工作項目",
+            "工作內容",
+            "負責人",
+            "協助人員",
+            "開始日期",
+            "完成期限",
+            "狀態",
+            "優先程度",
+            "所需資源",
+            "對應流程時間",
+            "重要提醒",
+            "聯絡窗口",
+            "製表人",
+            "活動負責人",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(field_name, text_values)
+
+        summary_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in summary_sheet.findall(".//text:p", namespaces)
+        ]
+        for field_name in [
+            "統計摘要",
+            "工作項目總數",
+            "未開始件數",
+            "處理中件數",
+            "已完成件數",
+            "待確認件數",
+            "延後件數",
+            "取消件數",
+            "完成率",
+            "高優先工作數",
+            "逾期未完成件數",
+        ]:
+            self.assertIn(field_name, summary_text)
+
+    def test_work_assignment_ods_reserves_rows_and_has_validations_and_formulas(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("work_assignment")
+        tree = self._read_content_tree(output_path)
+        main_sheet = tree.find(".//table:table[@table:name='工作分配總表']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(main_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        rows = main_sheet.findall("./table:table-row", namespaces)
+        header_index = None
+        for index, row in enumerate(rows):
+            values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+            if "序號" in values and "工作項目" in values and "狀態" in values:
+                header_index = index
+                break
+        self.assertIsNotNone(header_index)
+
+        blank_count = 0
+        for row in rows[header_index + 1 :]:
+            values = ["".join(paragraph.itertext()).strip() for paragraph in row.findall(".//text:p", namespaces)]
+            if any(values):
+                break
+            blank_count += 1
+        self.assertGreaterEqual(blank_count, 100)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+        self.assertIn("validation_work_phase", validations_by_name)
+        self.assertIn("validation_work_group", validations_by_name)
+        self.assertIn("validation_work_status", validations_by_name)
+        self.assertIn("validation_work_priority", validations_by_name)
+
+        for option in ['"活動前"', '"活動中"', '"活動後"', '"全程"', '"其他"']:
+            self.assertIn(option, validations_by_name["validation_work_phase"].attrib[
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+            ])
+        for option in ['"總籌組"', '"場器組"', '"財務組"', '"其他"']:
+            self.assertIn(option, validations_by_name["validation_work_group"].attrib[
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+            ])
+        for option in ['"未開始"', '"處理中"', '"已完成"', '"待確認"', '"延後"', '"取消"']:
+            self.assertIn(option, validations_by_name["validation_work_status"].attrib[
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+            ])
+        for option in ['"高"', '"中"', '"低"']:
+            self.assertIn(option, validations_by_name["validation_work_priority"].attrib[
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+            ])
+
+        validation_name_counts = {
+            "validation_work_phase": 0,
+            "validation_work_group": 0,
+            "validation_work_status": 0,
+            "validation_work_priority": 0,
+        }
+        for cell in main_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        self.assertEqual(validation_name_counts["validation_work_phase"], 100)
+        self.assertEqual(validation_name_counts["validation_work_group"], 100)
+        self.assertEqual(validation_name_counts["validation_work_status"], 100)
+        self.assertEqual(validation_name_counts["validation_work_priority"], 100)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in summary_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=COUNTA(['工作分配總表'.$D$8:'工作分配總表'.$D$107])", formulas)
+        self.assertIn('=COUNTIF([\'工作分配總表\'.$J$8:\'工作分配總表\'.$J$107];"未開始")', formulas)
+        self.assertIn('=COUNTIF([\'工作分配總表\'.$J$8:\'工作分配總表\'.$J$107];"處理中")', formulas)
+        self.assertIn('=COUNTIF([\'工作分配總表\'.$J$8:\'工作分配總表\'.$J$107];"已完成")', formulas)
+        self.assertIn('=COUNTIF([\'工作分配總表\'.$K$8:\'工作分配總表\'.$K$107];"高")', formulas)
+        self.assertIn(
+            '=IF(COUNTA([\'工作分配總表\'.$D$8:\'工作分配總表\'.$D$107])=0;0;COUNTIF([\'工作分配總表\'.$J$8:\'工作分配總表\'.$J$107];"已完成")/COUNTA([\'工作分配總表\'.$D$8:\'工作分配總表\'.$D$107]))',
+            formulas,
+        )
 
     def test_attendance_sheet_registry_entry_is_formal_odt(self):
         definition = get_template_definition("attendance_sheet")
@@ -929,7 +1102,7 @@ class TemplateServiceTestCase(unittest.TestCase):
 
     def test_canonical_registered_only_template_does_not_fake_download(self):
         with self.assertRaises(ValueError) as context:
-            generate_template_file("work_assignment")
+            generate_template_file("officer_roster")
 
         self.assertIn("尚未提供正式空白範本下載", str(context.exception))
 
@@ -961,6 +1134,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_application",
             "activity_result_report",
             "activity_schedule",
+            "work_assignment",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -1111,6 +1285,41 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "社團負責人",
                 "指導老師",
             ],
+            "work_assignment": [
+                "工作分配表",
+                "工作分配總表",
+                "統計摘要",
+                "社團名稱",
+                "活動名稱",
+                "活動日期",
+                "活動地點",
+                "主辦單位",
+                "活動總召",
+                "製表日期",
+                "備註",
+                "序號",
+                "階段",
+                "組別",
+                "工作項目",
+                "工作內容",
+                "負責人",
+                "協助人員",
+                "開始日期",
+                "完成期限",
+                "狀態",
+                "優先程度",
+                "所需資源",
+                "對應流程時間",
+                "重要提醒",
+                "聯絡窗口",
+                "製表人",
+                "活動負責人",
+                "社團負責人",
+                "指導老師",
+                "工作項目總數",
+                "完成率",
+                "高優先工作數",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -1197,6 +1406,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         application_preview = build_template_preview_data("activity_application")
         result_preview = build_template_preview_data("activity_result_report")
         schedule_preview = build_template_preview_data("activity_schedule")
+        work_assignment_preview = build_template_preview_data("work_assignment")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -1220,6 +1430,12 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(
             schedule_preview["tables"][1]["headers"],
             ["大活動時間", "大活動名稱", "細時間", "組別／區域", "事項", "備註", "器材", "負責人", "人員"],
+        )
+        self.assertEqual(work_assignment_preview["header_lines"][0], "工作分配表")
+        self.assertEqual(work_assignment_preview["tables"][0]["title"], "工作分配總表")
+        self.assertEqual(
+            work_assignment_preview["tables"][0]["headers"],
+            ["序號", "階段", "組別", "工作項目", "工作內容", "負責人", "協助人員", "開始日期", "完成期限", "狀態", "優先程度", "所需資源", "對應流程時間", "備註"],
         )
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
