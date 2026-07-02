@@ -85,6 +85,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             [
                 "meeting_minutes",
                 "meeting_notice",
+                "meeting_agenda",
                 "attendance_sheet",
                 "activity_proposal",
                 "activity_application",
@@ -103,6 +104,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         for template_key in [
             "meeting_minutes",
             "meeting_notice",
+            "meeting_agenda",
             "attendance_sheet",
             "activity_proposal",
             "activity_application",
@@ -176,6 +178,65 @@ class TemplateServiceTestCase(unittest.TestCase):
 
     def test_meeting_minutes_excludes_forbidden_metadata_text(self):
         output_path = generate_template_file("meeting_minutes")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_meeting_agenda_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("meeting_agenda")
+
+        self.assertEqual(definition["template_key"], "meeting_agenda")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertTrue(definition["supports_generate_document"])
+
+    def test_meeting_agenda_odt_contains_formal_sections(self):
+        output_path = generate_template_file("meeting_agenda")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "會議議程",
+            "{{organization_name}}",
+            "第{{meeting_number}}次{{meeting_type}}議程",
+            "製作日期：{{document_date}}",
+            "會議基本資料",
+            "社團名稱",
+            "會議名稱",
+            "會議日期",
+            "會議時間",
+            "會議地點",
+            "召集人",
+            "主席",
+            "紀錄",
+            "出席人員",
+            "列席人員",
+            "會議目的",
+            "議程表",
+            "項次",
+            "時間",
+            "議程項目",
+            "說明",
+            "報告／負責人",
+            "預計時間",
+            "備註",
+            "報告事項",
+            "討論事項",
+            "案由",
+            "擬辦方式",
+            "決議欄",
+            "臨時動議",
+            "會前準備事項",
+            "附件資料",
+            "簽核區",
+            "社團負責人",
+            "指導老師",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_meeting_agenda_excludes_forbidden_metadata_text(self):
+        output_path = generate_template_file("meeting_agenda")
         content_xml = self._read_content_xml(output_path)
 
         for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
@@ -1257,6 +1318,43 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "開會地點",
                 "主持人",
             ],
+            "meeting_agenda": [
+                "會議議程",
+                "{{organization_name}}",
+                "第{{meeting_number}}次{{meeting_type}}議程",
+                "製作日期：{{document_date}}",
+                "會議基本資料",
+                "社團名稱",
+                "會議名稱",
+                "會議日期",
+                "會議時間",
+                "會議地點",
+                "召集人",
+                "主席",
+                "紀錄",
+                "出席人員",
+                "列席人員",
+                "會議目的",
+                "議程表",
+                "項次",
+                "時間",
+                "議程項目",
+                "說明",
+                "報告／負責人",
+                "預計時間",
+                "備註",
+                "報告事項",
+                "討論事項",
+                "案由",
+                "擬辦方式",
+                "決議欄",
+                "臨時動議",
+                "會前準備事項",
+                "附件資料",
+                "簽核區",
+                "社團負責人",
+                "指導老師",
+            ],
             "attendance_sheet": [
                 "簽到表",
                 "日期與時間",
@@ -1530,6 +1628,7 @@ class TemplateServiceTestCase(unittest.TestCase):
     def test_preview_data_supports_canonical_and_legacy_aliases(self):
         minutes_preview = build_template_preview_data("meeting_minutes")
         notice_preview = build_template_preview_data("會議通知")
+        agenda_preview = build_template_preview_data("meeting_agenda")
         attendance_preview = build_template_preview_data("attendance_sheet")
         proposal_preview = build_template_preview_data("activity_proposal")
         application_preview = build_template_preview_data("activity_application")
@@ -1546,6 +1645,13 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(minutes_preview["header_lines"][1], "第{{meeting_number}}次{{meeting_type}}紀錄")
         self.assertEqual(minutes_preview["tables"][0]["headers"], ["項次", "事項", "負責人", "期限", "備註"])
         self.assertEqual(notice_preview["header_lines"][0], "{{organization_name}} 開會通知單")
+        self.assertEqual(agenda_preview["header_lines"][0], "{{organization_name}}")
+        self.assertEqual(agenda_preview["header_lines"][1], "第{{meeting_number}}次{{meeting_type}}議程")
+        self.assertEqual(
+            agenda_preview["tables"][0]["headers"],
+            ["項次", "時間", "議程項目", "說明", "報告／負責人", "預計時間", "備註"],
+        )
+        self.assertEqual(agenda_preview["tables"][1]["headers"], ["案由", "說明", "擬辦方式", "決議欄"])
         self.assertEqual(attendance_preview["header_lines"][1], "「{{event_name}}」簽到表")
         self.assertEqual(
             attendance_preview["tables"][0]["headers"],
