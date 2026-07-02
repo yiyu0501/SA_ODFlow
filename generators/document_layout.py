@@ -67,6 +67,8 @@ def build_template_render_spec(template_definition: dict) -> dict:
         return _build_meeting_minutes_template_spec(template_definition)
     if template_definition["id"] == "meeting_agenda_odt":
         return _build_meeting_agenda_template_spec(template_definition)
+    if template_definition["id"] == "annual_plan_odt":
+        return _build_annual_plan_template_spec(template_definition)
     if template_definition["id"] == "activity_application_odt":
         return _build_activity_application_template_spec(template_definition)
     if template_definition["id"] == "activity_review_minutes_odt":
@@ -952,6 +954,118 @@ def _build_activity_review_minutes_template_spec(template_definition: dict) -> d
                 heading="簽核欄位",
                 headers=["主席", "紀錄", "社團負責人", "指導老師"],
                 rows=[[BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER, BLANK_LINE_PLACEHOLDER]],
+            ),
+        ],
+    }
+
+
+def _build_annual_plan_template_spec(template_definition: dict) -> dict:
+    annual_activity_rows = ensure_table_rows(
+        [["", "", "", "", "", "", "", ""] for _ in range(5)],
+        8,
+        minimum_rows=5,
+        placeholder="",
+    )
+    regular_activity_rows = ensure_table_rows(
+        [["", "", "", "", "", ""] for _ in range(4)],
+        6,
+        minimum_rows=4,
+        placeholder="",
+    )
+    officer_rows = ensure_table_rows(
+        [["", "", "", "", ""] for _ in range(5)],
+        5,
+        minimum_rows=5,
+        placeholder="",
+    )
+    budget_rows = ensure_table_rows(
+        [["", "", "", "", ""] for _ in range(4)],
+        5,
+        minimum_rows=4,
+        placeholder="",
+    )
+    evaluation_rows = ensure_table_rows(
+        [["", "", "", ""] for _ in range(5)],
+        4,
+        minimum_rows=5,
+        placeholder="",
+    )
+
+    return {
+        "title": "{{school_name}}{{club_name}}\n{{academic_year}}年度計畫",
+        "sections": [
+            _section(
+                "info_table",
+                heading="社團基本資料",
+                rows=_info_rows(
+                    [
+                        ("學年度", "{{academic_year}} 學年度"),
+                        ("社團名稱", "臺北市立大學 {{club_name}}"),
+                        ("社團類別", "{{club_category}}"),
+                        ("社長", "{{president}}"),
+                        ("指導老師", "{{advisor}}"),
+                        ("主要聯絡人", "{{contact_person}}"),
+                        ("聯絡電話", "{{contact_phone}}"),
+                        ("聯絡信箱", "{{contact_email}}"),
+                        ("製表日期", "{{created_date}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="年度目標",
+                paragraphs=[
+                    "一、社團發展目標：{{development_goals}}",
+                    "二、活動辦理目標：{{activity_goals}}",
+                    "三、組織經營目標：{{organization_goals}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="年度活動規劃",
+                headers=["預計月份", "活動名稱", "活動類型", "活動目的", "預計對象", "預計人數", "負責組別", "備註"],
+                rows=annual_activity_rows,
+            ),
+            _section(
+                "table",
+                heading="社課或例行活動規劃",
+                headers=["預計週次／日期", "社課或例行活動名稱", "內容概要", "負責人", "預計地點", "備註"],
+                rows=regular_activity_rows,
+            ),
+            _section(
+                "table",
+                heading="幹部與組別分工",
+                headers=["職稱／組別", "姓名", "主要職責", "年度重點工作", "備註"],
+                rows=officer_rows,
+            ),
+            _section(
+                "table",
+                heading="年度預算概估",
+                headers=["類別", "項目", "預估金額", "經費來源", "備註"],
+                rows=budget_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="預期成果",
+                paragraphs=[
+                    "一、活動成果：{{activity_results}}",
+                    "二、社員參與成果：{{member_participation_results}}",
+                    "三、組織運作成果：{{organization_results}}",
+                    "四、文件與評鑑成果：{{document_and_evaluation_results}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="評鑑資料準備方向",
+                headers=["評鑑資料類型", "預計蒐集內容", "負責人", "備註"],
+                rows=evaluation_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="備註",
+                paragraphs=["{{notes}}"],
             ),
         ],
     }

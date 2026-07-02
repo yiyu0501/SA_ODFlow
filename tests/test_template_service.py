@@ -93,6 +93,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "activity_review_minutes",
                 "activity_schedule",
                 "work_assignment",
+                "annual_plan",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -112,6 +113,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_review_minutes",
             "activity_schedule",
             "work_assignment",
+            "annual_plan",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -377,6 +379,84 @@ class TemplateServiceTestCase(unittest.TestCase):
             "新增追蹤事項",
             "匯入活動資料",
             "匯入會議紀錄",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_annual_plan_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("annual_plan")
+
+        self.assertEqual(definition["template_key"], "annual_plan")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertTrue(definition["supports_generate_document"])
+
+    def test_annual_plan_odt_contains_formal_sections(self):
+        output_path = generate_template_file("annual_plan")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "年度計畫",
+            "{{school_name}}{{club_name}}",
+            "{{academic_year}}年度計畫",
+            "社團基本資料",
+            "學年度",
+            "社團名稱",
+            "社團類別",
+            "社長",
+            "指導老師",
+            "主要聯絡人",
+            "聯絡電話",
+            "聯絡信箱",
+            "製表日期",
+            "年度目標",
+            "社團發展目標",
+            "活動辦理目標",
+            "組織經營目標",
+            "年度活動規劃",
+            "預計月份",
+            "活動名稱",
+            "活動類型",
+            "活動目的",
+            "預計對象",
+            "預計人數",
+            "負責組別",
+            "社課或例行活動規劃",
+            "預計週次／日期",
+            "社課或例行活動名稱",
+            "內容概要",
+            "負責人",
+            "預計地點",
+            "幹部與組別分工",
+            "職稱／組別",
+            "姓名",
+            "主要職責",
+            "年度重點工作",
+            "年度預算概估",
+            "類別",
+            "項目",
+            "預估金額",
+            "經費來源",
+            "預期成果",
+            "活動成果",
+            "社員參與成果",
+            "組織運作成果",
+            "文件與評鑑成果",
+            "評鑑資料準備方向",
+            "評鑑資料類型",
+            "預計蒐集內容",
+            "備註",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_annual_plan_excludes_ui_operation_and_metadata_text(self):
+        output_path = generate_template_file("annual_plan")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增活動",
+            "建立活動專案",
+            "自動產生評鑑 ZIP",
         ]:
             self.assertNotIn(forbidden_text, content_xml)
 
@@ -1547,6 +1627,58 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "完成率",
                 "高優先工作數",
             ],
+            "annual_plan": [
+                "年度計畫",
+                "{{school_name}}{{club_name}}",
+                "{{academic_year}}年度計畫",
+                "社團基本資料",
+                "學年度",
+                "社團名稱",
+                "社團類別",
+                "社長",
+                "指導老師",
+                "主要聯絡人",
+                "聯絡電話",
+                "聯絡信箱",
+                "製表日期",
+                "年度目標",
+                "社團發展目標",
+                "活動辦理目標",
+                "組織經營目標",
+                "年度活動規劃",
+                "預計月份",
+                "活動名稱",
+                "活動類型",
+                "活動目的",
+                "預計對象",
+                "預計人數",
+                "負責組別",
+                "社課或例行活動規劃",
+                "預計週次／日期",
+                "社課或例行活動名稱",
+                "內容概要",
+                "負責人",
+                "預計地點",
+                "幹部與組別分工",
+                "職稱／組別",
+                "姓名",
+                "主要職責",
+                "年度重點工作",
+                "年度預算概估",
+                "類別",
+                "項目",
+                "預估金額",
+                "經費來源",
+                "預期成果",
+                "活動成果",
+                "社員參與成果",
+                "組織運作成果",
+                "文件與評鑑成果",
+                "評鑑資料準備方向",
+                "評鑑資料類型",
+                "預計蒐集內容",
+                "備註",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -1636,6 +1768,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         review_preview = build_template_preview_data("activity_review_minutes")
         schedule_preview = build_template_preview_data("activity_schedule")
         work_assignment_preview = build_template_preview_data("work_assignment")
+        annual_plan_preview = build_template_preview_data("annual_plan")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -1682,6 +1815,16 @@ class TemplateServiceTestCase(unittest.TestCase):
         self.assertEqual(
             work_assignment_preview["tables"][0]["headers"],
             ["序號", "階段", "組別", "工作項目", "工作內容", "負責人", "協助人員", "開始日期", "完成期限", "狀態", "優先程度", "所需資源", "對應流程時間", "備註"],
+        )
+        self.assertEqual(annual_plan_preview["header_lines"][1], "{{academic_year}}年度計畫")
+        self.assertEqual(annual_plan_preview["meta_rows"][0][0], "學年度")
+        self.assertEqual(
+            annual_plan_preview["tables"][0]["headers"],
+            ["預計月份", "活動名稱", "活動類型", "活動目的", "預計對象", "預計人數", "負責組別", "備註"],
+        )
+        self.assertEqual(
+            annual_plan_preview["tables"][4]["headers"],
+            ["評鑑資料類型", "預計蒐集內容", "負責人", "備註"],
         )
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
