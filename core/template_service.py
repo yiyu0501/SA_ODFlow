@@ -477,6 +477,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "attendance_sheet": _build_attendance_sheet_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_application": _build_activity_application_preview_data,
+        "activity_schedule": _build_activity_schedule_preview_data,
         "activity_result_report": _build_activity_result_report_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
@@ -701,6 +702,52 @@ def _build_activity_application_preview_data(definition: dict) -> dict:
         ],
         "decor": {"page_footer": "A4 橫式一頁預覽"},
         "footnote": "此為橫式行政表單預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_activity_schedule_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["活動流程表"],
+        "meta_rows": [
+            ("社團名稱", "{{club_name}}"),
+            ("活動名稱", "{{activity_name}}"),
+            ("活動日期", "{{activity_date}}"),
+            ("活動地點", "{{activity_location}}"),
+            ("主辦單位", "{{club_name}}"),
+            ("活動負責人", "{{activity_owner}}"),
+        ],
+        "sections": [
+            {
+                "title": "工作提醒",
+                "items": ["場地布置時間", "報到時間", "活動開始時間", "活動結束時間", "場復時間", "重要注意事項"],
+            },
+            {
+                "title": "確認與簽核區",
+                "items": ["製表人", "活動負責人", "社團負責人", "指導老師"],
+            },
+        ],
+        "tables": [
+            {
+                "title": "粗流",
+                "headers": ["時間", "時長", "活動名稱", "場控／主持", "備註"],
+                "rows": [
+                    ["09:00-09:30", "30min", "報到", "王小明", ""],
+                    ["09:30-10:00", "30min", "開場", "李小華", ""],
+                ],
+            },
+            {
+                "title": "細流",
+                "headers": ["大活動時間", "大活動名稱", "細時間", "組別／區域", "事項", "備註", "器材", "負責人", "人員"],
+                "rows": [
+                    ["09:00-09:30", "報到", "09:00-09:15", "入口處", "簽到與發資料", "", "簽到表", "王小明", "志工甲"],
+                    ["09:30-10:00", "開場", "09:30-09:40", "主舞台", "主持開場", "", "麥克風", "李小華", "主持組"],
+                ],
+            },
+        ],
+        "decor": {"page_footer": "粗流 / 細流 預覽"},
+        "footnote": "此為 ODS 版型預覽，實際格式以下載 ODS 為準。",
     }
 
 
