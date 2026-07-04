@@ -15,14 +15,7 @@ from core.document_schemas import (
     get_recommended_evaluation_category,
     normalize_document_content,
 )
-from core.exact_ui import (
-    _loading_veil,
-    _same_tab_links,
-    _sidebar,
-    _topbar,
-    inject_exact_styles,
-    nav_href,
-)
+from core.exact_ui import nav_href
 from core.template_service import list_template_definitions
 from generators.odt_generator import generate_document_odt
 
@@ -42,26 +35,8 @@ def _inject_generate_native_styles() -> None:
     st.markdown(
         """
         <style>
-        .odf-sidebar {
-            position: fixed !important;
-            left: 0 !important;
-            top: 0 !important;
-            z-index: 50 !important;
-        }
-        .odf-topbar {
-            position: fixed !important;
-            left: var(--sidebar-w) !important;
-            right: 0 !important;
-            top: 0 !important;
-            width: auto !important;
-            z-index: 45 !important;
-        }
-        .block-container {
-            padding: 108px 44px 56px calc(var(--sidebar-w) + 44px) !important;
-            max-width: 100% !important;
-        }
         .odf-native-content {
-            width: min(1304px, calc(100vw - var(--sidebar-w) - 88px));
+            width: min(1304px, 100%);
             margin: 0 auto;
             box-sizing: border-box;
         }
@@ -193,11 +168,8 @@ def _inject_generate_native_styles() -> None:
             min-height: 42px !important;
         }
         @media (max-width: 1280px) {
-            .block-container {
-                padding: 100px 28px 48px calc(var(--sidebar-w) + 28px) !important;
-            }
             .odf-native-content {
-                width: calc(100vw - var(--sidebar-w) - 56px);
+                width: 100%;
             }
             .odf-native-stepper {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -210,9 +182,7 @@ def _inject_generate_native_styles() -> None:
 
 
 def _render_shell_chrome() -> None:
-    inject_exact_styles()
     _inject_generate_native_styles()
-    st.markdown(_same_tab_links(_loading_veil() + _sidebar("Generate") + _topbar("Generate")), unsafe_allow_html=True)
 
 
 def _page_header() -> None:
@@ -592,3 +562,7 @@ def render_generate_native(initial_step: int = 1) -> None:
         _render_step_3(template)
     else:
         _render_step_4(template)
+
+
+def render_generate_native_content(initial_step: int = 1) -> None:
+    render_generate_native(initial_step=initial_step)

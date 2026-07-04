@@ -2,57 +2,43 @@ from __future__ import annotations
 
 import streamlit as st
 
-from core.generate_native import render_generate_native
 from core.exact_ui import (
     render_dashboard,
-    render_exact_page,
     render_files,
-    render_generate,
     render_home,
     render_placeholder,
     render_settings,
     render_templates,
 )
+from core.generate_native import render_generate_native_content
+from core.native_shell import (
+    inject_native_shell_styles,
+    render_html_content,
+    render_native_sidebar,
+    sync_page_from_query,
+)
 
-st.set_page_config(page_title="ODFlow", page_icon="📁", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ODFlow", page_icon="📁", layout="wide", initial_sidebar_state="expanded")
 
+active_page = sync_page_from_query()
+inject_native_shell_styles()
+render_native_sidebar(active_page)
 
-def _first(value: object, default: str) -> str:
-    if isinstance(value, list):
-        return str(value[0]) if value else default
-    return str(value) if value is not None else default
-
-
-params = st.query_params
-page = _first(params.get("page"), "home")
-page_key = page.lower()
-
-try:
-    step = int(_first(params.get("step"), "1"))
-except ValueError:
-    step = 1
-step = max(1, min(4, step))
-fmt = _first(params.get("fmt"), "odt").lower()
-template = _first(params.get("template"), "活動企劃書")
-
-if page_key in {"home", "", "首頁"}:
-    html = render_home()
-elif page_key == "dashboard":
-    html = render_dashboard()
-elif page_key == "templates":
-    html = render_templates()
-elif page_key == "generate":
-    render_generate_native(initial_step=step)
-    st.stop()
-elif page_key == "files":
-    html = render_files()
-elif page_key == "settings":
-    html = render_settings()
-elif page_key == "evaluation":
-    html = render_placeholder("Evaluation", "社團評鑑", "整理缺件、待補與待審核資料。")
-elif page_key == "projects":
-    html = render_placeholder("Projects", "專案", "整理社團專案、活動與階段進度。")
+if active_page in {"home", "", "首頁"}:
+    render_html_content(render_home())
+elif active_page == "Dashboard":
+    render_html_content(render_dashboard())
+elif active_page == "Templates":
+    render_html_content(render_templates())
+elif active_page == "Generate":
+    render_generate_native_content()
+elif active_page == "Files":
+    render_html_content(render_files())
+elif active_page == "Settings":
+    render_html_content(render_settings())
+elif active_page == "Evaluation":
+    render_html_content(render_placeholder("Evaluation", "社團評鑑", "整理缺件、待補與待審核資料。"))
+elif active_page == "Projects":
+    render_html_content(render_placeholder("Projects", "專案", "整理社團專案、活動與階段進度。"))
 else:
-    html = render_home()
-
-render_exact_page(html)
+    render_html_content(render_home())
