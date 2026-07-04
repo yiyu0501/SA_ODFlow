@@ -15,7 +15,14 @@ from core.document_schemas import (
     get_recommended_evaluation_category,
     normalize_document_content,
 )
-from core.exact_ui import nav_href
+from core.exact_ui import (
+    _loading_veil,
+    _same_tab_links,
+    _sidebar,
+    _topbar,
+    inject_exact_styles,
+    nav_href,
+)
 from core.template_service import list_template_definitions
 from generators.odt_generator import generate_document_odt
 
@@ -35,8 +42,26 @@ def _inject_generate_native_styles() -> None:
     st.markdown(
         """
         <style>
+        .odf-sidebar {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            z-index: 50 !important;
+        }
+        .odf-topbar {
+            position: fixed !important;
+            left: var(--sidebar-w) !important;
+            right: 0 !important;
+            top: 0 !important;
+            width: auto !important;
+            z-index: 45 !important;
+        }
+        .block-container {
+            padding: 108px 44px 56px calc(var(--sidebar-w) + 44px) !important;
+            max-width: 100% !important;
+        }
         .odf-native-content {
-            width: min(1304px, 100%);
+            width: min(1220px, calc(100vw - var(--sidebar-w) - 88px));
             margin: 0 auto;
             box-sizing: border-box;
         }
@@ -168,8 +193,11 @@ def _inject_generate_native_styles() -> None:
             min-height: 42px !important;
         }
         @media (max-width: 1280px) {
+            .block-container {
+                padding: 100px 28px 48px calc(var(--sidebar-w) + 28px) !important;
+            }
             .odf-native-content {
-                width: 100%;
+                width: min(100%, calc(100vw - var(--sidebar-w) - 56px));
             }
             .odf-native-stepper {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -182,7 +210,9 @@ def _inject_generate_native_styles() -> None:
 
 
 def _render_shell_chrome() -> None:
+    inject_exact_styles()
     _inject_generate_native_styles()
+    st.markdown(_same_tab_links(_sidebar("Generate") + _topbar("Generate")), unsafe_allow_html=True)
 
 
 def _page_header() -> None:
@@ -432,31 +462,32 @@ def _render_step_2(template: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    with st.form("generate_document_form", clear_on_submit=False):
-        st.markdown("### 基本欄位")
-        fields = schema.get("fields", [])
-        for row_index in range(0, len(fields), 2):
-            cols = st.columns(2)
-            for col, field in zip(cols, fields[row_index:row_index + 2]):
-                with col:
-                    content[field["key"]] = _render_field(field, content, key_prefix)
+    st.markdown("### 基本欄位")
+    fields = schema.get("fields", [])
+    for row_index in range(0, len(fields), 2):
+        cols = st.columns(2)
+        for col, field in zip(cols, fields[row_index:row_index + 2]):
+            with col:
+                content[field["key"]] = _render_field(field, content, key_prefix)
 
-        if schema.get("repeatable_sections"):
-            st.markdown("### 表格欄位")
-            for section in schema["repeatable_sections"]:
-                content[section["key"]] = _render_repeatable_section(section, content, key_prefix)
+    if schema.get("repeatable_sections"):
+        st.markdown("### 表格欄位")
+        for section in schema["repeatable_sections"]:
+            content[section["key"]] = _render_repeatable_section(section, content, key_prefix)
 
-        submitted = st.form_submit_button("下一步：預覽確認", type="primary", use_container_width=True)
-        if submitted:
-            st.session_state["generate_content"] = content
-            st.session_state["generate_document_type"] = document_type
-            st.session_state["generate_step"] = 3
-            _rerun()
+    st.session_state["generate_content"] = content
+    st.session_state["generate_document_type"] = document_type
 
     cols = st.columns([1, 1, 4])
     with cols[0]:
         if st.button("上一步", use_container_width=True):
             st.session_state["generate_step"] = 1
+            _rerun()
+    with cols[1]:
+        if st.button("下一步：預覽確認", type="primary", use_container_width=True):
+            st.session_state["generate_content"] = content
+            st.session_state["generate_document_type"] = document_type
+            st.session_state["generate_step"] = 3
             _rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -562,7 +593,3 @@ def render_generate_native(initial_step: int = 1) -> None:
         _render_step_3(template)
     else:
         _render_step_4(template)
-
-
-def render_generate_native_content(initial_step: int = 1) -> None:
-    render_generate_native(initial_step=initial_step)
