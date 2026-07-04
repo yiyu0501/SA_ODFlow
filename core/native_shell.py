@@ -76,18 +76,30 @@ def inject_native_shell_styles() -> None:
         section[data-testid="stSidebar"] {
             display: block !important;
             visibility: visible !important;
+            height: 100vh !important;
+            min-height: 100vh !important;
             width: var(--sidebar-w) !important;
             min-width: var(--sidebar-w) !important;
             background: #ffffff !important;
             border-right: 1px solid var(--border) !important;
             box-shadow: 8px 0 22px rgba(15,23,42,.035) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+        }
+        section[data-testid="stSidebar"] * {
+            visibility: visible !important;
         }
         section[data-testid="stSidebar"] > div,
         div[data-testid="stSidebarContent"] {
+            display: block !important;
+            visibility: visible !important;
+            height: 100vh !important;
+            min-height: 100vh !important;
             background: #ffffff !important;
             width: var(--sidebar-w) !important;
             padding: 18px 16px !important;
             box-sizing: border-box !important;
+            overflow-y: auto !important;
         }
         .block-container {
             max-width: 1368px !important;
