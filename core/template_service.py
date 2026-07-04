@@ -476,6 +476,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "meeting_notice": _build_meeting_notice_preview_data,
         "meeting_agenda": _build_meeting_agenda_preview_data,
         "attendance_sheet": _build_attendance_sheet_preview_data,
+        "club_announcement": _build_club_announcement_preview_data,
         "activity_proposal": _build_activity_proposal_preview_data,
         "activity_application": _build_activity_application_preview_data,
         "activity_review_minutes": _build_activity_review_minutes_preview_data,
@@ -484,6 +485,7 @@ def build_template_preview_data(template_id: str) -> dict:
         "activity_result_report": _build_activity_result_report_preview_data,
         "annual_plan": _build_annual_plan_preview_data,
         "member_roster": _build_member_roster_preview_data,
+        "course_record": _build_course_record_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
@@ -726,6 +728,67 @@ def _build_activity_proposal_preview_data(definition: dict) -> dict:
     }
 
 
+def _build_club_announcement_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}}{{club_name}}", "{{announcement_type}}：{{announcement_title}}"],
+        "meta_rows": [
+            ("公告類型", "{{announcement_type}}"),
+            ("公告日期", "{{announcement_date}}"),
+            ("發布單位", "{{publishing_unit}}"),
+            ("承辦人", "{{contact_person}}"),
+            ("公告對象", "{{announcement_targets}}"),
+            ("通知方式", "{{delivery_channels}}"),
+        ],
+        "sections": [
+            {"title": "公告主旨", "items": ["{{announcement_title}}"]},
+            {
+                "title": "公告內容",
+                "items": ["一、公告事項", "二、詳細說明", "三、注意事項"],
+            },
+            {
+                "title": "發布單位與發布日期",
+                "items": [
+                    "發布單位：{{publishing_unit}}",
+                    "承辦人：{{contact_person}}",
+                    "發布日期：{{announcement_date}}",
+                ],
+            },
+        ],
+        "tables": [
+            {
+                "title": "重要日期與時間",
+                "headers": ["項目", "日期", "時間", "地點／方式", "備註"],
+                "rows": [
+                    ["報名截止", "", "", "Google 表單", ""],
+                    ["活動日期", "", "", "{{location}}", ""],
+                ],
+            },
+            {
+                "title": "需要辦理事項",
+                "headers": ["辦理事項", "對象", "截止時間", "辦理方式", "備註"],
+                "rows": [
+                    ["填寫報名表", "有意參與社員", "", "Google 表單", ""],
+                    ["回覆出席狀況", "幹部", "", "LINE 群組", ""],
+                ],
+            },
+            {
+                "title": "聯絡方式",
+                "headers": ["聯絡人", "職稱／組別", "聯絡方式", "備註"],
+                "rows": [["", "活動負責人", "example@utaipei.edu.tw", ""], ["", "財務", "LINE ID: example", "社費問題"]],
+            },
+            {
+                "title": "附件清單",
+                "headers": ["附件名稱", "說明／連結", "備註"],
+                "rows": [["期初社員大會報名表", "", ""], ["活動流程表", "", ""]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁　共1頁"},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
 def _build_activity_application_preview_data(definition: dict) -> dict:
     return {
         "template_name": definition["name"],
@@ -774,6 +837,72 @@ def _build_activity_application_preview_data(definition: dict) -> dict:
         ],
         "decor": {"page_footer": "A4 橫式一頁預覽"},
         "footnote": "此為橫式行政表單預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_course_record_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["{{school_name}}{{club_name}}", "「{{course_title}}」社課紀錄"],
+        "meta_rows": [
+            ("社課名稱", "{{course_title}}"),
+            ("社課日期", "{{course_date}}"),
+            ("社課時間", "{{course_start_time}} 至 {{course_end_time}}"),
+            ("社課地點", "{{course_location}}"),
+            ("課程負責人", "{{course_owner}}"),
+            ("講師／帶領人", "{{instructor}}"),
+            ("記錄人", "{{recorder}}"),
+            ("社課類型", "{{course_type}}"),
+            ("應到人數", "{{expected_attendance}}"),
+            ("實到人數", "{{actual_attendance}}"),
+        ],
+        "sections": [
+            {
+                "title": "社課內容紀錄",
+                "items": [
+                    "社課主題：{{course_topic}}",
+                    "課程目標：{{course_objectives}}",
+                    "課程內容摘要：{{course_summary}}",
+                    "進行方式：{{delivery_method}}",
+                    "重要討論或學習重點：{{key_takeaways}}",
+                ],
+            },
+            {
+                "title": "執行情形與成果",
+                "items": [
+                    "是否如期完成：是□　否□　部分完成□",
+                    "實際執行情形",
+                    "本次成果",
+                    "社員回饋摘要",
+                ],
+            },
+            {"title": "備註", "items": ["{{remarks}}"]},
+        ],
+        "tables": [
+            {
+                "title": "教材與器材",
+                "headers": ["類型", "名稱", "用途", "備註"],
+                "rows": [["簡報", "社團入門簡報", "課程講解", ""], ["器材", "投影機", "簡報播放", "活動前需測試"]],
+            },
+            {
+                "title": "問題與改善建議",
+                "headers": ["問題", "原因分析", "改善建議", "負責人", "追蹤期限"],
+                "rows": [["社課開場延誤", "投影設備未提前測試", "下次社課前 10 分鐘完成設備確認", "場器組", "下次社課前"]],
+            },
+            {
+                "title": "後續追蹤事項",
+                "headers": ["追蹤事項", "負責人", "完成期限", "狀態", "備註"],
+                "rows": [["上傳社課簡報", "文書組", "", "未開始", ""], ["安排下次社課講師", "社長", "", "處理中", ""]],
+            },
+            {
+                "title": "活動照片",
+                "headers": ["照片一", "照片二"],
+                "rows": [["照片黏貼處\n照片說明", "照片黏貼處\n照片說明"]],
+            },
+        ],
+        "decor": {"page_footer": "第1頁　共1頁"},
+        "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
     }
 
 

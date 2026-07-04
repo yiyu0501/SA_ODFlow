@@ -87,6 +87,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "meeting_notice",
                 "meeting_agenda",
                 "attendance_sheet",
+                "club_announcement",
                 "activity_proposal",
                 "activity_application",
                 "activity_result_report",
@@ -95,6 +96,7 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "work_assignment",
                 "annual_plan",
                 "member_roster",
+                "course_record",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
@@ -108,6 +110,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "meeting_notice",
             "meeting_agenda",
             "attendance_sheet",
+            "club_announcement",
             "activity_proposal",
             "activity_application",
             "activity_result_report",
@@ -116,6 +119,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "work_assignment",
             "annual_plan",
             "member_roster",
+            "course_record",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -244,6 +248,68 @@ class TemplateServiceTestCase(unittest.TestCase):
         content_xml = self._read_content_xml(output_path)
 
         for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_club_announcement_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("club_announcement")
+
+        self.assertEqual(definition["template_key"], "club_announcement")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_club_announcement_odt_contains_formal_sections(self):
+        output_path = generate_template_file("club_announcement")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "{{school_name}}{{club_name}}",
+            "{{announcement_type}}：{{announcement_title}}",
+            "公告基本資料",
+            "公告類型",
+            "公告日期",
+            "發布單位",
+            "承辦人",
+            "公告對象",
+            "通知方式",
+            "公告主旨",
+            "公告內容",
+            "一、公告事項",
+            "二、詳細說明",
+            "三、注意事項",
+            "重要日期與時間",
+            "項目",
+            "日期",
+            "時間",
+            "地點／方式",
+            "需要辦理事項",
+            "辦理事項",
+            "對象",
+            "截止時間",
+            "辦理方式",
+            "聯絡方式",
+            "聯絡人",
+            "職稱／組別",
+            "附件清單",
+            "附件名稱",
+            "說明／連結",
+            "發布單位與發布日期",
+            "發布日期：{{announcement_date}}",
+            "備註",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_club_announcement_excludes_forbidden_metadata_and_ui_operation_text(self):
+        output_path = generate_template_file("club_announcement")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增公告事項",
+            "匯入社員名冊",
+            "匯入活動企畫書",
+            "自動發布通知",
+        ]:
             self.assertNotIn(forbidden_text, content_xml)
 
     def test_activity_result_report_registry_entry_is_formal_odt(self):
@@ -627,6 +693,83 @@ class TemplateServiceTestCase(unittest.TestCase):
             "匯入名冊",
             "產生簽到表",
             "自動排序",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_course_record_registry_entry_is_formal_odt(self):
+        definition = get_template_definition("course_record")
+
+        self.assertEqual(definition["template_key"], "course_record")
+        self.assertEqual(definition["suggested_format"], "ODT")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_course_record_odt_contains_formal_sections(self):
+        output_path = generate_template_file("course_record")
+        content_xml = self._read_content_xml(output_path)
+
+        for required_text in [
+            "{{school_name}}{{club_name}}",
+            "「{{course_title}}」社課紀錄",
+            "社課基本資料",
+            "社課名稱",
+            "社課日期",
+            "社課時間",
+            "社課地點",
+            "主辦社團",
+            "課程負責人",
+            "講師／帶領人",
+            "記錄人",
+            "社課類型",
+            "出席情形",
+            "應到人數",
+            "實到人數",
+            "請假人數",
+            "缺席人數",
+            "出席名單",
+            "請假名單",
+            "缺席名單",
+            "社課內容紀錄",
+            "社課主題",
+            "課程目標",
+            "課程內容摘要",
+            "進行方式",
+            "重要討論或學習重點",
+            "教材與器材",
+            "類型",
+            "名稱",
+            "用途",
+            "執行情形與成果",
+            "是否如期完成：是□　否□　部分完成□",
+            "實際執行情形",
+            "本次成果",
+            "社員回饋摘要",
+            "問題與改善建議",
+            "問題",
+            "原因分析",
+            "改善建議",
+            "追蹤期限",
+            "後續追蹤事項",
+            "追蹤事項",
+            "完成期限",
+            "狀態",
+            "活動照片",
+            "照片黏貼處",
+            "照片說明：",
+            "備註",
+        ]:
+            self.assertIn(required_text, content_xml)
+
+    def test_course_record_excludes_forbidden_metadata_and_ui_operation_text(self):
+        output_path = generate_template_file("course_record")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增社課",
+            "匯入社員名冊",
+            "匯入簽到表",
+            "上傳照片",
         ]:
             self.assertNotIn(forbidden_text, content_xml)
 
@@ -1519,6 +1662,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         for template_key in [
             "meeting_minutes",
             "meeting_notice",
+            "club_announcement",
             "attendance_sheet",
             "activity_proposal",
             "activity_application",
@@ -1527,6 +1671,7 @@ class TemplateServiceTestCase(unittest.TestCase):
             "activity_schedule",
             "work_assignment",
             "member_roster",
+            "course_record",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
@@ -1605,6 +1750,37 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "簽核區",
                 "社團負責人",
                 "指導老師",
+            ],
+            "club_announcement": [
+                "{{school_name}}{{club_name}}",
+                "{{announcement_type}}：{{announcement_title}}",
+                "公告基本資料",
+                "公告類型",
+                "公告日期",
+                "發布單位",
+                "承辦人",
+                "公告對象",
+                "通知方式",
+                "公告主旨",
+                "公告內容",
+                "一、公告事項",
+                "二、詳細說明",
+                "三、注意事項",
+                "重要日期與時間",
+                "項目",
+                "地點／方式",
+                "需要辦理事項",
+                "辦理事項",
+                "截止時間",
+                "辦理方式",
+                "聯絡方式",
+                "聯絡人",
+                "職稱／組別",
+                "附件清單",
+                "附件名稱",
+                "說明／連結",
+                "發布單位與發布日期",
+                "備註",
             ],
             "attendance_sheet": [
                 "簽到表",
@@ -1877,6 +2053,56 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "未繳社費人數",
                 "各系級人數統計",
             ],
+            "course_record": [
+                "{{school_name}}{{club_name}}",
+                "「{{course_title}}」社課紀錄",
+                "社課基本資料",
+                "社課名稱",
+                "社課日期",
+                "社課時間",
+                "社課地點",
+                "主辦社團",
+                "課程負責人",
+                "講師／帶領人",
+                "記錄人",
+                "社課類型",
+                "出席情形",
+                "應到人數",
+                "實到人數",
+                "請假人數",
+                "缺席人數",
+                "出席名單",
+                "請假名單",
+                "缺席名單",
+                "社課內容紀錄",
+                "社課主題",
+                "課程目標",
+                "課程內容摘要",
+                "進行方式",
+                "重要討論或學習重點",
+                "教材與器材",
+                "類型",
+                "名稱",
+                "用途",
+                "執行情形與成果",
+                "是否如期完成",
+                "實際執行情形",
+                "本次成果",
+                "社員回饋摘要",
+                "問題與改善建議",
+                "問題",
+                "原因分析",
+                "改善建議",
+                "追蹤期限",
+                "後續追蹤事項",
+                "追蹤事項",
+                "完成期限",
+                "狀態",
+                "活動照片",
+                "照片黏貼處",
+                "照片說明：",
+                "備註",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -1960,6 +2186,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         notice_preview = build_template_preview_data("會議通知")
         agenda_preview = build_template_preview_data("meeting_agenda")
         attendance_preview = build_template_preview_data("attendance_sheet")
+        announcement_preview = build_template_preview_data("club_announcement")
         proposal_preview = build_template_preview_data("activity_proposal")
         application_preview = build_template_preview_data("activity_application")
         result_preview = build_template_preview_data("activity_result_report")
@@ -1968,6 +2195,7 @@ class TemplateServiceTestCase(unittest.TestCase):
         work_assignment_preview = build_template_preview_data("work_assignment")
         annual_plan_preview = build_template_preview_data("annual_plan")
         member_roster_preview = build_template_preview_data("member_roster")
+        course_record_preview = build_template_preview_data("course_record")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
@@ -1989,6 +2217,13 @@ class TemplateServiceTestCase(unittest.TestCase):
             attendance_preview["tables"][0]["headers"],
             ["系級／單位", "姓名", "系級／單位", "姓名"],
         )
+        self.assertEqual(announcement_preview["header_lines"][0], "{{school_name}}{{club_name}}")
+        self.assertEqual(announcement_preview["header_lines"][1], "{{announcement_type}}：{{announcement_title}}")
+        self.assertEqual(
+            announcement_preview["tables"][0]["headers"],
+            ["項目", "日期", "時間", "地點／方式", "備註"],
+        )
+        self.assertEqual(announcement_preview["tables"][3]["headers"], ["附件名稱", "說明／連結", "備註"])
         self.assertEqual(proposal_preview["header_lines"][0], "{{school_name}}「{{activity_name}}」活動企畫書")
         self.assertEqual(application_preview["header_lines"][0], "臺北市立大學　社團活動申請表")
         self.assertEqual(application_preview["tables"][0]["headers"][0], "活動申請人")
@@ -2033,6 +2268,14 @@ class TemplateServiceTestCase(unittest.TestCase):
             ["序號", "姓名", "學號", "系級／班級", "身分別", "入社日期", "社員狀態", "社費狀態", "手機", "Email", "LINE ID／聯絡方式", "緊急聯絡人", "備註"],
         )
         self.assertEqual(member_roster_preview["tables"][1]["title"], "統計摘要")
+        self.assertEqual(course_record_preview["header_lines"][0], "{{school_name}}{{club_name}}")
+        self.assertEqual(course_record_preview["header_lines"][1], "「{{course_title}}」社課紀錄")
+        self.assertEqual(course_record_preview["meta_rows"][0][0], "社課名稱")
+        self.assertEqual(
+            course_record_preview["tables"][0]["headers"],
+            ["類型", "名稱", "用途", "備註"],
+        )
+        self.assertEqual(course_record_preview["tables"][3]["title"], "活動照片")
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
