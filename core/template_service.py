@@ -486,10 +486,12 @@ def build_template_preview_data(template_id: str) -> dict:
         "annual_plan": _build_annual_plan_preview_data,
         "member_roster": _build_member_roster_preview_data,
         "course_record": _build_course_record_preview_data,
+        "equipment_borrowing_record": _build_equipment_borrowing_record_preview_data,
         "expense_budget": _build_expense_budget_preview_data,
         "income_expense_statement": _build_income_expense_statement_preview_data,
         "expense_settlement": _build_expense_settlement_preview_data,
         "reimbursement_detail": _build_reimbursement_detail_preview_data,
+        "inventory": _build_inventory_preview_data,
     }
     builder = preview_builders.get(resolved_id, _build_generic_preview_data)
     return builder(definition)
@@ -903,6 +905,38 @@ def _build_course_record_preview_data(definition: dict) -> dict:
         ],
         "decor": {"page_footer": "第1頁　共1頁"},
         "footnote": "此為版型預覽，實際格式以下載 ODT 為準。",
+    }
+
+
+def _build_equipment_borrowing_record_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "{{club_name}} 器材借用紀錄"],
+        "meta_rows": [
+            ("學年度", "＿＿＿＿"),
+            ("社團名稱", "臺北市立大學 {{club_name}}"),
+            ("活動名稱", "＿＿＿＿＿＿＿＿"),
+            ("管理人", "＿＿＿＿"),
+            ("製表日期", "＿＿＿＿"),
+            ("備註", "＿＿＿＿＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "工作表", "items": ["器材借用紀錄", "統計摘要"]},
+            {"title": "統計摘要", "items": ["借用紀錄總筆數", "已借出筆數", "已歸還筆數", "逾期未還筆數", "損壞筆數", "遺失筆數", "取消借用筆數"]},
+        ],
+        "tables": [
+            {
+                "title": "器材借用紀錄",
+                "headers": ["序號", "借用日期", "預計歸還日期", "實際歸還日期", "器材編號", "器材名稱", "數量", "借用人", "借用狀態", "歸還檢查結果"],
+                "rows": [
+                    ["1", "", "", "", "EQ-001", "投影機", "1", "王小明", "已借出", "待檢查"],
+                    ["2", "", "", "", "MIC-003", "麥克風", "2", "李小華", "已歸還", "正常"],
+                ],
+            }
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
     }
 
 
@@ -1419,6 +1453,38 @@ def _build_reimbursement_detail_preview_data(definition: dict) -> dict:
                 "rows": [
                     ["1", "", "材料費", "活動材料", "發票", "學校補助", "現金", "", "已附"],
                     ["2", "", "餐費", "工作人員餐費", "收據", "自籌", "轉帳", "", "待補"],
+                ],
+            }
+        ],
+        "decor": {},
+        "footnote": "此為版型預覽，實際格式以下載 ODS 為準。",
+    }
+
+
+def _build_inventory_preview_data(definition: dict) -> dict:
+    return {
+        "template_name": definition["name"],
+        "suggested_format": definition["suggested_format"],
+        "header_lines": ["臺北市立大學", "{{club_name}} 財產清冊"],
+        "meta_rows": [
+            ("學年度", "＿＿＿＿"),
+            ("社團名稱", "臺北市立大學 {{club_name}}"),
+            ("盤點日期", "＿＿＿＿"),
+            ("盤點人", "＿＿＿＿"),
+            ("保管負責人", "＿＿＿＿"),
+            ("製表日期", "＿＿＿＿"),
+        ],
+        "sections": [
+            {"title": "工作表", "items": ["財產清冊", "統計摘要"]},
+            {"title": "統計摘要", "items": ["財產項目總數", "財產數量總計", "取得金額總計", "待維修項目數", "損壞項目數", "遺失項目數", "報廢項目數", "可借用項目數"]},
+        ],
+        "tables": [
+            {
+                "title": "財產清冊",
+                "headers": ["序號", "財產編號", "財產類別", "財產名稱", "數量", "單位", "取得方式", "經費來源", "財產狀態", "是否可借用", "盤點結果"],
+                "rows": [
+                    ["1", "CAM-001", "電子設備", "相機", "1", "台", "購買", "學校補助", "正常", "是", "數量正確"],
+                    ["2", "PROP-003", "活動道具", "活動背板", "2", "組", "移交", "不適用", "待維修", "需核准", "待確認"],
                 ],
             }
         ],
