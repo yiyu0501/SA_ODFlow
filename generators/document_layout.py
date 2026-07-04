@@ -67,8 +67,12 @@ def build_template_render_spec(template_definition: dict) -> dict:
         return _build_meeting_minutes_template_spec(template_definition)
     if template_definition["id"] == "meeting_agenda_odt":
         return _build_meeting_agenda_template_spec(template_definition)
+    if template_definition["id"] == "club_announcement":
+        return _build_club_announcement_template_spec(template_definition)
     if template_definition["id"] == "annual_plan_odt":
         return _build_annual_plan_template_spec(template_definition)
+    if template_definition["id"] == "course_record":
+        return _build_course_record_template_spec(template_definition)
     if template_definition["id"] == "activity_application_odt":
         return _build_activity_application_template_spec(template_definition)
     if template_definition["id"] == "activity_review_minutes_odt":
@@ -737,6 +741,122 @@ def _build_meeting_agenda_template_spec(template_definition: dict) -> dict:
     }
 
 
+def _build_club_announcement_template_spec(template_definition: dict) -> dict:
+    schedule_rows = ensure_table_rows(
+        [["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""]],
+        5,
+        minimum_rows=3,
+        placeholder="",
+    )
+    action_rows = ensure_table_rows(
+        [["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""]],
+        5,
+        minimum_rows=3,
+        placeholder="",
+    )
+    contact_rows = ensure_table_rows(
+        [["", "", "", ""], ["", "", "", ""]],
+        4,
+        minimum_rows=2,
+        placeholder="",
+    )
+    attachment_rows = ensure_table_rows(
+        [["", "", ""], ["", "", ""]],
+        3,
+        minimum_rows=2,
+        placeholder="",
+    )
+
+    return {
+        "title": "{{school_name}}{{club_name}}\n{{announcement_type}}：{{announcement_title}}",
+        "sections": [
+            _section(
+                "info_table",
+                heading="公告基本資料",
+                rows=_info_rows(
+                    [
+                        ("公告類型", "{{announcement_type}}"),
+                        ("公告日期", "{{announcement_date}}"),
+                        ("發布單位", "{{publishing_unit}}"),
+                        ("承辦人", "{{contact_person}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "info_table",
+                heading="公告對象",
+                rows=_info_rows(
+                    [
+                        ("公告對象", "{{announcement_targets}}"),
+                        ("通知方式", "{{delivery_channels}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="公告主旨",
+                paragraphs=["{{announcement_title}}"],
+            ),
+            _section(
+                "paragraph",
+                heading="公告內容",
+                paragraphs=[
+                    "一、公告事項",
+                    "{{announcement_summary}}",
+                    "",
+                    "二、詳細說明",
+                    "{{announcement_details}}",
+                    "",
+                    "三、注意事項",
+                    "{{important_notes}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="重要日期與時間",
+                headers=["項目", "日期", "時間", "地點／方式", "備註"],
+                rows=schedule_rows,
+            ),
+            _section(
+                "table",
+                heading="需要辦理事項",
+                headers=["辦理事項", "對象", "截止時間", "辦理方式", "備註"],
+                rows=action_rows,
+            ),
+            _section(
+                "table",
+                heading="聯絡方式",
+                headers=["聯絡人", "職稱／組別", "聯絡方式", "備註"],
+                rows=contact_rows,
+            ),
+            _section(
+                "table",
+                heading="附件清單",
+                headers=["附件名稱", "說明／連結", "備註"],
+                rows=attachment_rows,
+            ),
+            _section(
+                "lines",
+                heading="發布單位與發布日期",
+                lines=[
+                    "發布單位：{{publishing_unit}}",
+                    "承辦人：{{contact_person}}",
+                    "發布日期：{{announcement_date}}",
+                ],
+            ),
+            _section(
+                "paragraph",
+                heading="備註",
+                paragraphs=["{{remarks}}"],
+            ),
+        ],
+    }
+
+
 def _build_activity_application_template_spec(template_definition: dict) -> dict:
     evaluation_line = "前年社團評鑑：特優□　優等□　甲等□　乙等□"
     activity_type_lines = [
@@ -833,6 +953,129 @@ def _build_activity_application_template_spec(template_definition: dict) -> dict
             _section(
                 "note",
                 text="使用種類與額度由課外活動組填寫",
+            ),
+        ],
+    }
+
+
+def _build_course_record_template_spec(template_definition: dict) -> dict:
+    material_rows = ensure_table_rows(
+        [["", "", "", ""], ["", "", "", ""], ["", "", "", ""]],
+        4,
+        minimum_rows=3,
+        placeholder="",
+    )
+    issue_rows = ensure_table_rows(
+        [["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""]],
+        5,
+        minimum_rows=3,
+        placeholder="",
+    )
+    follow_up_rows = ensure_table_rows(
+        [["", "", "", "", ""], ["", "", "", "", ""], ["", "", "", "", ""]],
+        5,
+        minimum_rows=3,
+        placeholder="",
+    )
+    photo_rows = [
+        [
+            "照片黏貼處\n\n照片說明：",
+            "照片黏貼處\n\n照片說明：",
+        ],
+        [
+            "照片黏貼處\n\n照片說明：",
+            "照片黏貼處\n\n照片說明：",
+        ],
+    ]
+
+    return {
+        "title": "{{school_name}}{{club_name}}\n「{{course_title}}」社課紀錄",
+        "sections": [
+            _section(
+                "info_table",
+                heading="社課基本資料",
+                rows=_info_rows(
+                    [
+                        ("社課名稱", "{{course_title}}"),
+                        ("社課日期", "{{course_date}}"),
+                        ("社課時間", "{{course_start_time}} 至 {{course_end_time}}"),
+                        ("社課地點", "{{course_location}}"),
+                        ("主辦社團", "{{club_name}}"),
+                        ("課程負責人", "{{course_owner}}"),
+                        ("講師／帶領人", "{{instructor}}"),
+                        ("記錄人", "{{recorder}}"),
+                        ("社課類型", "{{course_type}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "info_table",
+                heading="出席情形",
+                rows=_info_rows(
+                    [
+                        ("應到人數", "{{expected_attendance}}"),
+                        ("實到人數", "{{actual_attendance}}"),
+                        ("請假人數", "{{leave_count}}"),
+                        ("缺席人數", "{{absent_count}}"),
+                        ("出席名單", "{{attendees}}"),
+                        ("請假名單", "{{leave_members}}"),
+                        ("缺席名單", "{{absent_members}}"),
+                    ],
+                    columns_per_row=1,
+                ),
+                columns=2,
+            ),
+            _section(
+                "paragraph",
+                heading="社課內容紀錄",
+                paragraphs=[
+                    "社課主題：{{course_topic}}",
+                    "課程目標：{{course_objectives}}",
+                    "課程內容摘要：{{course_summary}}",
+                    "進行方式：{{delivery_method}}",
+                    "重要討論或學習重點：{{key_takeaways}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="教材與器材",
+                headers=["類型", "名稱", "用途", "備註"],
+                rows=material_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="執行情形與成果",
+                paragraphs=[
+                    "是否如期完成：是□　否□　部分完成□",
+                    "實際執行情形：{{execution_summary}}",
+                    "本次成果：{{course_outcomes}}",
+                    "社員回饋摘要：{{member_feedback}}",
+                ],
+            ),
+            _section(
+                "table",
+                heading="問題與改善建議",
+                headers=["問題", "原因分析", "改善建議", "負責人", "追蹤期限"],
+                rows=issue_rows,
+            ),
+            _section(
+                "table",
+                heading="後續追蹤事項",
+                headers=["追蹤事項", "負責人", "完成期限", "狀態", "備註"],
+                rows=follow_up_rows,
+            ),
+            _section(
+                "table",
+                heading="活動照片",
+                headers=["照片一", "照片二"],
+                rows=photo_rows,
+            ),
+            _section(
+                "paragraph",
+                heading="備註",
+                paragraphs=["{{remarks}}"],
             ),
         ],
     }
