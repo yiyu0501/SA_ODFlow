@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from core.generate_native import render_generate_native
 from core.exact_ui import (
     render_dashboard,
     render_exact_page,
@@ -41,7 +42,8 @@ elif page_key == "dashboard":
 elif page_key == "templates":
     html = render_templates()
 elif page_key == "generate":
-    html = render_generate(step=step, fmt=fmt, template=template)
+    render_generate_native(initial_step=step)
+    st.stop()
 elif page_key == "files":
     html = render_files()
 elif page_key == "settings":
