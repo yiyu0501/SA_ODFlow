@@ -31,6 +31,16 @@ def _first_query(name: str, default: str = "") -> str:
     return str(value) if value is not None else default
 
 
+def _loading_veil() -> str:
+    return (
+        '<div class="odf-load-veil" aria-hidden="true">'
+        '<div class="odf-load-card"><div class="odf-load-logo">OD</div>'
+        '<div><strong>ODFlow 正在載入</strong><span>整理社團文件與範本中...</span></div></div>'
+        '<div class="odf-load-bar"><i></i></div>'
+        '</div>'
+    )
+
+
 def nav_href(page: str = "home", **params: object) -> str:
     query = {"page": page}
     for key, value in params.items():
@@ -53,65 +63,88 @@ def _panel_href(active: str, panel: str | None) -> str:
     return "/?" + urlencode(query, doseq=True)
 
 
-def _runtime_state_uncached() -> dict:
-    fallback_settings = {
-        "club_name": "ODFlow示範社團",
-        "academic_year": "114",
-        "campus": "天母校區",
-        "club_type": "",
-        "president_name": "",
-        "advisor_name": "",
-    }
+FALLBACK_SETTINGS = {
+    "club_name": "ODFlow示範社團",
+    "academic_year": "114",
+    "campus": "天母校區",
+    "club_type": "",
+    "president_name": "",
+    "advisor_name": "",
+}
+
+
+def _initialize_database_safe() -> None:
     try:
         from core.database import initialize_database
         initialize_database()
     except Exception:
         pass
+
+
+def _load_settings_uncached() -> dict:
+    _initialize_database_safe()
     try:
         from core.settings_service import get_club_settings
         settings = get_club_settings()
     except Exception:
-        settings = fallback_settings
+        settings = FALLBACK_SETTINGS
+    return {**FALLBACK_SETTINGS, **(settings or {})}
+
+
+def _load_documents_uncached() -> list[dict]:
+    _initialize_database_safe()
     try:
         from core.document_service import list_documents
-        documents = list_documents()
+        return list_documents() or []
     except Exception:
-        documents = []
+        return []
+
+
+def _load_summary_uncached() -> dict:
+    _initialize_database_safe()
     try:
         from core.evaluation_service import get_evaluation_summary
-        summary = get_evaluation_summary()
+        return get_evaluation_summary() or {}
     except Exception:
-        summary = {
+        return {
             "overall_completion_percentage": 0,
             "missing_requirements": [],
             "draft_or_pending_documents": 0,
         }
+
+
+def _load_templates_uncached() -> list[dict]:
     try:
         from core.template_service import list_template_definitions
-        templates = list_template_definitions()
+        return list_template_definitions() or []
     except Exception:
-        templates = []
-    return {
-        "settings": {**fallback_settings, **(settings or {})},
-        "documents": documents or [],
-        "summary": summary or {},
-        "templates": templates or [],
-    }
+        return []
 
 
 _cache_data = getattr(st, "cache_data", None)
 if _cache_data is not None:
-    _runtime_state_cached = _cache_data(ttl=12, show_spinner=False)(_runtime_state_uncached)
+    _load_settings_cached = _cache_data(ttl=60, show_spinner=False)(_load_settings_uncached)
+    _load_documents_cached = _cache_data(ttl=18, show_spinner=False)(_load_documents_uncached)
+    _load_summary_cached = _cache_data(ttl=18, show_spinner=False)(_load_summary_uncached)
+    _load_templates_cached = _cache_data(ttl=300, show_spinner=False)(_load_templates_uncached)
 else:
-    _runtime_state_cached = _runtime_state_uncached
+    _load_settings_cached = _load_settings_uncached
+    _load_documents_cached = _load_documents_uncached
+    _load_summary_cached = _load_summary_uncached
+    _load_templates_cached = _load_templates_uncached
 
 
 def _runtime_state() -> dict:
-    return _runtime_state_cached()
+    return {
+        "settings": _load_settings_cached(),
+        "documents": _load_documents_cached(),
+        "summary": _load_summary_cached(),
+        "templates": _load_templates_cached(),
+    }
 
 
 def _template_id_for_name(name: str) -> str:
-    for template in _runtime_state().get("templates", []):
+    for template in _load_templates_cached():
         if template.get("name") == name or template.get("display_name") == name:
             return str(template.get("id") or template.get("template_key") or "")
     return ""
@@ -1551,6 +1584,98 @@ def inject_exact_styles() -> None:
             border: none !important;
         }
 
+
+        .odf-load-veil {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(29,107,255,.12), transparent 32%),
+                linear-gradient(135deg, rgba(247,250,255,.98), rgba(239,246,255,.96));
+            pointer-events: none;
+            animation: odfVeilOut .46s ease-out .18s forwards;
+        }
+        .odf-load-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 286px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(219, 231, 244, .96);
+            background: rgba(255,255,255,.94);
+            box-shadow: 0 18px 48px rgba(15, 23, 42, .10);
+        }
+        .odf-load-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight: 950;
+            color: #fff;
+            background: linear-gradient(135deg, #1D6BFF, #6D4CFF);
+            box-shadow: 0 10px 22px rgba(29,107,255,.20);
+        }
+        .odf-load-card strong {
+            display:block;
+            font-size: 15px;
+            color:#0f172a;
+            letter-spacing: -.02em;
+        }
+        .odf-load-card span {
+            display:block;
+            margin-top: 4px;
+            font-size: 13px;
+            color:#64748b;
+            font-weight: 650;
+        }
+        .odf-load-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(29,107,255,.08);
+            overflow: hidden;
+        }
+        .odf-load-bar i {
+            display:block;
+            height:100%;
+            width: 38%;
+            background: linear-gradient(90deg, transparent, #1D6BFF, transparent);
+            animation: odfLoadBar 1.05s ease-in-out infinite;
+        }
+        .odf-content, .odf-main > .odf-content {
+            animation: odfPageIn .20s ease-out both;
+        }
+        a[href], button {
+            -webkit-tap-highlight-color: transparent;
+        }
+        @keyframes odfVeilOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+        @keyframes odfLoadBar {
+            0% { transform: translateX(-110%); }
+            100% { transform: translateX(270%); }
+        }
+        @keyframes odfPageIn {
+            from {
+                opacity: .72;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @media (max-width: 1500px) {
             .odf-filter-form {
                 grid-template-columns: 1.35fr .74fr .66fr .74fr 104px;
@@ -1733,8 +1858,9 @@ def _same_tab_links(html: str) -> str:
 
 
 def page_shell(active: str, content: str) -> str:
-    html = f'<div class="odf-shell">{_sidebar(active)}<main class="odf-main">{_topbar(active)}<div class="odf-content">{content}</div></main>{_panel(active)}</div>'
+    html = f'<div class="odf-shell">{_loading_veil()}{_sidebar(active)}<main class="odf-main">{_topbar(active)}<div class="odf-content">{content}</div></main>{_panel(active)}</div>'
     return _same_tab_links(html)
+
 
 
 def page_header(title: str, desc: str, eyebrow: str | None = None) -> str:
@@ -1819,16 +1945,42 @@ def template_card(
     tag = "ods" if fmt == "ODS" else "odt"
     sheet_cls = "sheet" if sheet else ""
     if downloadable and template_id:
-        href, filename = _template_download_link(template_id)
-        download_action = f'<a class="odf-btn odf-template-download full" href="{href}" download="{_safe(filename)}">↓ 直接下載 {fmt} 範本</a>'
+        href = nav_href("Templates", download_template=template_id)
+        download_action = f'<a class="odf-btn odf-template-download full" href="{href}">↓ 準備下載 {fmt} 範本</a>'
     else:
         download_action = '<span class="odf-btn outline full" style="opacity:.46;cursor:not-allowed;">尚未開放下載</span>'
     return f'<section class="odf-card odf-template-card"><div class="odf-template-thumb {sheet_cls}"></div><div style="min-width:0;"><h3 style="font-size:18px;margin:0 0 8px 0;line-height:1.25;">{name}</h3><span class="odf-tag {tag}">{fmt}</span><p class="odf-muted" style="font-size:13px;line-height:1.55;margin:10px 0 14px 0;">{desc}</p><div class="odf-template-actions">{download_action}</div></div></section>'
 
 
+
+def template_download_notice() -> str:
+    template_id = _first_query("download_template", "").strip()
+    if not template_id:
+        return ""
+    try:
+        from core.template_service import get_template_definition
+        definition = get_template_definition(template_id)
+        href, filename = _template_download_link(template_id)
+        fmt = str(definition.get("suggested_format") or filename.rsplit(".", 1)[-1]).upper()
+        return (
+            '<section class="odf-card" style="padding:18px 20px;margin-bottom:18px;border-color:#bcd7ff;background:#f3f8ff;">'
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:18px;">'
+            '<div><div class="odf-kicker">下載已準備好</div>'
+            f'<h3 style="font-size:18px;margin:4px 0 6px 0;">{_safe(definition.get("name") or template_id)}</h3>'
+            f'<p class="odf-muted" style="margin:0;">系統只在你點擊後產生這一份範本，避免頁面載入時一次產生所有檔案。</p></div>'
+            f'<a class="odf-btn odf-template-download" style="min-width:190px;" href="{href}" download="{_safe(filename)}">↓ 下載 {fmt}</a>'
+            '</div></section>'
+        )
+    except Exception as exc:
+        return (
+            '<section class="odf-card" style="padding:18px 20px;margin-bottom:18px;border-color:#fecaca;background:#fff7f7;">'
+            f'<strong>下載失敗：</strong><span class="odf-muted">{_safe(exc)}</span>'
+            '</section>'
+        )
+
+
 def render_templates() -> str:
-    state = _runtime_state()
-    templates = state["templates"]
+    templates = _load_templates_cached()
     active_cat = _first_query("cat", "全部範本")
     q = _first_query("q", "").strip()
     fmt_filter = _first_query("fmt_filter", "全部格式")
@@ -1878,7 +2030,7 @@ def render_templates() -> str:
     def _selected(value: str, current: str) -> str:
         return " selected" if value == current else ""
 
-    content = page_header("空白範本中心", "瀏覽並下載官方 ODT / ODS 空白範本，快速建立標準化文件。")
+    content = page_header("空白範本中心", "瀏覽並下載官方 ODT / ODS 空白範本，快速建立標準化文件。") + template_download_notice()
     content += (
         f'<form class="odf-filter-form" method="get" action="/">'
         '<input type="hidden" name="page" value="Templates">'
@@ -1930,9 +2082,8 @@ def render_templates() -> str:
     return page_shell("Templates", content)
 
 def render_dashboard() -> str:
-    state = _runtime_state()
-    documents = state["documents"]
-    summary = state["summary"]
+    documents = _load_documents_cached()
+    summary = _load_summary_cached()
     counts = _status_counts(documents)
     missing_count = len(summary.get("missing_requirements") or [])
     project_names = sorted({str(d.get("project_id") or d.get("project_name") or "") for d in documents if d.get("project_id") or d.get("project_name")})
@@ -2128,8 +2279,7 @@ def render_generate(step: int = 1, fmt: str = "odt", template: str = "活動企�
 
 
 def render_files() -> str:
-    state = _runtime_state()
-    documents = state["documents"]
+    documents = _load_documents_cached()
     counts = _status_counts(documents)
     content = page_header("檔案庫", "集中管理已建立文件、版本與下載紀錄。")
     content += '<div class="odf-grid" style="grid-template-columns:1.7fr .75fr .65fr .75fr 102px 120px;gap:14px;margin-bottom:16px;"><div class="odf-input">🔎　搜尋文件名稱、專案或關鍵字</div><div class="odf-input">文件類型：全部⌄</div><div class="odf-input">狀態：全部⌄</div><div class="odf-input">專案：全部⌄</div><div class="odf-input" style="justify-content:center;">☰　▦</div><a class="odf-btn primary" href="' + nav_href("Generate") + '">＋ 建立文件</a></div>'
@@ -2165,9 +2315,8 @@ def render_files() -> str:
 
 
 def render_settings() -> str:
-    state = _runtime_state()
-    settings = state["settings"]
-    documents = state["documents"]
+    settings = _load_settings_cached()
+    documents = _load_documents_cached()
     counts = _status_counts(documents)
     section = _first_query("section", "club")
     allowed = {"club", "members", "documents", "notifications", "data", "system"}

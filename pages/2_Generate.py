@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from core.exact_ui import render_exact_page, render_generate
+from core.generate_native import render_generate_native
 
 st.set_page_config(page_title="生成文件｜ODFlow", page_icon="📝", layout="wide", initial_sidebar_state="collapsed")
 
@@ -18,7 +18,5 @@ try:
 except ValueError:
     step = 1
 step = max(1, min(4, step))
-fmt = _first(params.get("fmt"), "odt").lower()
-template = _first(params.get("template"), "活動企劃書")
 
-render_exact_page(render_generate(step=step, fmt=fmt, template=template))
+render_generate_native(initial_step=step)
