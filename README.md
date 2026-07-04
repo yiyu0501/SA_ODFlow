@@ -1,215 +1,346 @@
 # ODFlow
 
-ODFlow 是一套學生社團 ODF 文件流與評鑑整理系統，協助社團平時保存 ODF 原始檔，並在評鑑時輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP。
+ODFlow 是一套給學生社團使用的 ODF 文件工作台與評鑑整理系統。
+
+它可以協助社團：
+
+* 下載 ODT / ODS 空白範本
+* 建立會議、活動、成果、財務等社團文件
+* 匯出 ODT / PDF / ODS
+* 管理文件版本
+* 檢查社團評鑑資料是否完整
+* 匯出評鑑用 PDF 上傳包與 ODF 原始檔備份 ZIP
+
+ODFlow 的目標不是只把檔案轉成 ODF，而是讓 ODF 直接進入學生社團的日常行政流程。
+
+---
 
 ## 線上展示
 
-- Streamlit App：[https://sa-odflow.streamlit.app/](https://sa-odflow.streamlit.app/)
-- v0.4 UIUX 第一階段已依 [docs/v04_uiux_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v04_uiux_spec.md) 實作首頁工作台、空白範本中心、生成文件流程骨架與儀表板定位調整。
-- 目前持續進行 UI 視覺細修，重點放在側欄品牌、首頁工作流程、空白範本瀏覽體驗與生成文件的操作層級。
+* Streamlit App：
+  https://sa-odflow.streamlit.app/
 
-## 解決問題
+* 作品展示網頁：
+  https://你的-cloud4-展示網頁
 
-學生社團常見的痛點不是「沒有文件」，而是：
+* GitHub Repository：
+  https://github.com/yiyu0501/SA_ODFlow
 
-- 平時文件分散在 Word、Excel、PDF、聊天紀錄與個人電腦
-- 到評鑑前才臨時整理，常常找不到原始檔
-- 明明需要上傳 PDF，卻沒有穩定保存 ODF 原始檔的流程
-- 不知道哪些資料已完成、哪些還缺漏
+---
 
-ODFlow 要做的，是把這個流程變成日常可維護的文件流：
+## 這個系統解決什麼問題
 
-1. 平時生成與保存 ODF 原始檔
-2. 用「檔案庫」「儀表板」「社團評鑑」管理資料狀態
-3. 評鑑前一鍵輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
+學生社團常見的文件問題包括：
 
-## ODF 競賽定位
+* 文件分散在不同幹部的電腦、雲端硬碟、LINE 訊息與聊天紀錄中
+* 平時沒有保存可編輯原始檔
+* 到社團評鑑前才開始補資料
+* PDF 有留下，但 ODT / ODS 原始檔找不到
+* 新舊幹部交接時，不知道哪些資料已完成、哪些還缺漏
 
-ODFlow 對應 ODF 競賽學生組的三個方向：
+ODFlow 希望把這件事變簡單：
 
-- ODF 應用工具
-- ODF 文件範本與輸出流程
-- ODF 推廣與保存價值
+1. 平時就用 ODT / ODS 建立文件
+2. 文件建立後可以保存、管理與匯出
+3. 評鑑前可以檢查資料完整度
+4. 最後輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
 
-這個作品不是把既有檔案「轉成 ODF」而已，而是讓 ODF 真正進入社團行政、活動與評鑑整理流程。
+---
 
-## 核心功能
+## 適合誰使用
 
-- 社團基本資料設定
-- 示範資料建立
-- 中文介面導覽與首頁流程展示
-- 七種日常社團文件生成：
-  - 會議紀錄
-  - 開會通知單
-  - 會議議程
-  - 活動企劃書
-  - 活動成果報告
-  - 活動檢討會紀錄
-  - 年度計畫
-- 會議紀錄 mock parser 與其他文件表單式草稿生成
-- 多文件編輯、版本管理、狀態管理
-- 正式風格 ODT / PDF 匯出與下載
-- 社團評鑑資料完整度儀表板
-- 社團評鑑七大項目檢核
-- PDF 評鑑上傳包匯出
-- ODF 原始檔備份 ZIP 匯出
-- 22 個空白 ODT / ODS 範本直接下載
-- 7 個核心 ODT 範本可直接建立文件
-- 8 個核心範本已升級為較正式、可列印的校園社團文件格式
+ODFlow 適合以下單位：
 
-## 使用流程
+* 大學社團
+* 系學會
+* 學生會
+* 志工隊
+* 活動團隊
+* 需要整理評鑑資料的學生組織
 
-1. 在「社團設定」設定社團基本資料
-2. 建立示範資料
-3. 在「空白範本」直接下載空白 ODT / ODS 範本，或用核心範本直接進入「生成文件」
-4. 在「生成文件」選擇文件類型，建立會議紀錄、開會通知單、會議議程、活動企劃書、活動成果報告、活動檢討會紀錄或年度計畫
-5. 在「檔案庫」管理版本並匯出 ODT / PDF
-6. 在「儀表板」查看社團評鑑資料完整度與缺漏
-7. 在「社團評鑑」輸出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
+只要是需要長期保存會議、活動、財務與成果資料的學生團隊，都可以使用 ODFlow。
 
-## Demo 快速開始
+---
 
-1. 啟動系統後先進入「社團設定」
-2. 輸入社團名稱、學年度、校區
-3. 點擊「建立示範資料」
-4. 到「空白範本」直接下載一份 ODT / ODS 範本，或用核心範本直接建立文件
-5. 到「生成文件」產生一份會議紀錄或其他社團文件
-6. 到「檔案庫」產生 ODT / PDF
-7. 到「儀表板」看社團評鑑資料完整度
-8. 到「社團評鑑」產生 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
+## 主要功能
 
-## 安裝方式
+### 1. 首頁工作台
 
-1. 建立虛擬環境
+首頁會整理目前可以做的事情，例如：
+
+* 下載空白範本
+* 建立社團文件
+* 管理檔案
+* 檢查評鑑資料
+
+使用者進入系統後，可以先從首頁知道下一步要做什麼。
+
+---
+
+### 2. 社團設定
+
+在「社團設定」頁面可以設定社團基本資料，例如：
+
+* 社團名稱
+* 學年度
+* 校區
+* 指導老師
+* 社長或負責人
+
+這些資料之後可以帶入文件或展示資料中。
+
+---
+
+### 3. 空白範本中心
+
+空白範本中心提供學生社團常用的 ODT / ODS 範本。
+
+目前範本分成四大類：
+
+1. 日常行政型
+2. 專案活動型
+3. 社團運作型
+4. 財務與清冊型
+
+範本例子包括：
+
+* 會議紀錄
+* 開會通知單
+* 會議議程
+* 簽到表
+* 活動企畫書
+* 活動申請表
+* 活動成果報告
+* 年度計畫
+* 社員名冊
+* 經費預算表
+* 經費收支表
+* 經費收支結算表
+* 核銷明細表
+* 財產清冊
+
+已正式完成的範本可以直接下載。
+尚未正式完成的範本會顯示狀態，不會假裝可以下載正式文件。
+
+---
+
+### 4. 生成文件
+
+在「生成文件」頁面，使用者可以用表單建立社團文件。
+
+目前支援的核心文件包括：
+
+* 會議紀錄
+* 開會通知單
+* 會議議程
+* 活動企畫書
+* 活動成果報告
+* 活動檢討會紀錄
+* 年度計畫
+
+使用流程：
+
+1. 選擇文件類型
+2. 填寫資料
+3. 建立文件
+4. 到檔案庫匯出 ODT 或 PDF
+
+---
+
+### 5. 檔案庫
+
+檔案庫可以管理已建立的文件。
+
+可以做的事情包括：
+
+* 查看文件列表
+* 查看文件狀態
+* 管理版本
+* 匯出 ODT
+* 匯出 PDF
+
+---
+
+### 6. 儀表板
+
+儀表板會顯示社團評鑑資料的整理狀態。
+
+可以用來查看：
+
+* 哪些資料已完成
+* 哪些資料還缺漏
+* 評鑑資料完整度
+* 下一步應該補哪些文件
+
+---
+
+### 7. 社團評鑑
+
+社團評鑑頁面可以協助整理評鑑資料。
+
+目前支援：
+
+* 七大評鑑項目檢核
+* 缺漏文件提醒
+* PDF 評鑑上傳包匯出
+* ODF 原始檔備份 ZIP 匯出
+
+目前是本機下載，不是自動上傳到雲端。
+
+---
+
+## Demo 操作流程
+
+如果只是要快速看作品，可以照這個順序操作：
+
+1. 打開 Streamlit App
+   https://sa-odflow.streamlit.app/
+
+2. 進入「社團設定」
+
+3. 輸入社團基本資料
+
+4. 建立示範資料
+
+5. 進入「空白範本」
+
+6. 下載一份 ODT 或 ODS 空白範本
+
+7. 進入「生成文件」
+
+8. 建立一份會議紀錄或活動企畫書
+
+9. 到「檔案庫」匯出 ODT 或 PDF
+
+10. 到「儀表板」查看評鑑資料完整度
+
+11. 到「社團評鑑」匯出 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP
+
+---
+
+## 經費收支表 ODS
+
+ODFlow 已正式實作「經費收支表」ODS 空白範本。
+
+這份表格適合社團財務長平時記帳、整理活動支出、追蹤代墊與準備評鑑資料。
+
+工作表包含：
+
+1. 收支明細
+2. 活動彙總
+3. 類別彙總
+
+「收支明細」包含：
+
+* 日期
+* 類別
+* 品項
+* 支出
+* 收入
+* 餘額
+* 代墊人
+* 是否已撥款
+* 是否已列入活動結算
+* 對應活動
+* 憑證／明細表
+* 備註
+
+特色：
+
+* 預留 200 筆收支紀錄
+* 餘額可逐列計算
+* 類別可用下拉選單
+* 撥款狀態可選「是／否／不適用」
+* 活動彙總與類別彙總可協助整理帳務
+
+---
+
+## 本機安裝方式
+
+### 1. 下載專案
+
+```bash
+git clone https://github.com/yiyu0501/SA_ODFlow.git
+cd SA_ODFlow
+```
+
+### 2. 建立虛擬環境
 
 ```bash
 python3 -m venv .venv
 ```
 
-2. 安裝依賴
+### 3. 安裝依賴
 
 ```bash
 .venv/bin/pip install -r requirements.txt
 ```
 
-3. 啟動 Streamlit
+### 4. 啟動 Streamlit
 
 ```bash
 .venv/bin/streamlit run app.py
 ```
 
-4. 執行測試
+啟動後，瀏覽器會開啟本機網址：
+
+```text
+http://localhost:8501
+```
+
+---
+
+## 執行測試
 
 ```bash
 .venv/bin/python -m unittest discover -s tests
 ```
 
-更完整的操作與展示細節請見 [docs/setup_guide.md](/Users/yiyu/Documents/SA_OPFlow/docs/setup_guide.md)。
+如果要檢查 Python 檔案是否能正常編譯：
 
-## 頁面介紹
+```bash
+.venv/bin/python -m compileall app.py core ai generators pages tests
+```
 
-### 首頁
+---
 
-首頁說明 ODFlow 的作品定位、展示流程、目前已完成項目與系統狀態。
+## 目前限制
 
-### 儀表板
-
-顯示社團評鑑資料完整度、七大評鑑項目完成率、缺漏文件提醒與下一步建議。
-
-### 生成文件
-
-支援七種文件類型生成。會議紀錄可用逐字稿或會議摘要搭配 mock parser 產生草稿，其餘文件可直接用表單建立內容。
-
-### 檔案庫
-
-管理文件列表、版本、狀態，並匯出 ODT / PDF。
-
-### 專案
-
-目前仍是未來擴充頁面，尚未實作完整活動 / 專案管理。
-
-### 社團評鑑
-
-查看七大評鑑項目檢核、缺漏文件，並產生 PDF 評鑑上傳包與 ODF 原始檔備份 ZIP。  
-目前是本機 ZIP 下載，不是雲端自動上傳。
-
-### 空白範本
-
-提供 22 個空白 ODT / ODS 範本，分成：
-
-- 日常行政型
-- 專案活動型
-- 社團運作型
-- 財務與清冊型
-
-目前可直接下載空白 ODT / ODS 範本，不需要先建立文件；另外也支援 7 個核心 ODT 範本直接「使用此範本建立文件」，帶入「生成文件」建立正式文件。Task 15 後，會議紀錄、開會通知單、活動企劃書三個核心文件優先使用正式 ODT placeholder 樣板填入，不再下載 metadata 型說明頁。空白範本頁的「預覽」為版型近似預覽，實際格式以下載 ODT / ODS 為準。會議議程、活動成果報告、活動檢討會紀錄、年度計畫與出席簽到表則沿用既有正式風格 generator。
-Task 19 主要整理 UIUX 與工作流程，不包含全部 22 個空白範本的正式化版型升級；其餘範本精修會由後續任務處理。
-
-### 社團設定
-
-設定社團基本資料，並建立示範資料，供儀表板、社團評鑑與展示流程使用。
-
-## ODF 價值
-
-- 平時保存 ODF 原始檔，不只留下 PDF
-- 評鑑時輸出 PDF 評鑑上傳包，兼顧上傳需求
-- 空白範本頁降低從 Word / Excel 轉向 ODF 的門檻
-- 正式風格 ODT / ODS / PDF 讓 ODF 原始檔更接近日常可列印、可提交的社團文件
-- 讓 ODF 不是最後才轉檔，而是一開始就進入社團行政流程
-
-## Template-Based ODT 輸出
-
-Task 15 起，會議紀錄、開會通知單、活動企劃書三個核心文件優先使用乾淨 ODT 樣板填入。樣板內保留固定版型與 `{{placeholder}}`，系統會把 `content_json` 轉成可讀文字後填入，輸出新的 ODT 原始檔。
-
-這條路線比完全由程式從零生成版面更能保留正式文件的表格、章節與校園行政文件感。若樣板填入失敗，系統會 fallback 到 Task 14 的 ODT generator，避免匯出流程中斷。
-
-PDF 目前仍沿用 Task 14 的 PDF generator。未來若要讓 PDF 更貼近 ODT 樣板，可再加入 LibreOffice conversion 流程。
-
-完整規格請見 [docs/template_based_rendering_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/template_based_rendering_spec.md)。
-
-## AI 使用聲明
-
-- 目前會議紀錄草稿流程使用 `ai/mock_parser.py`
-- 尚未串接 OpenAI API
-- 尚未支援音檔轉文字
-- 其他文件類型目前以表單式生成為主，不需依賴 OpenAI 也可完成 ODF / PDF / ZIP 流程
-- 若未來導入 AI，會限定在文字整理與會議紀錄草稿生成
-- ODF / PDF / ZIP 流程目前仍由系統規則產生
-- 即使未串 OpenAI，也能用表單流程建立正式風格文件與評鑑輸出
-
-詳見 [docs/ai_usage_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_statement.md)。
-
-## 目前限制與未來規劃
+ODFlow 目前是 ODF 競賽展示版 MVP，不是完整商業產品。
 
 目前尚未完成：
 
-- OpenAI API 串接
-- 音檔轉文字
-- Google Drive API
-- 登入系統與多使用者權限
-- 專案頁完整管理能力
-- 空白範本更完整樣式與更豐富範本管理
-- 更多文件類型與更細緻的欄位驗證
+* 登入系統
+* 多使用者權限
+* Google Drive API
+* OpenAI API 正式串接
+* 音檔轉文字
+* 完整專案管理功能
+* 所有 22 份範本的完整正式化
+* 雲端自動上傳評鑑資料
 
-這個版本的定位是 ODF 競賽展示版 MVP，不是完整商業產品。
+---
 
-## 文件
+## AI 使用聲明
 
-- 開發規格書：[docs/product_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/product_spec.md)
-- v0.4 UIUX 規格書：[docs/v04_uiux_spec.md](/Users/yiyu/Documents/SA_OPFlow/docs/v04_uiux_spec.md)
-- 安裝說明：[docs/setup_guide.md](/Users/yiyu/Documents/SA_OPFlow/docs/setup_guide.md)
-- 3 分鐘展示腳本：[docs/demo_script.md](/Users/yiyu/Documents/SA_OPFlow/docs/demo_script.md)
-- 5 分鐘評審展示流程：[docs/judge_demo_flow.md](/Users/yiyu/Documents/SA_OPFlow/docs/judge_demo_flow.md)
-- 截圖清單：[docs/screenshot_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/screenshot_checklist.md)
-- 提交前檢查表：[docs/submission_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/submission_checklist.md)
-- 比賽定位說明：[docs/competition_positioning.md](/Users/yiyu/Documents/SA_OPFlow/docs/competition_positioning.md)
-- AI 使用聲明：[docs/ai_usage_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_statement.md)
+目前系統沒有正式串接 OpenAI API。
 
-## 參賽展示素材
+開發過程有使用 AI 工具協助：
 
-- 7 分鐘簡報大綱：[docs/presentation_outline_7min.md](/Users/yiyu/Documents/SA_OPFlow/docs/presentation_outline_7min.md)
-- 7 分鐘簡報逐字稿：[docs/presentation_script_7min.md](/Users/yiyu/Documents/SA_OPFlow/docs/presentation_script_7min.md)
-- 操作影片腳本：[docs/demo_video_script.md](/Users/yiyu/Documents/SA_OPFlow/docs/demo_video_script.md)
-- 評審 Q&A：[docs/judge_qna.md](/Users/yiyu/Documents/SA_OPFlow/docs/judge_qna.md)
-- AI 使用聲明比賽版：[docs/ai_usage_competition_statement.md](/Users/yiyu/Documents/SA_OPFlow/docs/ai_usage_competition_statement.md)
-- 最終提交檢查表：[docs/final_submission_checklist.md](/Users/yiyu/Documents/SA_OPFlow/docs/final_submission_checklist.md)
+* 整理需求
+* 撰寫規格
+* 拆解開發任務
+* 協助程式碼修改
+* 協助 README 與比賽文件整理
+
+但系統目前的 ODT / ODS / PDF / ZIP 產生流程，主要仍由程式規則產生，不依賴 OpenAI API 才能運作。
+
+---
+
+## 專案定位
+
+ODFlow 的重點是：
+
+> 讓 ODF 不只是最後轉檔，而是從社團日常行政一開始就被使用。
+
+透過社團常用文件、空白範本、文件生成、檔案庫與評鑑整理流程，ODFlow 讓 ODT / ODS 更接近日常可用、可保存、可交接的學生社團文件。
