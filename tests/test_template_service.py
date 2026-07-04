@@ -97,10 +97,12 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "annual_plan",
                 "member_roster",
                 "course_record",
+                "equipment_borrowing_record",
                 "expense_budget",
                 "income_expense_statement",
                 "expense_settlement",
                 "reimbursement_detail",
+                "inventory",
             ],
         )
 
@@ -120,10 +122,12 @@ class TemplateServiceTestCase(unittest.TestCase):
             "annual_plan",
             "member_roster",
             "course_record",
+            "equipment_borrowing_record",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
             "reimbursement_detail",
+            "inventory",
         ]:
             output_path = generate_template_file(template_key)
             self.assertTrue(output_path.exists(), template_key)
@@ -770,6 +774,315 @@ class TemplateServiceTestCase(unittest.TestCase):
             "匯入社員名冊",
             "匯入簽到表",
             "上傳照片",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_equipment_borrowing_record_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("equipment_borrowing_record")
+
+        self.assertEqual(definition["template_key"], "equipment_borrowing_record")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_equipment_borrowing_record_ods_contains_required_sheets_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("equipment_borrowing_record")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+        self.assertIn("器材借用紀錄", sheet_names)
+        self.assertIn("統計摘要", sheet_names)
+
+        record_sheet = tree.find(".//table:table[@table:name='器材借用紀錄']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(record_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        record_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in record_sheet.findall(".//text:p", namespaces)
+        ]
+        summary_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in summary_sheet.findall(".//text:p", namespaces)
+        ]
+
+        for field_name in [
+            "臺北市立大學",
+            "{{club_name}} 器材借用紀錄",
+            "學年度",
+            "社團名稱",
+            "活動名稱",
+            "管理人",
+            "製表日期",
+            "備註",
+            "序號",
+            "借用日期",
+            "預計歸還日期",
+            "實際歸還日期",
+            "器材編號",
+            "器材名稱",
+            "數量",
+            "借用人",
+            "聯絡方式",
+            "借用用途／活動名稱",
+            "保管位置",
+            "借用狀態",
+            "歸還檢查結果",
+        ]:
+            self.assertIn(field_name, record_text)
+
+        for field_name in [
+            "統計摘要",
+            "借用紀錄總筆數",
+            "已借出筆數",
+            "已歸還筆數",
+            "逾期未還筆數",
+            "損壞筆數",
+            "遺失筆數",
+            "取消借用筆數",
+        ]:
+            self.assertIn(field_name, summary_text)
+
+    def test_equipment_borrowing_record_ods_contains_expected_formulas_and_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("equipment_borrowing_record")
+        tree = self._read_content_tree(output_path)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        record_sheet = tree.find(".//table:table[@table:name='器材借用紀錄']", namespaces)
+        self.assertIsNotNone(summary_sheet)
+        self.assertIsNotNone(record_sheet)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in summary_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=COUNTA(['器材借用紀錄'.$F$8:'器材借用紀錄'.$F$207])", formulas)
+        self.assertIn('=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"已借出")', formulas)
+        self.assertIn('=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"已歸還")', formulas)
+        self.assertIn('=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"逾期未還")', formulas)
+        self.assertIn(
+            '=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"損壞")+COUNTIF([\'器材借用紀錄\'.$M$8:\'器材借用紀錄\'.$M$207];"損壞")',
+            formulas,
+        )
+        self.assertIn(
+            '=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"遺失")+COUNTIF([\'器材借用紀錄\'.$M$8:\'器材借用紀錄\'.$M$207];"遺失")',
+            formulas,
+        )
+        self.assertIn('=COUNTIF([\'器材借用紀錄\'.$L$8:\'器材借用紀錄\'.$L$207];"取消借用")', formulas)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+        self.assertIn("validation_equipment_borrow_status", validations_by_name)
+        self.assertIn("validation_equipment_return_check", validations_by_name)
+
+        borrow_status_condition = validations_by_name["validation_equipment_borrow_status"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        return_check_condition = validations_by_name["validation_equipment_return_check"].attrib[
+            "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+        ]
+        for option in ['"已借出"', '"已歸還"', '"逾期未還"', '"損壞"', '"遺失"', '"取消借用"']:
+            self.assertIn(option, borrow_status_condition)
+        for option in ['"正常"', '"輕微損耗"', '"損壞"', '"遺失"', '"待檢查"', '"不適用"']:
+            self.assertIn(option, return_check_condition)
+
+        validation_name_counts = {
+            "validation_equipment_borrow_status": 0,
+            "validation_equipment_return_check": 0,
+        }
+        for cell in record_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        self.assertEqual(validation_name_counts["validation_equipment_borrow_status"], 200)
+        self.assertEqual(validation_name_counts["validation_equipment_return_check"], 200)
+
+    def test_equipment_borrowing_record_excludes_forbidden_metadata_and_ui_operation_text(self):
+        output_path = generate_template_file("equipment_borrowing_record")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增借用紀錄",
+            "匯入財產清冊",
+            "產生逾期提醒",
+            "自動排序",
+        ]:
+            self.assertNotIn(forbidden_text, content_xml)
+
+    def test_inventory_registry_entry_is_formal_ods(self):
+        definition = get_template_definition("inventory")
+
+        self.assertEqual(definition["template_key"], "inventory")
+        self.assertEqual(definition["suggested_format"], "ODS")
+        self.assertEqual(definition["implementation_status"], "implemented")
+        self.assertTrue(definition["supports_blank_download"])
+        self.assertFalse(definition["supports_generate_document"])
+
+    def test_inventory_ods_contains_required_sheets_and_headers(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+            "text": "urn:oasis:names:tc:opendocument:xmlns:text:1.0",
+        }
+        output_path = generate_template_file("inventory")
+        tree = self._read_content_tree(output_path)
+        sheet_names = [
+            table.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]
+            for table in tree.findall(".//table:table", namespaces)
+        ]
+        self.assertIn("財產清冊", sheet_names)
+        self.assertIn("統計摘要", sheet_names)
+
+        inventory_sheet = tree.find(".//table:table[@table:name='財產清冊']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(inventory_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        inventory_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in inventory_sheet.findall(".//text:p", namespaces)
+        ]
+        summary_text = [
+            "".join(paragraph.itertext()).strip()
+            for paragraph in summary_sheet.findall(".//text:p", namespaces)
+        ]
+
+        for field_name in [
+            "臺北市立大學",
+            "{{club_name}} 財產清冊",
+            "學年度",
+            "社團名稱",
+            "盤點日期",
+            "盤點人",
+            "保管負責人",
+            "製表日期",
+            "備註",
+            "序號",
+            "財產編號",
+            "財產類別",
+            "財產名稱",
+            "規格／型號",
+            "數量",
+            "單位",
+            "取得日期",
+            "取得方式",
+            "取得金額",
+            "經費來源",
+            "保管位置",
+            "保管人",
+            "財產狀態",
+            "是否可借用",
+            "最近盤點日期",
+            "盤點結果",
+        ]:
+            self.assertIn(field_name, inventory_text)
+
+        for field_name in [
+            "統計摘要",
+            "財產項目總數",
+            "財產數量總計",
+            "取得金額總計",
+            "正常財產項目數",
+            "待維修項目數",
+            "損壞項目數",
+            "遺失項目數",
+            "報廢項目數",
+            "可借用項目數",
+            "需核准借用項目數",
+            "未盤點項目數",
+        ]:
+            self.assertIn(field_name, summary_text)
+
+    def test_inventory_ods_contains_expected_formulas_and_validations(self):
+        namespaces = {
+            "table": "urn:oasis:names:tc:opendocument:xmlns:table:1.0",
+        }
+        output_path = generate_template_file("inventory")
+        tree = self._read_content_tree(output_path)
+        inventory_sheet = tree.find(".//table:table[@table:name='財產清冊']", namespaces)
+        summary_sheet = tree.find(".//table:table[@table:name='統計摘要']", namespaces)
+        self.assertIsNotNone(inventory_sheet)
+        self.assertIsNotNone(summary_sheet)
+
+        formulas = [
+            cell.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula"]
+            for cell in summary_sheet.findall(".//table:table-cell", namespaces)
+            if "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}formula" in cell.attrib
+        ]
+        self.assertIn("=COUNTA(['財產清冊'.$D$8:'財產清冊'.$D$207])", formulas)
+        self.assertIn("=SUM(['財產清冊'.$F$8:'財產清冊'.$F$207])", formulas)
+        self.assertIn("=SUM(['財產清冊'.$J$8:'財產清冊'.$J$207])", formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$N$8:\'財產清冊\'.$N$207];"正常")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$N$8:\'財產清冊\'.$N$207];"待維修")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$N$8:\'財產清冊\'.$N$207];"損壞")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$N$8:\'財產清冊\'.$N$207];"遺失")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$N$8:\'財產清冊\'.$N$207];"報廢")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$O$8:\'財產清冊\'.$O$207];"是")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$O$8:\'財產清冊\'.$O$207];"需核准")', formulas)
+        self.assertIn('=COUNTIF([\'財產清冊\'.$Q$8:\'財產清冊\'.$Q$207];"未盤點")', formulas)
+
+        validations = tree.findall(".//table:content-validation", namespaces)
+        validations_by_name = {
+            validation.attrib["{urn:oasis:names:tc:opendocument:xmlns:table:1.0}name"]: validation
+            for validation in validations
+        }
+        expected_validation_options = {
+            "validation_inventory_category": ['"器材設備"', '"電子設備"', '"活動道具"', '"文具用品"', '"書籍教材"', '"服裝配件"', '"場佈物品"', '"消耗品"', '"其他"'],
+            "validation_inventory_acquisition_method": ['"購買"', '"學校補助購置"', '"社團會費購置"', '"捐贈"', '"移交"', '"借用保管"', '"其他"'],
+            "validation_inventory_funding_source": ['"學校補助"', '"社團會費"', '"校外補助"', '"自籌"', '"捐贈"', '"不適用"', '"其他"'],
+            "validation_inventory_status": ['"正常"', '"使用中"', '"待維修"', '"損壞"', '"遺失"', '"報廢"', '"借出中"', '"不明"'],
+            "validation_inventory_borrowable": ['"是"', '"否"', '"需核准"', '"不適用"'],
+            "validation_inventory_check_result": ['"數量正確"', '"數量不符"', '"狀態異常"', '"未盤點"', '"待確認"'],
+        }
+        for validation_name, options in expected_validation_options.items():
+            self.assertIn(validation_name, validations_by_name)
+            condition = validations_by_name[validation_name].attrib[
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}condition"
+            ]
+            for option in options:
+                self.assertIn(option, condition)
+
+        validation_name_counts = {
+            "validation_inventory_category": 0,
+            "validation_inventory_acquisition_method": 0,
+            "validation_inventory_funding_source": 0,
+            "validation_inventory_status": 0,
+            "validation_inventory_borrowable": 0,
+            "validation_inventory_check_result": 0,
+        }
+        for cell in inventory_sheet.findall(".//table:table-cell", namespaces):
+            validation_name = cell.attrib.get(
+                "{urn:oasis:names:tc:opendocument:xmlns:table:1.0}content-validation-name"
+            )
+            if validation_name in validation_name_counts:
+                validation_name_counts[validation_name] += 1
+        for validation_name, count in validation_name_counts.items():
+            self.assertEqual(count, 200, validation_name)
+
+    def test_inventory_excludes_forbidden_metadata_and_ui_operation_text(self):
+        output_path = generate_template_file("inventory")
+        content_xml = self._read_content_xml(output_path)
+
+        for forbidden_text in FORMAL_TEMPLATE_FORBIDDEN_BODY_TEXT + [
+            "新增財產",
+            "匯入器材借用紀錄",
+            "匯出可借用器材清單",
+            "自動排序",
         ]:
             self.assertNotIn(forbidden_text, content_xml)
 
@@ -1672,10 +1985,12 @@ class TemplateServiceTestCase(unittest.TestCase):
             "work_assignment",
             "member_roster",
             "course_record",
+            "equipment_borrowing_record",
             "expense_budget",
             "income_expense_statement",
             "expense_settlement",
             "reimbursement_detail",
+            "inventory",
         ]:
             output_path = generate_template_file(template_key)
             content_xml = self._read_content_xml(output_path)
@@ -2103,6 +2418,37 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "照片說明：",
                 "備註",
             ],
+            "equipment_borrowing_record": [
+                "臺北市立大學",
+                "{{club_name}} 器材借用紀錄",
+                "學年度",
+                "社團名稱",
+                "活動名稱",
+                "管理人",
+                "製表日期",
+                "備註",
+                "序號",
+                "借用日期",
+                "預計歸還日期",
+                "實際歸還日期",
+                "器材編號",
+                "器材名稱",
+                "數量",
+                "借用人",
+                "聯絡方式",
+                "借用用途／活動名稱",
+                "保管位置",
+                "借用狀態",
+                "歸還檢查結果",
+                "統計摘要",
+                "借用紀錄總筆數",
+                "已借出筆數",
+                "已歸還筆數",
+                "逾期未還筆數",
+                "損壞筆數",
+                "遺失筆數",
+                "取消借用筆數",
+            ],
             "income_expense_statement": [
                 "學年度",
                 "學期",
@@ -2173,6 +2519,46 @@ class TemplateServiceTestCase(unittest.TestCase):
                 "附件檔名／連結",
                 "統計摘要區",
             ],
+            "inventory": [
+                "臺北市立大學",
+                "{{club_name}} 財產清冊",
+                "學年度",
+                "社團名稱",
+                "盤點日期",
+                "盤點人",
+                "保管負責人",
+                "製表日期",
+                "備註",
+                "序號",
+                "財產編號",
+                "財產類別",
+                "財產名稱",
+                "規格／型號",
+                "數量",
+                "單位",
+                "取得日期",
+                "取得方式",
+                "取得金額",
+                "經費來源",
+                "保管位置",
+                "保管人",
+                "財產狀態",
+                "是否可借用",
+                "最近盤點日期",
+                "盤點結果",
+                "統計摘要",
+                "財產項目總數",
+                "財產數量總計",
+                "取得金額總計",
+                "正常財產項目數",
+                "待維修項目數",
+                "損壞項目數",
+                "遺失項目數",
+                "報廢項目數",
+                "可借用項目數",
+                "需核准借用項目數",
+                "未盤點項目數",
+            ],
         }
 
         for template_key, required_fields in expected_fields.items():
@@ -2196,10 +2582,12 @@ class TemplateServiceTestCase(unittest.TestCase):
         annual_plan_preview = build_template_preview_data("annual_plan")
         member_roster_preview = build_template_preview_data("member_roster")
         course_record_preview = build_template_preview_data("course_record")
+        equipment_borrowing_preview = build_template_preview_data("equipment_borrowing_record")
         budget_preview = build_template_preview_data("expense_budget")
         income_preview = build_template_preview_data("income_expense_statement")
         settlement_preview = build_template_preview_data("expense_settlement")
         reimbursement_preview = build_template_preview_data("reimbursement_detail")
+        inventory_preview = build_template_preview_data("inventory")
 
         self.assertEqual(minutes_preview["header_lines"][0], "{{school_name}}{{club_name}}")
         self.assertEqual(minutes_preview["header_lines"][1], "第{{meeting_number}}次{{meeting_type}}紀錄")
@@ -2276,10 +2664,24 @@ class TemplateServiceTestCase(unittest.TestCase):
             ["類型", "名稱", "用途", "備註"],
         )
         self.assertEqual(course_record_preview["tables"][3]["title"], "活動照片")
+        self.assertEqual(equipment_borrowing_preview["header_lines"][0], "臺北市立大學")
+        self.assertEqual(equipment_borrowing_preview["header_lines"][1], "{{club_name}} 器材借用紀錄")
+        self.assertEqual(equipment_borrowing_preview["meta_rows"][0][0], "學年度")
+        self.assertEqual(
+            equipment_borrowing_preview["tables"][0]["headers"],
+            ["序號", "借用日期", "預計歸還日期", "實際歸還日期", "器材編號", "器材名稱", "數量", "借用人", "借用狀態", "歸還檢查結果"],
+        )
         self.assertEqual(budget_preview["header_lines"][1], "「活動名稱」經費預算表")
         self.assertEqual(income_preview["header_lines"][0], "臺北市立大學 社團經費收支表")
         self.assertEqual(settlement_preview["header_lines"][1], "社團活動經費收支結算表")
         self.assertEqual(reimbursement_preview["header_lines"][1], "社團活動核銷明細表")
+        self.assertEqual(inventory_preview["header_lines"][0], "臺北市立大學")
+        self.assertEqual(inventory_preview["header_lines"][1], "{{club_name}} 財產清冊")
+        self.assertEqual(inventory_preview["meta_rows"][0][0], "學年度")
+        self.assertEqual(
+            inventory_preview["tables"][0]["headers"],
+            ["序號", "財產編號", "財產類別", "財產名稱", "數量", "單位", "取得方式", "經費來源", "財產狀態", "是否可借用", "盤點結果"],
+        )
 
 
 if __name__ == "__main__":

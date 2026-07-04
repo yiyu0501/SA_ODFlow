@@ -260,6 +260,119 @@ MEMBER_ROSTER_HEADER_ROW = 7
 MEMBER_ROSTER_FIRST_DATA_ROW = 8
 MEMBER_ROSTER_ROW_COUNT = 200
 MEMBER_ROSTER_LAST_DATA_ROW = MEMBER_ROSTER_FIRST_DATA_ROW + MEMBER_ROSTER_ROW_COUNT - 1
+EQUIPMENT_BORROWING_STATUS_OPTIONS = [
+    "已借出",
+    "已歸還",
+    "逾期未還",
+    "損壞",
+    "遺失",
+    "取消借用",
+]
+EQUIPMENT_RETURN_CHECK_OPTIONS = [
+    "正常",
+    "輕微損耗",
+    "損壞",
+    "遺失",
+    "待檢查",
+    "不適用",
+]
+EQUIPMENT_BORROWING_RECORD_SHEET_NAME = "器材借用紀錄"
+EQUIPMENT_BORROWING_SUMMARY_SHEET_NAME = "統計摘要"
+EQUIPMENT_BORROWING_HEADERS = [
+    "序號",
+    "借用日期",
+    "預計歸還日期",
+    "實際歸還日期",
+    "器材編號",
+    "器材名稱",
+    "數量",
+    "借用人",
+    "聯絡方式",
+    "借用用途／活動名稱",
+    "保管位置",
+    "借用狀態",
+    "歸還檢查結果",
+    "備註",
+]
+EQUIPMENT_BORROWING_HEADER_ROW = 7
+EQUIPMENT_BORROWING_FIRST_DATA_ROW = 8
+EQUIPMENT_BORROWING_ROW_COUNT = 200
+EQUIPMENT_BORROWING_LAST_DATA_ROW = (
+    EQUIPMENT_BORROWING_FIRST_DATA_ROW + EQUIPMENT_BORROWING_ROW_COUNT - 1
+)
+INVENTORY_CATEGORY_OPTIONS = [
+    "器材設備",
+    "電子設備",
+    "活動道具",
+    "文具用品",
+    "書籍教材",
+    "服裝配件",
+    "場佈物品",
+    "消耗品",
+    "其他",
+]
+INVENTORY_ACQUISITION_METHOD_OPTIONS = [
+    "購買",
+    "學校補助購置",
+    "社團會費購置",
+    "捐贈",
+    "移交",
+    "借用保管",
+    "其他",
+]
+INVENTORY_FUNDING_SOURCE_OPTIONS = [
+    "學校補助",
+    "社團會費",
+    "校外補助",
+    "自籌",
+    "捐贈",
+    "不適用",
+    "其他",
+]
+INVENTORY_STATUS_OPTIONS = [
+    "正常",
+    "使用中",
+    "待維修",
+    "損壞",
+    "遺失",
+    "報廢",
+    "借出中",
+    "不明",
+]
+INVENTORY_BORROWABLE_OPTIONS = ["是", "否", "需核准", "不適用"]
+INVENTORY_CHECK_RESULT_OPTIONS = [
+    "數量正確",
+    "數量不符",
+    "狀態異常",
+    "未盤點",
+    "待確認",
+]
+INVENTORY_SHEET_NAME = "財產清冊"
+INVENTORY_SUMMARY_SHEET_NAME = "統計摘要"
+INVENTORY_HEADERS = [
+    "序號",
+    "財產編號",
+    "財產類別",
+    "財產名稱",
+    "規格／型號",
+    "數量",
+    "單位",
+    "取得日期",
+    "取得方式",
+    "取得金額",
+    "經費來源",
+    "保管位置",
+    "保管人",
+    "財產狀態",
+    "是否可借用",
+    "最近盤點日期",
+    "盤點結果",
+    "備註",
+]
+INVENTORY_HEADER_ROW = 7
+INVENTORY_FIRST_DATA_ROW = 8
+INVENTORY_ROW_COUNT = 200
+INVENTORY_LAST_DATA_ROW = INVENTORY_FIRST_DATA_ROW + INVENTORY_ROW_COUNT - 1
 
 
 def _escape_attr(value: str) -> str:
@@ -499,6 +612,96 @@ def _member_roster_fee_range() -> str:
         MEMBER_ROSTER_FIRST_DATA_ROW,
         "H",
         MEMBER_ROSTER_LAST_DATA_ROW,
+    )
+
+
+def _equipment_borrowing_name_range() -> str:
+    return _sheet_range_ref(
+        EQUIPMENT_BORROWING_RECORD_SHEET_NAME,
+        "F",
+        EQUIPMENT_BORROWING_FIRST_DATA_ROW,
+        "F",
+        EQUIPMENT_BORROWING_LAST_DATA_ROW,
+    )
+
+
+def _equipment_borrowing_status_range() -> str:
+    return _sheet_range_ref(
+        EQUIPMENT_BORROWING_RECORD_SHEET_NAME,
+        "L",
+        EQUIPMENT_BORROWING_FIRST_DATA_ROW,
+        "L",
+        EQUIPMENT_BORROWING_LAST_DATA_ROW,
+    )
+
+
+def _equipment_borrowing_check_range() -> str:
+    return _sheet_range_ref(
+        EQUIPMENT_BORROWING_RECORD_SHEET_NAME,
+        "M",
+        EQUIPMENT_BORROWING_FIRST_DATA_ROW,
+        "M",
+        EQUIPMENT_BORROWING_LAST_DATA_ROW,
+    )
+
+
+def _inventory_name_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "D",
+        INVENTORY_FIRST_DATA_ROW,
+        "D",
+        INVENTORY_LAST_DATA_ROW,
+    )
+
+
+def _inventory_quantity_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "F",
+        INVENTORY_FIRST_DATA_ROW,
+        "F",
+        INVENTORY_LAST_DATA_ROW,
+    )
+
+
+def _inventory_amount_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "J",
+        INVENTORY_FIRST_DATA_ROW,
+        "J",
+        INVENTORY_LAST_DATA_ROW,
+    )
+
+
+def _inventory_status_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "N",
+        INVENTORY_FIRST_DATA_ROW,
+        "N",
+        INVENTORY_LAST_DATA_ROW,
+    )
+
+
+def _inventory_borrowable_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "O",
+        INVENTORY_FIRST_DATA_ROW,
+        "O",
+        INVENTORY_LAST_DATA_ROW,
+    )
+
+
+def _inventory_check_result_range() -> str:
+    return _sheet_range_ref(
+        INVENTORY_SHEET_NAME,
+        "Q",
+        INVENTORY_FIRST_DATA_ROW,
+        "Q",
+        INVENTORY_LAST_DATA_ROW,
     )
 
 
@@ -2694,6 +2897,585 @@ def _build_member_roster_content_xml() -> str:
 """
 
 
+def _equipment_borrowing_content_validations_xml() -> str:
+    return "".join(
+        [
+            _validation_xml(
+                "validation_equipment_borrow_status",
+                EQUIPMENT_BORROWING_STATUS_OPTIONS,
+                "請從借用狀態清單選擇。",
+            ),
+            _validation_xml(
+                "validation_equipment_return_check",
+                EQUIPMENT_RETURN_CHECK_OPTIONS,
+                "請從歸還檢查結果清單選擇。",
+            ),
+        ]
+    )
+
+
+def _equipment_borrowing_main_table_xml() -> str:
+    column_widths = [
+        "1.1cm",
+        "2.1cm",
+        "2.4cm",
+        "2.4cm",
+        "2.6cm",
+        "3.2cm",
+        "1.4cm",
+        "2.5cm",
+        "3.0cm",
+        "4.2cm",
+        "3.0cm",
+        "2.4cm",
+        "2.8cm",
+        "3.0cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("臺北市立大學", "CellBlank", "PTitle", span=14),
+                _covered_cells_xml(13),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("{{club_name}} 器材借用紀錄", "CellBlank", "PTitle", span=14),
+                _covered_cells_xml(13),
+            ],
+            "RowTitle",
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(14)]),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue", span=4),
+                _covered_cells_xml(3),
+                _string_cell_xml("活動名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("管理人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("備註", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=7),
+                _covered_cells_xml(6),
+            ]
+        ),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in EQUIPMENT_BORROWING_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(EQUIPMENT_BORROWING_FIRST_DATA_ROW, EQUIPMENT_BORROWING_LAST_DATA_ROW + 1):
+        serial_number = row_number - EQUIPMENT_BORROWING_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellNumber"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _float_cell_xml(0, "CellNumber"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_equipment_borrow_status"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_equipment_return_check"),
+                    _string_cell_xml("", "CellBody"),
+                ],
+                "RowDefault",
+            )
+        )
+
+    return (
+        f'<table:table table:name="{EQUIPMENT_BORROWING_RECORD_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _equipment_borrowing_summary_table_xml() -> str:
+    column_widths = ["4.8cm", "2.8cm", "4.8cm", "2.8cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    name_range = _equipment_borrowing_name_range()
+    status_range = _equipment_borrowing_status_range()
+    check_range = _equipment_borrowing_check_range()
+
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("統計摘要", "CellTitle", "PTitle", span=4),
+                _covered_cells_xml(3),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("活動名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("管理人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("備註", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellValue"),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(4)]),
+        _row_xml(
+            [
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("借用紀錄總筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=COUNTA({name_range})"),
+                _string_cell_xml("已借出筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"已借出")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("已歸還筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"已歸還")'),
+                _string_cell_xml("逾期未還筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"逾期未還")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("損壞筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(
+                    0,
+                    "CellSummaryFormula",
+                    formula=f'=COUNTIF({status_range};"損壞")+COUNTIF({check_range};"損壞")',
+                ),
+                _string_cell_xml("遺失筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(
+                    0,
+                    "CellSummaryFormula",
+                    formula=f'=COUNTIF({status_range};"遺失")+COUNTIF({check_range};"遺失")',
+                ),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("取消借用筆數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"取消借用")'),
+                _string_cell_xml("說明", "CellSummaryText", "PLabel"),
+                _string_cell_xml("逾期提醒建議由預計歸還日期搭配狀態人工確認。", "CellSummaryText", "PBody"),
+            ],
+            "RowSummary",
+        ),
+    ]
+
+    return (
+        f'<table:table table:name="{EQUIPMENT_BORROWING_SUMMARY_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_equipment_borrowing_record_content_xml() -> str:
+    main_styles_xml, _ = _column_styles_xml(
+        [
+            "1.1cm",
+            "2.1cm",
+            "2.4cm",
+            "2.4cm",
+            "2.6cm",
+            "3.2cm",
+            "1.4cm",
+            "2.5cm",
+            "3.0cm",
+            "4.2cm",
+            "3.0cm",
+            "2.4cm",
+            "2.8cm",
+            "3.0cm",
+        ]
+    )
+    summary_styles_xml, _ = _column_styles_xml(["4.8cm", "2.8cm", "4.8cm", "2.8cm"])
+    validations_xml = _equipment_borrowing_content_validations_xml()
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(main_styles_xml + summary_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      <table:content-validations>
+        {validations_xml}
+      </table:content-validations>
+      {_equipment_borrowing_main_table_xml()}
+      {_equipment_borrowing_summary_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
+def _inventory_content_validations_xml() -> str:
+    return "".join(
+        [
+            _validation_xml(
+                "validation_inventory_category",
+                INVENTORY_CATEGORY_OPTIONS,
+                "請從財產類別清單選擇。",
+            ),
+            _validation_xml(
+                "validation_inventory_acquisition_method",
+                INVENTORY_ACQUISITION_METHOD_OPTIONS,
+                "請從取得方式清單選擇。",
+            ),
+            _validation_xml(
+                "validation_inventory_funding_source",
+                INVENTORY_FUNDING_SOURCE_OPTIONS,
+                "請從經費來源清單選擇。",
+            ),
+            _validation_xml(
+                "validation_inventory_status",
+                INVENTORY_STATUS_OPTIONS,
+                "請從財產狀態清單選擇。",
+            ),
+            _validation_xml(
+                "validation_inventory_borrowable",
+                INVENTORY_BORROWABLE_OPTIONS,
+                "請從是否可借用清單選擇。",
+            ),
+            _validation_xml(
+                "validation_inventory_check_result",
+                INVENTORY_CHECK_RESULT_OPTIONS,
+                "請從盤點結果清單選擇。",
+            ),
+        ]
+    )
+
+
+def _inventory_main_table_xml() -> str:
+    column_widths = [
+        "1.1cm",
+        "2.4cm",
+        "2.5cm",
+        "3.1cm",
+        "3.5cm",
+        "1.4cm",
+        "1.4cm",
+        "2.2cm",
+        "2.6cm",
+        "2.2cm",
+        "2.5cm",
+        "3.0cm",
+        "2.6cm",
+        "2.4cm",
+        "2.2cm",
+        "2.3cm",
+        "2.6cm",
+        "2.8cm",
+    ]
+    _, columns_xml = _column_styles_xml(column_widths)
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("臺北市立大學", "CellBlank", "PTitle", span=18),
+                _covered_cells_xml(17),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("{{club_name}} 財產清冊", "CellBlank", "PTitle", span=18),
+                _covered_cells_xml(17),
+            ],
+            "RowTitle",
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(18)]),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue", span=4),
+                _covered_cells_xml(3),
+                _string_cell_xml("盤點日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("盤點人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("保管負責人", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=2),
+                _covered_cells_xml(1),
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("備註", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue", span=11),
+                _covered_cells_xml(10),
+            ]
+        ),
+        _row_xml(
+            [_string_cell_xml(header, "CellHeader", "PHeader") for header in INVENTORY_HEADERS],
+            "RowHeader",
+        ),
+    ]
+
+    for row_number in range(INVENTORY_FIRST_DATA_ROW, INVENTORY_LAST_DATA_ROW + 1):
+        serial_number = row_number - INVENTORY_FIRST_DATA_ROW + 1
+        rows.append(
+            _row_xml(
+                [
+                    _float_cell_xml(serial_number, "CellNumber"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_category"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _float_cell_xml(0, "CellNumber"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_acquisition_method"),
+                    _blank_cell_xml("CellMoney"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_funding_source"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_status"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_borrowable"),
+                    _string_cell_xml("", "CellDate"),
+                    _string_cell_xml("", "CellBody", validation_name="validation_inventory_check_result"),
+                    _string_cell_xml("", "CellBody"),
+                ],
+                "RowDefault",
+            )
+        )
+
+    return (
+        f'<table:table table:name="{INVENTORY_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _inventory_summary_table_xml() -> str:
+    column_widths = ["4.8cm", "3.0cm", "4.8cm", "3.0cm"]
+    _, columns_xml = _column_styles_xml(column_widths)
+    name_range = _inventory_name_range()
+    quantity_range = _inventory_quantity_range()
+    amount_range = _inventory_amount_range()
+    status_range = _inventory_status_range()
+    borrowable_range = _inventory_borrowable_range()
+    check_range = _inventory_check_result_range()
+
+    rows = [
+        _row_xml(
+            [
+                _string_cell_xml("統計摘要", "CellTitle", "PTitle", span=4),
+                _covered_cells_xml(3),
+            ],
+            "RowTitle",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("學年度", "CellLabel", "PLabel"),
+                _string_cell_xml("", "CellValue"),
+                _string_cell_xml("社團名稱", "CellLabel", "PLabel"),
+                _string_cell_xml("臺北市立大學 {{club_name}}", "CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("盤點日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+                _string_cell_xml("盤點人", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellValue"),
+            ]
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("保管負責人", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellValue"),
+                _string_cell_xml("製表日期", "CellLabel", "PLabel"),
+                _blank_cell_xml("CellDate"),
+            ]
+        ),
+        _row_xml([_string_cell_xml("", "CellBlank") for _ in range(4)]),
+        _row_xml(
+            [
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("統計項目", "CellSummaryHeader", "PHeader"),
+                _string_cell_xml("數值", "CellSummaryHeader", "PHeader"),
+            ],
+            "RowHeader",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("財產項目總數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=COUNTA({name_range})"),
+                _string_cell_xml("財產數量總計", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=SUM({quantity_range})"),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("取得金額總計", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f"=SUM({amount_range})"),
+                _string_cell_xml("正常財產項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"正常")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("待維修項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"待維修")'),
+                _string_cell_xml("損壞項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"損壞")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("遺失項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"遺失")'),
+                _string_cell_xml("報廢項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({status_range};"報廢")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("可借用項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({borrowable_range};"是")'),
+                _string_cell_xml("需核准借用項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({borrowable_range};"需核准")'),
+            ],
+            "RowSummary",
+        ),
+        _row_xml(
+            [
+                _string_cell_xml("未盤點項目數", "CellSummaryText", "PLabel"),
+                _float_cell_xml(0, "CellSummaryFormula", formula=f'=COUNTIF({check_range};"未盤點")'),
+                _string_cell_xml("說明", "CellSummaryText", "PLabel"),
+                _string_cell_xml("統計摘要可作為盤點、交接與評鑑快速檢核。", "CellSummaryText", "PBody"),
+            ],
+            "RowSummary",
+        ),
+    ]
+
+    return (
+        f'<table:table table:name="{INVENTORY_SUMMARY_SHEET_NAME}">'
+        f"{columns_xml}"
+        f"{''.join(rows)}"
+        "</table:table>"
+    )
+
+
+def _build_inventory_content_xml() -> str:
+    main_styles_xml, _ = _column_styles_xml(
+        [
+            "1.1cm",
+            "2.4cm",
+            "2.5cm",
+            "3.1cm",
+            "3.5cm",
+            "1.4cm",
+            "1.4cm",
+            "2.2cm",
+            "2.6cm",
+            "2.2cm",
+            "2.5cm",
+            "3.0cm",
+            "2.6cm",
+            "2.4cm",
+            "2.2cm",
+            "2.3cm",
+            "2.6cm",
+            "2.8cm",
+        ]
+    )
+    summary_styles_xml, _ = _column_styles_xml(["4.8cm", "3.0cm", "4.8cm", "3.0cm"])
+    validations_xml = _inventory_content_validations_xml()
+
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+    xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+    xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0"
+    xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+    xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
+    xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
+    xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0"
+    xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2"
+    office:version="1.2">
+  <office:scripts/>
+  <office:automatic-styles>
+    {_income_expense_styles_xml(main_styles_xml + summary_styles_xml)}
+  </office:automatic-styles>
+  <office:body>
+    <office:spreadsheet>
+      <table:content-validations>
+        {validations_xml}
+      </table:content-validations>
+      {_inventory_main_table_xml()}
+      {_inventory_summary_table_xml()}
+    </office:spreadsheet>
+  </office:body>
+</office:document-content>
+"""
+
+
 def _build_spreadsheet_content_xml(template_definition: dict) -> str:
     template_id = template_definition.get("id") or template_definition.get("template_key")
     if template_id == "expense_budget":
@@ -2710,6 +3492,10 @@ def _build_spreadsheet_content_xml(template_definition: dict) -> str:
         return _build_work_assignment_content_xml()
     if template_id in {"member_roster", "member_roster_ods"}:
         return _build_member_roster_content_xml()
+    if template_id == "equipment_borrowing_record":
+        return _build_equipment_borrowing_record_content_xml()
+    if template_id == "inventory":
+        return _build_inventory_content_xml()
     return _build_legacy_spreadsheet_content_xml(template_definition)
 
 
