@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from html import escape
 from pathlib import Path
+import base64
 import re
 from urllib.parse import urlencode
 import streamlit as st
@@ -125,6 +126,190 @@ def _mime_for_path(path: Path) -> str:
     if suffix == ".pdf":
         return "application/pdf"
     return "application/octet-stream"
+
+
+def _file_data_download(path: Path) -> tuple[str, str]:
+    data = path.read_bytes()
+    encoded = base64.b64encode(data).decode("ascii")
+    return f"data:{_mime_for_path(path)};base64,{encoded}", path.name
+
+
+def _template_download_data_uncached(template_id: str) -> tuple[str, str]:
+    from core.template_service import generate_template_file
+    output_path = Path(generate_template_file(template_id))
+    return _file_data_download(output_path)
+
+
+if getattr(st, "cache_data", None) is not None:
+    _template_download_data_cached = st.cache_data(ttl=300, show_spinner=False)(_template_download_data_uncached)
+else:
+    _template_download_data_cached = _template_download_data_uncached
+
+
+def _template_download_link(template_id: str) -> tuple[str, str]:
+    try:
+        return _template_download_data_cached(template_id)
+    except Exception:
+        return "#", ""
+
+
+def _generate_values() -> dict:
+    state = _runtime_state()
+    settings = state.get("settings", {})
+    return {
+        "club_name": _first_query("club_name", settings.get("club_name", "資訊研習社") or "資訊研習社"),
+        "activity_name": _first_query("activity_name", "ODFlow 工作坊"),
+        "activity_date": _first_query("activity_date", "2026/07/20"),
+        "activity_time": _first_query("activity_time", "14:00-16:00"),
+        "activity_location": _first_query("activity_location", "綜合大樓 3 樓會議室"),
+        "activity_type": _first_query("activity_type", "研習活動"),
+        "contact_person": _first_query("contact_person", "王小明"),
+        "contact_phone": _first_query("contact_phone", "0912-345-678"),
+        "email": _first_query("email", "example@example.com"),
+        "advisor": _first_query("advisor", "李老師"),
+        "budget": _first_query("budget", "3000"),
+        "activity_description": _first_query("activity_description", "舉辦 ODFlow 文件製作與管理的實作工作坊，提升社團成員數位技能與文件規劃能力。"),
+        "notes": _first_query("notes", "適合新手參與，備有電腦設備。"),
+    }
+
+
+def _generate_nav_params(values: dict) -> dict:
+    return {
+        "club_name": values.get("club_name", ""),
+        "activity_name": values.get("activity_name", ""),
+        "activity_date": values.get("activity_date", ""),
+        "activity_time": values.get("activity_time", ""),
+        "activity_location": values.get("activity_location", ""),
+        "activity_type": values.get("activity_type", ""),
+        "contact_person": values.get("contact_person", ""),
+        "contact_phone": values.get("contact_phone", ""),
+        "email": values.get("email", ""),
+        "advisor": values.get("advisor", ""),
+        "budget": values.get("budget", ""),
+        "activity_description": values.get("activity_description", ""),
+        "notes": values.get("notes", ""),
+    }
+
+
+def _document_content_from_values(document_type: str, values: dict) -> dict:
+    try:
+        from core.document_schemas import get_default_document_content
+        content = get_default_document_content(document_type)
+    except Exception:
+        content = {}
+    club = values.get("club_name", "")
+    name = values.get("activity_name", "")
+    date = values.get("activity_date", "")
+    time = values.get("activity_time", "")
+    location = values.get("activity_location", "")
+    desc = values.get("activity_description", "")
+    contact = values.get("contact_person", "")
+    phone = values.get("contact_phone", "")
+    email = values.get("email", "")
+    notes = values.get("notes", "")
+    budget = values.get("budget", "")
+
+    # Generic fields shared by most supported ODT document schemas.
+    content.update({
+        "activity_name": name,
+        "activity_theme": name,
+        "activity_date": date,
+        "activity_time": time,
+        "location": location,
+        "activity_location": location,
+        "organizer": club,
+        "school_name": club,
+        "contact_person": contact,
+        "contact_phone": phone,
+        "email": email,
+        "activity_description": desc,
+        "activity_content": desc,
+        "activity_summary": desc,
+        "purpose": desc,
+        "expected_benefits": "提升社團文件製作效率，強化 ODF 格式使用與資料交接。",
+        "expected_outcomes": "完成社團文件流程示範，產出可保存與可編輯的 ODF 文件。",
+        "notes": notes,
+        "budget_items": [
+            {"item": "活動材料", "description": "講義與行政用品", "quantity": "1", "unit_price": budget, "amount": budget, "funding_source": "社團經費", "note": notes}
+        ],
+        "contact_items": [
+            {"role": "聯絡人", "name": contact, "phone": phone, "email": email}
+        ],
+    })
+    if document_type in {"會議紀錄", "會議議程"}:
+        content.update({
+            "meeting_title": name,
+            "meeting_date": date,
+            "meeting_time": time,
+            "meeting_datetime": f"{date} {time}",
+            "location": location,
+            "chair": contact,
+            "recorder": contact,
+            "attendees": club,
+            "opening_remarks": desc,
+            "reports": desc,
+            "notes": notes,
+        })
+    if document_type == "開會通知單":
+        content.update({
+            "organization_name": club,
+            "recipient": "全體社員",
+            "document_date": date,
+            "meeting_reason": desc,
+            "meeting_datetime": f"{date} {time}",
+            "meeting_location": location,
+            "host": contact,
+            "contact_person": contact,
+            "contact_phone": phone,
+            "note": notes,
+        })
+    return content
+
+
+def _generated_document_data_uncached(template_id: str, fmt: str, values_tuple: tuple[tuple[str, str], ...]) -> tuple[str, str]:
+    values = dict(values_tuple)
+    from core.template_service import get_template_definition
+    from core.document_schemas import derive_document_title
+    from generators.odt_generator import generate_document_odt
+    definition = get_template_definition(template_id)
+    document_type = definition.get("linked_document_type") or definition.get("name") or values.get("activity_name", "ODFlow 文件")
+    content_json = _document_content_from_values(document_type, values)
+    title = derive_document_title(document_type, content_json, fallback=f"{values.get('club_name', '社團')}_{definition.get('name', document_type)}")
+    document = {
+        "id": 0,
+        "title": title,
+        "document_type": document_type,
+        "evaluation_category": definition.get("evaluation_category") or "6.社團活動_社團活動",
+        "status": "正式版",
+    }
+    version = {
+        "id": 0,
+        "version_number": 1,
+        "version_label": "v1",
+        "content_json": content_json,
+        "odf_path": "",
+        "pdf_path": "",
+        "created_at": values.get("activity_date", ""),
+    }
+    output_dir = Path("data/generated/documents")
+    output_path = generate_document_odt(document, version, output_dir=output_dir)
+    return _file_data_download(Path(output_path))
+
+
+if getattr(st, "cache_data", None) is not None:
+    _generated_document_data_cached = st.cache_data(ttl=120, show_spinner=False)(_generated_document_data_uncached)
+else:
+    _generated_document_data_cached = _generated_document_data_uncached
+
+
+def _generated_document_link(template_id: str, fmt: str, values: dict) -> tuple[str, str]:
+    try:
+        return _generated_document_data_cached(template_id, fmt, tuple(sorted((str(k), str(v)) for k, v in values.items())))
+    except Exception:
+        if template_id:
+            return _template_download_link(template_id)
+        return "#", ""
+
 
 
 def _download_template_button(template_id: str) -> None:
@@ -1283,6 +1468,89 @@ def inject_exact_styles() -> None:
             color: #64748b !important;
         }
 
+
+        .odf-template-actions {
+            display: grid !important;
+            grid-template-columns: 1fr !important;
+            gap: 0 !important;
+            width: 100%;
+        }
+        .odf-template-download {
+            height: 42px !important;
+            border-radius: 13px !important;
+            font-size: 14px !important;
+            font-weight: 900 !important;
+            background: linear-gradient(135deg, #1D6BFF, #4E8BFF) !important;
+            color: #fff !important;
+            border: none !important;
+            box-shadow: 0 10px 22px rgba(29, 107, 255, .20);
+        }
+        .odf-template-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(29, 107, 255, .25);
+        }
+        .odf-real-form {
+            display: grid;
+            gap: 18px;
+        }
+        .odf-real-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px 24px;
+        }
+        .odf-real-input,
+        .odf-real-textarea {
+            width: 100%;
+            border: 1px solid #dbe7f4;
+            border-radius: 12px;
+            background: #ffffff;
+            color: #0f172a;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 650;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .odf-real-input {
+            height: 46px;
+            padding: 0 14px;
+        }
+        .odf-real-textarea {
+            min-height: 108px;
+            resize: vertical;
+            padding: 13px 14px;
+            line-height: 1.55;
+        }
+        .odf-real-input:focus,
+        .odf-real-textarea:focus {
+            border-color: #1d6bff;
+            box-shadow: 0 0 0 3px rgba(29,107,255,.10);
+        }
+        .odf-form-actions {
+            border-top: 1px solid #e7edf4;
+            margin: 6px -28px 0 -28px;
+            padding: 18px 28px 0 28px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 14px;
+        }
+        .odf-preview-paper {
+            width: 390px;
+            min-height: 410px;
+            background: #fff;
+            border: 1px solid #dbe7f4;
+            margin: 0 auto;
+            box-shadow: 0 12px 24px rgba(15,23,42,.08);
+            padding: 28px;
+            font-size: 12px;
+            box-sizing: border-box;
+        }
+        .odf-direct-download {
+            background: linear-gradient(135deg, #1D6BFF, #6D4CFF) !important;
+            color: #fff !important;
+            border: none !important;
+        }
+
         @media (max-width: 1500px) {
             .odf-filter-form {
                 grid-template-columns: 1.35fr .74fr .66fr .74fr 104px;
@@ -1551,11 +1819,11 @@ def template_card(
     tag = "ods" if fmt == "ODS" else "odt"
     sheet_cls = "sheet" if sheet else ""
     if downloadable and template_id:
-        download_action = f'<a class="odf-btn outline" href="{nav_href("Templates", download_template=template_id)}">↓ 下載範本</a>'
+        href, filename = _template_download_link(template_id)
+        download_action = f'<a class="odf-btn odf-template-download full" href="{href}" download="{_safe(filename)}">↓ 直接下載 {fmt} 範本</a>'
     else:
-        download_action = '<span class="odf-btn outline" style="opacity:.46;cursor:not-allowed;">尚未開放</span>'
-    detail_href = nav_href("Templates", detail_template=template_id) if template_id else "#"
-    return f'<section class="odf-card odf-template-card"><div class="odf-template-thumb {sheet_cls}"></div><div style="min-width:0;"><h3 style="font-size:18px;margin:0 0 8px 0;line-height:1.25;">{name}</h3><span class="odf-tag {tag}">{fmt}</span><p class="odf-muted" style="font-size:13px;line-height:1.55;margin:10px 0 12px 0;">{desc}</p><div class="odf-template-actions">{download_action}<a class="odf-btn soft" href="{detail_href}">查看說明</a></div></div></section>'
+        download_action = '<span class="odf-btn outline full" style="opacity:.46;cursor:not-allowed;">尚未開放下載</span>'
+    return f'<section class="odf-card odf-template-card"><div class="odf-template-thumb {sheet_cls}"></div><div style="min-width:0;"><h3 style="font-size:18px;margin:0 0 8px 0;line-height:1.25;">{name}</h3><span class="odf-tag {tag}">{fmt}</span><p class="odf-muted" style="font-size:13px;line-height:1.55;margin:10px 0 14px 0;">{desc}</p><div class="odf-template-actions">{download_action}</div></div></section>'
 
 
 def render_templates() -> str:
@@ -1771,47 +2039,79 @@ def generate_step1() -> str:
 
 def generate_step2(fmt: str = "ODT", template: str = "活動企劃書") -> str:
     template_id = _first_query("template_id", "") or _template_id_for_name(template)
+    values = _generate_values()
     content = page_header("生成文件", "選擇範本並填寫資料，快速建立正式文件。") + stepper(2)
     content += '<div class="odf-generate-shell">' + selected_template_card(fmt, template)
-    content += '<section class="odf-card" style="padding:24px 28px;"><h3 class="odf-section-title" style="border-left:4px solid #1d6bff;padding-left:12px;">基本資料</h3><div class="odf-grid" style="grid-template-columns:repeat(2,1fr);gap:15px 24px;">'
-    fields = [("社團名稱 *", "資訊研習社"), ("活動名稱 *", "ODFlow 工作坊"), ("活動日期 *", "2026/07/20"), ("活動地點 *", "綜合大樓 3 樓會議室"), ("活動性質 *", "研習活動"), ("聯絡人 *", "王小明"), ("聯絡電話 *", "0912-345-678"), ("電子信箱 *", "example@example.com")]
-    for label, value in fields:
-        content += f'<div class="odf-field"><label>{label}</label><div class="odf-input">{value}</div></div>'
-    content += '<div class="odf-field" style="grid-column:1/3;"><label>活動說明 *</label><div class="odf-input odf-textarea">舉辦 ODFlow 文件製作與管理的實作工作坊，提升社團成員數位技能與文件規劃能力。</div></div></div><div style="border-top:1px solid #e7edf4;margin:18px -28px 0 -28px;padding:18px 28px 0 28px;"><h3 class="odf-section-title" style="border-left:4px solid #1d6bff;padding-left:12px;">進階設定 <span class="odf-muted" style="font-size:15px;">（選填）</span></h3><div class="odf-grid" style="grid-template-columns:repeat(3,1fr);gap:16px 24px;"><div class="odf-field"><label>指導老師</label><div class="odf-input">李老師⌄</div></div><div class="odf-field"><label>預算金額</label><div class="odf-input">3000　元</div></div><div class="odf-field"><label>備註</label><div class="odf-input">適合新手參與，備有電腦設備。</div></div></div></div>'
-    content += f'<div style="display:flex;justify-content:flex-end;gap:14px;margin-top:24px;"><a class="odf-btn outline" href="{nav_href("Generate", step=1, template_id=template_id)}">上一步</a><a class="odf-btn primary" href="{nav_href("Generate", step=3, fmt=fmt.lower(), template=template, template_id=template_id)}">下一步</a></div></section></div>'
+    content += '<section class="odf-card" style="padding:24px 28px;"><h3 class="odf-section-title" style="border-left:4px solid #1d6bff;padding-left:12px;">基本資料</h3>'
+    content += '<form class="odf-real-form" method="get" action="/"><input type="hidden" name="page" value="Generate"><input type="hidden" name="step" value="3"><input type="hidden" name="fmt" value="' + fmt.lower() + '"><input type="hidden" name="template" value="' + _safe(template) + '"><input type="hidden" name="template_id" value="' + _safe(template_id) + '">'
+    content += '<div class="odf-real-form-grid">'
+    field_defs = [
+        ("club_name", "社團名稱 *", "text"),
+        ("activity_name", "活動 / 文件名稱 *", "text"),
+        ("activity_date", "日期 *", "date"),
+        ("activity_time", "時間", "text"),
+        ("activity_location", "地點 *", "text"),
+        ("activity_type", "性質 / 類型 *", "text"),
+        ("contact_person", "聯絡人 *", "text"),
+        ("contact_phone", "聯絡電話 *", "text"),
+        ("email", "電子信箱", "email"),
+        ("advisor", "指導老師", "text"),
+        ("budget", "預算金額", "number"),
+    ]
+    for key, label, input_type in field_defs:
+        content += f'<div class="odf-field"><label>{label}</label><input class="odf-real-input" type="{input_type}" name="{key}" value="{_safe(values.get(key, ""))}"></div>'
+    content += '<div class="odf-field" style="grid-column:1/3;"><label>活動 / 文件說明 *</label><textarea class="odf-real-textarea" name="activity_description">' + _safe(values["activity_description"]) + '</textarea></div>'
+    content += '<div class="odf-field" style="grid-column:1/3;"><label>備註</label><textarea class="odf-real-textarea" name="notes">' + _safe(values["notes"]) + '</textarea></div>'
+    content += '</div><div class="odf-form-actions"><a class="odf-btn outline" href="' + nav_href("Generate", step=1, template_id=template_id) + '">上一步</a><button class="odf-btn primary" type="submit" style="border:none;cursor:pointer;">下一步：預覽確認</button></div></form></section></div>'
     return content
+
 
 
 def generate_step3(fmt: str = "ODT", template: str = "活動企劃書") -> str:
     template_id = _first_query("template_id", "") or _template_id_for_name(template)
+    values = _generate_values()
+    params = _generate_nav_params(values)
     content = page_header("生成文件", "選擇範本並填寫資料，快速建立正式文件。") + stepper(3)
-    content += '<div class="odf-generate-shell"><section class="odf-card pad"><h3 class="odf-section-title">文件摘要</h3><div class="odf-template-thumb" style="width:160px;height:214px;margin:0 auto 18px auto;"></div><h3 style="font-size:20px;margin:0 0 8px 0;">' + template + f'</h3><span class="odf-tag {"ods" if fmt=="ODS" else "odt"}">{fmt}</span><div style="display:grid;gap:13px;margin-top:18px;"><div>✅ 基本資料已填寫</div><div>✅ 欄位驗證完成</div><div>✅ 可進行預覽</div></div></section>'
-    content += '<section class="odf-card pad"><h3 class="odf-section-title">預覽確認</h3><div style="height:430px;background:#f8fafc;border:1px solid #dbe7f4;border-radius:14px;display:grid;grid-template-columns:1fr 230px;gap:28px;align-items:center;padding:28px;"><div style="width:390px;height:410px;background:#fff;border:1px solid #dbe7f4;margin:0 auto;box-shadow:0 12px 24px rgba(15,23,42,.08);padding:28px;font-size:12px;"><h2 style="text-align:center;margin:0 0 20px 0;">' + template + '</h2><table style="width:100%;border-collapse:collapse;">' + "".join(f'<tr><td style="border:1px solid #dbe7f4;padding:7px;">{k}</td><td style="border:1px solid #dbe7f4;padding:7px;">{v}</td></tr>' for k, v in [("社團名稱", "資訊研習社"), ("活動名稱", "ODFlow 工作坊"), ("活動日期", "2026/07/20"), ("活動地點", "綜合大樓 3 樓會議室"), ("活動性質", "研習活動")]) + '</table><p style="line-height:1.8;">活動內容與預期效益文字預覽區。</p></div><div class="odf-card pad" style="box-shadow:none;"><h3 class="odf-section-title">預覽狀態</h3><div style="display:grid;gap:18px;"><div>✅ 必填欄位完整</div><div>✅ 版面正常</div><div>✅ 可產生正式文件</div></div></div></div><div style="display:flex;justify-content:flex-end;gap:14px;margin-top:22px;"><a class="odf-btn outline" href="' + nav_href('Generate', step=2, fmt=fmt.lower(), template=template, template_id=template_id) + '">上一步</a><a class="odf-btn primary" href="' + nav_href('Generate', step=4, fmt=fmt.lower(), template=template, template_id=template_id) + '">確認並產生文件</a></div></section></div>'
+    content += '<div class="odf-generate-shell"><section class="odf-card pad"><h3 class="odf-section-title">文件摘要</h3><div class="odf-template-thumb" style="width:160px;height:214px;margin:0 auto 18px auto;"></div><h3 style="font-size:20px;margin:0 0 8px 0;">' + _safe(template) + f'</h3><span class="odf-tag {"ods" if fmt=="ODS" else "odt"}">{fmt}</span><div style="display:grid;gap:13px;margin-top:18px;"><div>✅ 基本資料已填寫</div><div>✅ 預覽依照表單內容更新</div><div>✅ 可產生正式文件</div></div></section>'
+    rows = [
+        ("社團名稱", values["club_name"]),
+        ("活動 / 文件名稱", values["activity_name"]),
+        ("日期", values["activity_date"]),
+        ("時間", values["activity_time"]),
+        ("地點", values["activity_location"]),
+        ("類型", values["activity_type"]),
+        ("聯絡人", values["contact_person"]),
+        ("電話", values["contact_phone"]),
+    ]
+    table_html = "".join(f'<tr><td style="border:1px solid #dbe7f4;padding:7px;background:#f8fafc;">{_safe(k)}</td><td style="border:1px solid #dbe7f4;padding:7px;">{_safe(v)}</td></tr>' for k, v in rows)
+    content += '<section class="odf-card pad"><h3 class="odf-section-title">預覽確認</h3><div style="min-height:430px;background:#f8fafc;border:1px solid #dbe7f4;border-radius:14px;display:grid;grid-template-columns:1fr 230px;gap:28px;align-items:center;padding:28px;"><div class="odf-preview-paper"><h2 style="text-align:center;margin:0 0 20px 0;">' + _safe(values["activity_name"] or template) + '</h2><table style="width:100%;border-collapse:collapse;">' + table_html + '</table><h3 style="font-size:13px;margin:18px 0 8px 0;">活動 / 文件說明</h3><p style="line-height:1.8;white-space:pre-wrap;">' + _safe(values["activity_description"]) + '</p><h3 style="font-size:13px;margin:18px 0 8px 0;">備註</h3><p style="line-height:1.8;white-space:pre-wrap;">' + _safe(values["notes"]) + '</p></div><div class="odf-card pad" style="box-shadow:none;"><h3 class="odf-section-title">預覽狀態</h3><div style="display:grid;gap:18px;"><div>✅ 必填欄位完整</div><div>✅ 版面正常</div><div>✅ 下載檔案將使用這些資料</div></div></div></div><div style="display:flex;justify-content:flex-end;gap:14px;margin-top:22px;"><a class="odf-btn outline" href="' + nav_href("Generate", step=2, fmt=fmt.lower(), template=template, template_id=template_id, **params) + '">上一步</a><a class="odf-btn primary" href="' + nav_href("Generate", step=4, fmt=fmt.lower(), template=template, template_id=template_id, **params) + '">確認並產生文件</a></div></section></div>'
     return content
+
 
 
 def generate_step4(fmt: str = "ODT", template: str = "活動企劃書") -> str:
     template_id = _first_query("template_id", "") or _template_id_for_name(template)
+    values = _generate_values()
     native = "ODS" if fmt == "ODS" else "ODT"
     tag = "ods" if native == "ODS" else "odt"
     sheet_cls = "sheet" if native == "ODS" else ""
-    size_text = "ODS 96 KB　｜　PDF 210 KB" if native == "ODS" else "ODT 128 KB　｜　PDF 284 KB"
+    href, filename = _generated_document_link(template_id, fmt, values)
+    size_text = f"{native} 已準備完成　｜　PDF 尚未開放"
     content = page_header("生成文件", "選擇範本並填寫資料，快速建立正式文件。") + stepper(4)
-    content += '<div class="odf-grid" style="grid-template-columns:360px 1fr;gap:24px;min-height:520px;"><section class="odf-card pad"><h3 class="odf-section-title">產出結果摘要</h3><div style="display:grid;grid-template-columns:140px 1fr;gap:20px;align-items:start;"><div class="odf-template-thumb ' + sheet_cls + '" style="width:130px;height:174px;"></div><div><h3 style="font-size:20px;margin:0 0 20px 0;">' + template + '</h3><div class="odf-mini">產生時間</div><div style="margin:6px 0 18px 0;">📅 2026/07/20 14:36</div><div class="odf-mini">檔案狀態</div><span class="odf-tag green" style="margin-top:8px;">✅ 產出完成</span></div></div><div style="margin-top:22px;"><div class="odf-mini">檔案格式</div><div style="display:flex;gap:8px;margin:8px 0 18px 0;"><span class="odf-tag ' + tag + '">' + native + '</span><span class="odf-tag red">PDF</span><span class="odf-tag green">已存入檔案庫</span></div><div class="odf-mini">檔案大小</div><div style="margin-top:8px;color:#475569;font-weight:650;">' + size_text + '</div></div></section>'
-    content += '<section class="odf-card pad"><div style="display:flex;gap:30px;align-items:center;border-bottom:1px solid #e7edf4;padding-bottom:28px;margin-bottom:24px;"><div style="width:92px;height:92px;border-radius:999px;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:50px;">✓</div><div><h2 style="font-size:32px;line-height:1.25;margin:0 0 12px 0;">文件已建立完成</h2><p class="odf-muted" style="font-size:15px;margin:0;">感謝使用 ODFlow！您的文件已成功產出並存入檔案庫，您可以立即下載或前往檔案庫查看與管理。</p></div></div><h3 class="odf-section-title">下載您的文件</h3><div class="odf-grid" style="grid-template-columns:repeat(3,1fr);gap:16px;">'
-    for label, desc, icon, cls in [(f"下載 {native}", "產生可編輯的開放文件格式", native, tag), ("下載 PDF", "PDF 匯出將於下一階段接入", "PDF", "red"), ("前往檔案庫", "查看檔案與更多操作", "📁", "blue")]:
-        if label == "前往檔案庫":
-            href = nav_href("Files")
-            action = "前往檔案庫 →"
-        elif label.startswith("下載 ") and native in label and template_id:
-            href = nav_href("Generate", step=4, fmt=fmt.lower(), template=template, template_id=template_id, download_template=template_id)
-            action = f"↓ {label}"
-        else:
-            href = "#"
-            action = "尚未開放"
-        content += f'<div class="odf-card" style="height:168px;padding:20px;"><div style="display:flex;gap:14px;align-items:center;margin-bottom:20px;"><div class="odf-doc-icon {cls}" style="width:54px;height:54px;border-radius:14px;font-size:18px;">{icon}</div><div><h3 style="font-size:18px;margin:0 0 4px 0;">{label}</h3><div class="odf-mini">{desc}</div></div></div><a class="odf-btn outline full" href="{href}">{action}</a></div>'
-    content += '</div></section></div><div style="display:flex;justify-content:flex-end;gap:18px;margin-top:24px;"><a class="odf-btn outline" href="/?page=Generate&step=1">建立另一份</a><a class="odf-btn primary" href="/">完成</a></div>'
+    content += '<div class="odf-grid" style="grid-template-columns:360px 1fr;gap:24px;min-height:520px;"><section class="odf-card pad"><h3 class="odf-section-title">產出結果摘要</h3><div style="display:grid;grid-template-columns:140px 1fr;gap:20px;align-items:start;"><div class="odf-template-thumb ' + sheet_cls + '" style="width:130px;height:174px;"></div><div><h3 style="font-size:20px;margin:0 0 20px 0;">' + _safe(values["activity_name"] or template) + '</h3><div class="odf-mini">產生資料</div><div style="margin:6px 0 18px 0;">📅 ' + _safe(values["activity_date"]) + '　📍 ' + _safe(values["activity_location"]) + '</div><div class="odf-mini">檔案狀態</div><div style="margin-top:8px;"><span class="odf-tag green">已完成</span></div></div></div><div style="height:1px;background:#e7edf4;margin:22px 0;"></div><div class="odf-mini">檔案資訊</div><p style="margin:8px 0 0 0;color:#475569;font-weight:650;">' + _safe(size_text) + '</p></section>'
+    content += '<section class="odf-card pad"><h3 class="odf-section-title">下載您的文件</h3><div class="odf-grid" style="grid-template-columns:repeat(3,1fr);gap:16px;">'
+    cards = [
+        (f"下載 {native}", "依照填寫資料產生可編輯的開放文件格式", native, tag, href, f"↓ 直接下載 {native}", filename),
+        ("下載 PDF", "PDF 匯出將於下一階段接入", "PDF", "red", "#", "尚未開放", ""),
+        ("前往檔案庫", "查看檔案與更多操作", "📁", "blue", nav_href("Files"), "前往檔案庫 →", ""),
+    ]
+    for label, desc, icon, cls, link, action, download_name in cards:
+        download_attr = f' download="{_safe(download_name)}"' if download_name else ""
+        btn_cls = "odf-direct-download" if download_name else ""
+        content += f'<div class="odf-card" style="height:168px;padding:20px;"><div style="display:flex;gap:14px;align-items:center;margin-bottom:20px;"><div class="odf-doc-icon {cls}" style="width:54px;height:54px;border-radius:14px;font-size:18px;">{icon}</div><div><h3 style="font-size:18px;margin:0 0 4px 0;">{label}</h3><div class="odf-mini">{desc}</div></div></div><a class="odf-btn outline full {btn_cls}" href="{link}"{download_attr}>{action}</a></div>'
+    content += '</div><div style="display:flex;justify-content:flex-end;gap:14px;margin-top:26px;"><a class="odf-btn outline" href="' + nav_href("Generate", step=1) + '">建立另一份</a></div></section></div>'
     return content
+
 
 
 def render_generate(step: int = 1, fmt: str = "odt", template: str = "活動企劃書") -> str:
@@ -1976,6 +2276,5 @@ def render_placeholder(active: str, title: str, desc: str) -> str:
 
 def render_exact_page(html: str) -> None:
     inject_exact_styles()
-    _handle_download_request()
     st.markdown(html, unsafe_allow_html=True)
 
