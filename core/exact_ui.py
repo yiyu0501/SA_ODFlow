@@ -16,6 +16,19 @@ BORDER = "#E5EDF7"
 TEXT = "#0F172A"
 MUTED = "#64748B"
 
+DEMO_WORKSPACE = {
+    "key": "demo",
+    "school_name": "臺北市立大學",
+    "club_name": "示範社團",
+    "academic_year": "115",
+    "mode_label": "Demo Workspace",
+}
+
+DEMO_LOGIN_EMAIL = "demo@odflow.app"
+DEMO_LOGIN_PASSWORD = "odflow-demo"
+
+_NAV_PARAM_SENTINEL = object()
+
 
 def _safe(value: object) -> str:
     return escape(str(value))
@@ -37,6 +50,13 @@ def _loading_veil() -> str:
 
 def nav_href(page: str = "home", **params: object) -> str:
     query = {"page": page}
+    workspace = params.pop("workspace", _NAV_PARAM_SENTINEL)
+    if workspace is _NAV_PARAM_SENTINEL:
+        active_workspace = _first_query("workspace", "").strip()
+        if active_workspace:
+            query["workspace"] = active_workspace
+    elif workspace not in {None, ""}:
+        query["workspace"] = workspace
     for key, value in params.items():
         if value is not None and value != "":
             query[key] = value
@@ -135,6 +155,43 @@ def _runtime_state() -> dict:
         "summary": _load_summary_cached(),
         "templates": _load_templates_cached(),
     }
+
+
+def _workspace_key() -> str:
+    return _first_query("workspace", "").strip().lower()
+
+
+def _workspace_enabled() -> bool:
+    return _workspace_key() == DEMO_WORKSPACE["key"]
+
+
+def _workspace_context() -> dict:
+    return {
+        "school_name": DEMO_WORKSPACE["school_name"],
+        "club_name": DEMO_WORKSPACE["club_name"],
+        "academic_year": DEMO_WORKSPACE["academic_year"],
+        "mode_label": DEMO_WORKSPACE["mode_label"],
+        "workspace_name": f'{DEMO_WORKSPACE["school_name"]}｜{DEMO_WORKSPACE["club_name"]}',
+        "year_label": f'{DEMO_WORKSPACE["academic_year"]} 學年度',
+    }
+
+
+def _activity_documents(documents: list[dict]) -> list[dict]:
+    activity_terms = ("活動", "社課", "企劃", "成果", "檢討", "服務學習", "課程")
+    filtered = []
+    for document in documents:
+        search_text = " ".join(
+            [
+                str(document.get("title", "")),
+                str(document.get("document_type", "")),
+                str(document.get("evaluation_category", "")),
+            ]
+        )
+        if document.get("evaluation_category") == "6.社團活動_社團活動" or any(
+            term in search_text for term in activity_terms
+        ):
+            filtered.append(document)
+    return filtered
 
 
 def _template_id_for_name(name: str) -> str:
@@ -468,6 +525,293 @@ def inject_exact_styles() -> None:
                 linear-gradient(180deg, #fbfdff 0%, #f7faff 46%, #f4f8fe 100%);
         }
 
+        .odf-public-shell {
+            min-height: 100vh;
+            padding: 28px 32px 44px 32px;
+            background:
+                radial-gradient(circle at top left, rgba(191, 219, 254, 0.72), transparent 28%),
+                radial-gradient(circle at 85% 0%, rgba(220, 252, 231, 0.72), transparent 22%),
+                linear-gradient(180deg, #f8fbff 0%, #f3f8ff 100%);
+        }
+
+        .odf-public-nav {
+            width: min(1180px, 100%);
+            margin: 0 auto 24px auto;
+            padding: 18px 22px;
+            border: 1px solid rgba(219, 230, 242, 0.95);
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(16px);
+            box-shadow: var(--shadow-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .odf-public-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .odf-public-brand-copy strong {
+            display: block;
+            font-size: 20px;
+            font-weight: 920;
+            line-height: 1.1;
+        }
+
+        .odf-public-brand-copy span {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .odf-public-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .odf-public-hero {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+            gap: 22px;
+        }
+
+        .odf-public-card {
+            border: 1px solid rgba(219, 230, 242, 0.98);
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.92);
+            box-shadow: 0 16px 42px rgba(15, 23, 42, 0.07);
+        }
+
+        .odf-public-copy {
+            padding: 44px 44px 40px 44px;
+        }
+
+        .odf-public-kicker {
+            color: #1d6bff;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .odf-public-title {
+            margin: 16px 0 14px 0;
+            font-size: clamp(42px, 5vw, 66px);
+            line-height: 0.98;
+            letter-spacing: -0.08em;
+            font-weight: 940;
+        }
+
+        .odf-public-heading {
+            margin: 0 0 14px 0;
+            font-size: 28px;
+            line-height: 1.2;
+            font-weight: 900;
+        }
+
+        .odf-public-subtitle,
+        .odf-public-body {
+            color: #475569;
+            font-size: 17px;
+            line-height: 1.72;
+            font-weight: 650;
+        }
+
+        .odf-public-cta-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+
+        .odf-public-inline-note {
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .odf-public-value-grid,
+        .odf-public-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-top: 30px;
+        }
+
+        .odf-public-value,
+        .odf-public-feature {
+            padding: 20px 18px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        }
+
+        .odf-public-value strong,
+        .odf-public-feature strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 17px;
+            line-height: 1.35;
+            font-weight: 860;
+        }
+
+        .odf-public-value p,
+        .odf-public-feature p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 650;
+        }
+
+        .odf-public-preview {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        .odf-preview-panel {
+            padding: 22px;
+            border-radius: 22px;
+            background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+            border: 1px solid #d7e7fb;
+        }
+
+        .odf-preview-panel.secondary {
+            background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+            border-color: #e2e8f0;
+        }
+
+        .odf-preview-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .odf-preview-list-item {
+            display: grid;
+            grid-template-columns: 54px 1fr auto;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #e2e8f0;
+        }
+
+        .odf-preview-icon {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .odf-public-section {
+            width: min(1180px, 100%);
+            margin: 22px auto 0 auto;
+            padding: 28px 30px 30px 30px;
+        }
+
+        .odf-login-shell {
+            width: min(1100px, 100%);
+            margin: 0 auto;
+            min-height: calc(100vh - 72px);
+            display: grid;
+            grid-template-columns: minmax(0, 0.95fr) minmax(380px, 0.8fr);
+            gap: 22px;
+            align-items: center;
+        }
+
+        .odf-login-copy,
+        .odf-login-card {
+            padding: 36px;
+        }
+
+        .odf-login-card form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .odf-login-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 850;
+            color: #334155;
+        }
+
+        .odf-login-field input {
+            width: 100%;
+            height: 52px;
+            padding: 0 16px;
+            border-radius: 14px;
+            border: 1px solid #d7e3f4;
+            background: #ffffff;
+            font-size: 15px;
+            color: #0f172a;
+            box-sizing: border-box;
+        }
+
+        .odf-login-field input:focus {
+            outline: none;
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 4px rgba(191, 219, 254, 0.55);
+        }
+
+        .odf-login-note,
+        .odf-login-error {
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            font-weight: 700;
+        }
+
+        .odf-login-note {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #bfdbfe;
+        }
+
+        .odf-login-error {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
+            margin-bottom: 14px;
+        }
+
+        .odf-login-demo-credentials {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .odf-login-credential {
+            padding: 14px 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            background: #ffffff;
+        }
+
         .odf-sidebar {
             width: var(--sidebar-w);
             min-width: var(--sidebar-w);
@@ -628,7 +972,7 @@ def inject_exact_styles() -> None:
             height: var(--topbar-h);
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: space-between;
             gap: 16px;
             padding: 0 44px;
             box-sizing: border-box;
@@ -638,6 +982,33 @@ def inject_exact_styles() -> None:
             position: sticky;
             top: 0;
             z-index: 10;
+        }
+
+        .odf-topbar-start,
+        .odf-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .odf-workspace-identity {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .odf-workspace-title {
+            color: #0f172a;
+            font-size: 18px;
+            line-height: 1.2;
+            font-weight: 880;
+        }
+
+        .odf-workspace-subtitle {
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.3;
+            font-weight: 760;
         }
 
         .odf-icon-btn,
@@ -1456,6 +1827,12 @@ def inject_exact_styles() -> None:
             font-size: 13px;
             font-weight: 850;
         }
+        .odf-setting-action.static {
+            color: #475569 !important;
+            background: #f8fafc;
+            border-color: #e2e8f0;
+            cursor: default;
+        }
         .odf-settings-note {
             border: 1px solid #cfe1ff;
             background: linear-gradient(90deg, #eff6ff, #fbfdff);
@@ -1776,15 +2153,28 @@ def _nav_item(active: str, page: str, icon: str, label: str) -> str:
 
 
 def _sidebar(active: str) -> str:
+    workspace = _workspace_context()
     groups = [
-        ("工作台", [("home", "🏠", "首頁"), ("Dashboard", "📊", "儀表板")]),
-        ("文件製作", [("Templates", "📚", "空白範本"), ("Generate", "📝", "生成文件"), ("Files", "🗂️", "檔案庫")]),
-        ("評鑑管理", [("Evaluation", "📦", "社團評鑑")]),
-        ("社團資料", [("Settings", "⚙️", "社團設定")]),
-        ("系統支援", [("Projects", "🧭", "專案")]),
+        (
+            "工作區",
+            [
+                ("home", "🏠", "首頁"),
+                ("Activities", "📅", "活動"),
+                ("Generate", "📝", "文件生成"),
+                ("Templates", "📚", "範本中心"),
+                ("Files", "🗂️", "檔案庫"),
+                ("Evaluation", "🛡️", "社團評鑑"),
+                ("Settings", "⚙️", "設定"),
+            ],
+        )
     ]
     html = '<aside class="odf-sidebar">'
-    html += '<div class="odf-brand"><div class="odf-logo">🏫</div><div><h1 class="odf-brand-title">ODFlow</h1></div></div>'
+    html += (
+        '<div class="odf-brand"><div class="odf-logo">🏫</div><div>'
+        '<h1 class="odf-brand-title">ODFlow</h1>'
+        '<div class="odf-brand-subtitle">校園 ODF 文件工作流平台</div>'
+        '</div></div>'
+    )
     html += '<nav class="odf-nav">'
     for title, items in groups:
         html += f'<div class="odf-nav-group"><div class="odf-nav-heading">{title}</div>'
@@ -1792,18 +2182,35 @@ def _sidebar(active: str) -> str:
             html += _nav_item(active, page, icon, label)
         html += '</div>'
     html += '</nav><div class="odf-sidebar-spacer"></div><div class="odf-sidebar-divider"></div>'
-    html += '<div class="odf-club-card"><div class="odf-kicker">ODFlow 社團</div><div class="odf-club-name">天母校區 <span class="odf-chip blue">114</span></div><a class="odf-switch-link" href="/?page=Settings"><span>切換社團</span><span>›</span></a></div>'
-    html += '<a class="odf-btn outline full" style="height:44px;margin-top:12px;color:#475569!important;" href="/?page=Projects">前往服務中心 ↗</a>'
+    html += (
+        '<div class="odf-club-card">'
+        '<div class="odf-kicker">目前工作區</div>'
+        f'<div class="odf-club-name">{_safe(workspace["workspace_name"])}</div>'
+        f'<div class="odf-chip-row"><span class="odf-chip blue">{_safe(workspace["year_label"])}</span>'
+        f'<span class="odf-chip">{_safe(workspace["mode_label"])}</span></div>'
+        f'<a class="odf-switch-link" href="{nav_href("Settings")}"><span>查看工作區設定</span><span>›</span></a>'
+        '</div>'
+    )
+    html += f'<a class="odf-btn outline full" style="height:44px;margin-top:12px;color:#475569!important;" href="{nav_href("landing", workspace="")}">回到產品介紹</a>'
     html += '</aside>'
     return html
 
 
 def _topbar(active: str) -> str:
+    workspace = _workspace_context()
     return (
         '<div class="odf-topbar">'
+        '<div class="odf-topbar-start">'
+        '<div class="odf-workspace-identity">'
+        '<div class="odf-kicker">Active Workspace</div>'
+        f'<div class="odf-workspace-title">{_safe(workspace["workspace_name"])}</div>'
+        f'<div class="odf-workspace-subtitle">{_safe(workspace["year_label"])}</div>'
+        '</div></div>'
+        '<div class="odf-topbar-actions">'
         f'<a class="odf-icon-btn" href="{_panel_href(active, "help")}">?</a>'
         f'<a class="odf-icon-btn" href="{_panel_href(active, "notifications")}">🔔</a>'
-        f'<a class="odf-user-pill" href="{_panel_href(active, "profile")}"><span class="odf-avatar">OD</span><span>社團小幫手</span><span>⌄</span></a>'
+        f'<a class="odf-user-pill" href="{_panel_href(active, "profile")}"><span class="odf-avatar">DE</span><span>Demo 管理員</span><span>⌄</span></a>'
+        '</div>'
         '</div>'
     )
 
@@ -1817,10 +2224,10 @@ def _panel(active: str) -> str:
         title = "使用說明"
         body = (
             '<div class="odf-panel-list">'
-            '<div class="odf-panel-item"><strong>快速開始</strong><p class="odf-muted">先下載空白範本，或直接到生成文件建立正式文件。</p></div>'
-            '<div class="odf-panel-item"><strong>文件流程</strong><p class="odf-muted">範本 → 填寫資料 → 預覽確認 → 下載 / 檔案庫。</p></div>'
-            '<div class="odf-panel-item"><strong>評鑑整理</strong><p class="odf-muted">社團評鑑頁會整理缺件、待補與待審核資料。</p></div>'
-            f'<a class="odf-btn soft full" href="{nav_href("Projects")}">前往服務中心 →</a>'
+            '<div class="odf-panel-item"><strong>快速開始</strong><p class="odf-muted">先確認目前活動資料，再從範本中心或文件生成開始。</p></div>'
+            '<div class="odf-panel-item"><strong>文件流程</strong><p class="odf-muted">範本下載、資料填寫、預覽確認與檔案整理都會留在同一工作區。</p></div>'
+            '<div class="odf-panel-item"><strong>評鑑整理</strong><p class="odf-muted">社團評鑑頁會整理缺件、待補與目前準備度。</p></div>'
+            f'<a class="odf-btn soft full" href="{nav_href("Activities")}">查看活動總覽 →</a>'
             '</div>'
         )
     elif panel == "notifications":
@@ -1834,11 +2241,10 @@ def _panel(active: str) -> str:
         )
     else:
         title = "社團小幫手"
-        state = _runtime_state()
-        settings = state["settings"]
+        workspace = _workspace_context()
         body = (
             '<div class="odf-panel-list">'
-            f'<div class="odf-panel-item"><strong>{_safe(settings.get("club_name", "ODFlow示範社團"))}</strong><p class="odf-muted">{_safe(settings.get("campus", "天母校區"))}｜{_safe(settings.get("academic_year", "114"))} 學年度</p></div>'
+            f'<div class="odf-panel-item"><strong>{_safe(workspace["workspace_name"])}</strong><p class="odf-muted">{_safe(workspace["year_label"])}｜{_safe(workspace["mode_label"])}</p></div>'
             f'<a class="odf-btn soft full" href="{nav_href("Settings")}">前往社團設定 →</a>'
             f'<a class="odf-btn outline full" href="{nav_href("Files")}">查看檔案庫 →</a>'
             '</div>'
@@ -1881,9 +2287,112 @@ def template_row(name: str, fmt: str = "ODT", cat: str = "日常行政") -> str:
     return f'<div class="odf-row-line"><span>▤</span><strong>{name}</strong><span class="odf-tag {tag_cls}">{fmt}</span><span class="odf-mini" style="text-align:right;">{cat}</span></div>'
 
 
+def render_public_landing() -> str:
+    login_href = nav_href("login", next="home", workspace="")
+    content = '<div class="odf-public-shell">'
+    content += (
+        '<header class="odf-public-nav">'
+        '<div class="odf-public-brand"><div class="odf-logo">🏫</div>'
+        '<div class="odf-public-brand-copy"><strong>ODFlow</strong><span>校園 ODF 文件工作流平台</span></div></div>'
+        f'<div class="odf-public-actions"><a class="odf-btn soft" href="{login_href}">Demo 入口</a></div>'
+        '</header>'
+    )
+    content += '<section class="odf-public-hero">'
+    content += (
+        '<article class="odf-public-card odf-public-copy">'
+        '<div class="odf-public-kicker">ODFlow</div>'
+        '<h1 class="odf-public-title">校園 ODF<br>文件工作流平台</h1>'
+        '<p class="odf-public-subtitle">整合社團活動、文件產出、歸檔與評鑑整理。</p>'
+        f'<div class="odf-public-cta-row"><a class="odf-btn primary" href="{login_href}">開始使用 Demo</a>'
+        '<a class="odf-btn outline" href="#odf-features">查看功能</a></div>'
+        '<div class="odf-public-inline-note">目前提供單一 Demo 工作區，不接入真實登入或外部驗證。</div>'
+        '<div id="odf-features" class="odf-public-value-grid">'
+        '<div class="odf-public-value"><strong>活動資料集中管理</strong><p>將活動脈絡、文件與後續整理留在同一個工作區。</p></div>'
+        '<div class="odf-public-value"><strong>ODF 文件直接產出</strong><p>以 ODT / ODS 為主流程，保留可編輯與可下載的正式文件。</p></div>'
+        '<div class="odf-public-value"><strong>文件與評鑑資料持續累積</strong><p>文件完成後可回到檔案庫與評鑑整理持續追蹤。</p></div>'
+        '</div></article>'
+    )
+    content += (
+        '<aside class="odf-public-card odf-public-preview">'
+        '<div class="odf-preview-panel"><div class="odf-public-kicker">Demo Workspace</div>'
+        '<h2 class="odf-public-heading">先看產品殼，再進入工作區</h2>'
+        '<p class="odf-public-body">Landing Page、Demo Login 與工作區身份會沿用同一套產品語言，保留既有文件生成與下載流程。</p>'
+        '<div class="odf-preview-list">'
+        '<div class="odf-preview-list-item"><div class="odf-preview-icon">📅</div><div><strong>活動</strong><p>集中看目前活動與相關文件。</p></div><span class="odf-tag blue">Workspace</span></div>'
+        '<div class="odf-preview-list-item"><div class="odf-preview-icon">📄</div><div><strong>文件生成</strong><p>延續現有 Generate 與下載機制。</p></div><span class="odf-tag green">ODF</span></div>'
+        '<div class="odf-preview-list-item"><div class="odf-preview-icon">🛡️</div><div><strong>社團評鑑</strong><p>用目前資料直接整理缺件與準備度。</p></div><span class="odf-tag orange">整理中</span></div>'
+        '</div></div>'
+        '<div class="odf-preview-panel secondary"><div class="odf-public-kicker">Demo 資訊</div>'
+        '<h3 class="odf-public-heading" style="font-size:22px;margin-top:10px;">臺北市立大學｜示範社團</h3>'
+        '<p class="odf-public-body" style="font-size:15px;">115 學年度的單一示範工作區，適合競賽展示與流程體驗。</p>'
+        f'<a class="odf-btn outline full" href="{login_href}">前往 Demo Login</a></div></aside>'
+    )
+    content += '</section>'
+    content += (
+        '<section class="odf-public-card odf-public-section">'
+        '<div class="odf-public-kicker">使用流程</div><h2 class="odf-public-heading">從產品介紹到工作區，維持最小但完整的進入流程</h2>'
+        '<div class="odf-public-feature-grid">'
+        '<div class="odf-public-feature"><strong>1. 進入 Landing Page</strong><p>先理解平台定位與目前可直接體驗的模組。</p></div>'
+        '<div class="odf-public-feature"><strong>2. 進入 Demo Login</strong><p>使用展示入口進入工作區，不建立帳號也不依賴密碼資料庫。</p></div>'
+        '<div class="odf-public-feature"><strong>3. 操作既有工作區</strong><p>首頁、活動、文件生成、範本中心、檔案庫與設定都維持同一套導覽。</p></div>'
+        '</div></section></div>'
+    )
+    return _same_tab_links(content)
+
+
+def render_demo_login(target_page: str = "home", error_message: str = "") -> str:
+    safe_target = target_page or "home"
+    target_labels = {
+        "home": "首頁",
+        "activities": "活動",
+        "generate": "文件生成",
+        "templates": "範本中心",
+        "files": "檔案庫",
+        "evaluation": "社團評鑑",
+        "settings": "設定",
+    }
+    target_label = target_labels.get(safe_target.lower(), "首頁")
+    demo_href = nav_href(safe_target, workspace=DEMO_WORKSPACE["key"])
+    content = '<div class="odf-public-shell"><section class="odf-login-shell">'
+    content += (
+        '<article class="odf-public-card odf-login-copy">'
+        '<div class="odf-public-kicker">Demo Login</div>'
+        '<h1 class="odf-public-heading" style="font-size:40px;margin-top:12px;">進入 ODFlow Demo 工作區</h1>'
+        f'<p class="odf-public-body">此畫面僅提供展示入口。登入後會前往「{_safe(target_label)}」，不會建立真實帳號，也不會驗證外部身份。</p>'
+        '<div class="odf-login-demo-credentials">'
+        f'<div class="odf-login-credential"><strong>示範信箱</strong><div class="odf-public-body" style="font-size:15px;">{_safe(DEMO_LOGIN_EMAIL)}</div></div>'
+        f'<div class="odf-login-credential"><strong>示範密碼</strong><div class="odf-public-body" style="font-size:15px;">{_safe(DEMO_LOGIN_PASSWORD)}</div></div>'
+        '</div>'
+        '<div class="odf-public-feature-grid" style="grid-template-columns:1fr; margin-top:24px;">'
+        '<div class="odf-public-feature"><strong>不做的事</strong><p>不建立密碼資料庫、不做 email 驗證、不接 OAuth，也不提供註冊或忘記密碼流程。</p></div>'
+        '</div></article>'
+    )
+    content += '<article class="odf-public-card odf-login-card">'
+    if error_message:
+        content += f'<div class="odf-login-error">{_safe(error_message)}</div>'
+    content += (
+        '<div class="odf-public-kicker">Workspace Access</div>'
+        '<h2 class="odf-public-heading" style="font-size:30px;margin-top:10px;">使用展示入口登入</h2>'
+        '<p class="odf-public-body" style="font-size:15px;">登入按鈕只檢查欄位是否已填寫，通過後直接帶你進入 Demo 工作區。</p>'
+        '<form method="get" action="/">'
+        '<input type="hidden" name="page" value="login">'
+        f'<input type="hidden" name="next" value="{_safe(safe_target)}">'
+        '<input type="hidden" name="action" value="login">'
+        f'<div class="odf-login-field"><label for="email">Email</label><input id="email" name="email" type="email" value="{_safe(_first_query("email", DEMO_LOGIN_EMAIL))}" placeholder="demo@odflow.app"></div>'
+        f'<div class="odf-login-field"><label for="password">Password</label><input id="password" name="password" type="password" value="{_safe(_first_query("password", DEMO_LOGIN_PASSWORD))}" placeholder="輸入展示密碼"></div>'
+        '<button class="odf-btn primary full" type="submit" style="border:none;cursor:pointer;">登入</button>'
+        '</form>'
+        f'<a class="odf-btn soft full" style="margin-top:12px;" href="{demo_href}">使用 Demo 帳號進入</a>'
+        f'<a class="odf-btn outline full" style="margin-top:12px;" href="{nav_href("landing", workspace="")}">回到產品介紹</a>'
+        '<div class="odf-login-note" style="margin-top:14px;">這是展示模式，不會儲存輸入的密碼，也不會呼叫任何外部登入服務。</div>'
+        '</article>'
+    )
+    content += '</section></div>'
+    return _same_tab_links(content)
+
+
 def render_home() -> str:
     state = _runtime_state()
-    settings = state["settings"]
     documents = state["documents"]
     templates = state["templates"]
     summary = state["summary"]
@@ -1893,10 +2402,9 @@ def render_home() -> str:
     percent = int(summary.get("overall_completion_percentage") or 0)
     template_total = len(templates)
     odf_ratio = "100%" if template_total else "0%"
-    completed_templates = max(0, template_total - 11) if template_total > 11 else template_total
-    content = page_header("首頁", "快速完成社團文件下載、建立與評鑑管理", "ODFlow Workbench")
+    content = page_header("首頁", "從活動、文件到評鑑整理，掌握目前工作區的進度。", "Workspace Home")
     content += '<div class="odf-home-row-top">'
-    content += '<section class="odf-card odf-hero-card"><div class="odf-hero-illus"><div class="folder">📁</div><div class="odf-bubble">ODF</div></div><div><div class="odf-kicker">台灣學生社團 ODF 文件工作台</div><h2 class="odf-hero-title">一站式管理社團 ODF 文件與評鑑</h2><p class="odf-hero-desc">從空白範本、正式文件產出、版本管理到社團評鑑管理，ODFlow 讓社團文件更有效率，更有條理。</p><div class="odf-home-stat-grid">'
+    content += '<section class="odf-card odf-hero-card"><div class="odf-hero-illus"><div class="folder">📁</div><div class="odf-bubble">ODF</div></div><div><div class="odf-kicker">校園 ODF 文件工作流平台</div><h2 class="odf-hero-title">把活動資料、正式文件與後續整理留在同一個工作區</h2><p class="odf-hero-desc">你可以先從活動與範本開始，接著建立正式文件，最後回到檔案庫與社團評鑑持續累積資料。</p><div class="odf-home-stat-grid">'
     content += stat_mini("▤", f"{template_total}", "官方範本") + stat_mini("👥", f"{len(documents)}", "目前文件") + stat_mini("⚡", f"{counts['done']}", "已完成", "green") + stat_mini("🛡", odf_ratio, "ODF 標準格式", "green")
     content += '</div></div></section>'
     content += '<section class="odf-card odf-eval-card"><div class="odf-eval-head"><h3 class="odf-eval-title">社團評鑑準備度</h3><span class="odf-mini">資料依目前文件更新</span></div><div class="odf-eval-layout">'
@@ -1917,8 +2425,93 @@ def render_home() -> str:
     content += '</section>'
     content += '<section class="odf-card odf-bottom-card"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">檔案庫快捷入口</h3><a class="odf-mini" href="' + nav_href("Files") + '" style="text-decoration:none;color:#1d6bff;">查看全部</a></div><div class="odf-file-quick-grid"><div class="odf-file-quick-item"><div class="icon">📁</div><strong>' + str(len(documents)) + ' 份</strong><div class="odf-mini">我的文件</div></div><div class="odf-file-quick-item"><div class="icon">🕒</div><strong>' + str(counts["unfiled"]) + ' 份</strong><div class="odf-mini">未歸檔</div></div><div class="odf-file-quick-item"><div class="icon">☆</div><strong>' + str(counts["done"]) + ' 份</strong><div class="odf-mini">已完成</div></div></div><a class="odf-btn soft full" href="' + nav_href("Files") + '">前往檔案庫 <span>→</span></a></section>'
     content += f'<section class="odf-card odf-bottom-card"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">評鑑提醒</h3><a class="odf-mini" href="{nav_href("Evaluation")}" style="text-decoration:none;color:#64748b;">查看詳情</a></div><div style="display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;"><span style="color:#f97316;font-size:22px;">♧</span><div><strong style="font-size:14px;">{"社團評鑑文件缺漏中" if missing_count else "社團評鑑狀態正常"}</strong><p class="odf-mini" style="margin:6px 0 10px 0;">目前尚有 {missing_count} 份必要文件缺漏。</p><div style="height:8px;background:#edf2f7;border-radius:999px;margin-bottom:12px;"><span style="display:block;height:8px;width:{percent}%;background:#ff5a7a;border-radius:999px;"></span></div><div style="display:flex;gap:8px;"><span class="odf-tag orange">缺漏 {missing_count} 份</span><span class="odf-tag green">待審 {pending_count} 份</span></div><a class="odf-mini" href="{nav_href("Evaluation")}" style="display:inline-block;margin-top:14px;color:#ef476f;text-decoration:none;font-weight:850;">前往社團評鑑 →</a></div></div></section>'
-    content += '<section class="odf-card odf-bottom-card"><h3 class="odf-section-title">第一次使用建議</h3><div style="display:flex;flex-direction:column;gap:9px;color:#475569;font-size:13px;font-weight:650;line-height:1.35;"><div>✅ 先至空白範本下載空白範本，熟悉文件格式。</div><div>✅ 建立一份測試文件，體驗協同與管理流程。</div><div>✅ 上傳必要基礎文件，開啟評鑑準備。</div><div>✅ 完成文件檢核後，讓評鑑細節更順利。</div></div><a class="odf-mini" href="' + nav_href("Projects") + '" style="display:inline-block;margin-top:13px;color:#1d6bff;text-decoration:none;font-weight:850;">查看完整教學 →</a></section></div>'
+    content += '<section class="odf-card odf-bottom-card"><h3 class="odf-section-title">第一次使用建議</h3><div style="display:flex;flex-direction:column;gap:9px;color:#475569;font-size:13px;font-weight:650;line-height:1.35;"><div>✅ 先到活動頁確認目前工作區的資料脈絡。</div><div>✅ 從範本中心下載空白範本，熟悉正式格式。</div><div>✅ 建立第一份文件，確認生成與下載流程。</div><div>✅ 回到社團評鑑頁查看缺件與補件方向。</div></div><a class="odf-mini" href="' + nav_href("Activities") + '" style="display:inline-block;margin-top:13px;color:#1d6bff;text-decoration:none;font-weight:850;">前往活動總覽 →</a></section></div>'
     return page_shell("home", content)
+
+
+def render_activities() -> str:
+    state = _runtime_state()
+    documents = state["documents"]
+    summary = state["summary"]
+    activity_docs = _activity_documents(documents)
+    counts = _status_counts(activity_docs)
+    progress = int(summary.get("overall_completion_percentage") or 0)
+    content = page_header("活動", "集中查看與社團活動相關的文件、進度與下一步。", "Activities")
+    content += (
+        '<div class="odf-grid" style="grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:18px;">'
+        + kpi("活動文件", str(len(activity_docs)), "目前工作區中與活動相關的文件", "📅")
+        + kpi("草稿 / 待審", str(counts["draft"] + counts["pending"]), "尚待整理或確認", "🕒", "orange")
+        + kpi("已完成", str(counts["done"]), "已可歸檔或提交", "✅", "green")
+        + kpi("整體準備度", f"{progress}%", "依目前評鑑資料估算", "🛡️", "purple")
+        + "</div>"
+    )
+    content += '<div class="odf-grid" style="grid-template-columns:1.2fr .8fr;gap:18px;">'
+    content += '<section class="odf-card pad"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">最近活動文件</h3><a class="odf-mini" href="' + nav_href("Files") + '" style="color:#1d6bff;text-decoration:none;">查看檔案庫</a></div>'
+    if activity_docs:
+        content += '<table class="odf-table"><tr><th>文件名稱</th><th>類型</th><th>狀態</th><th>更新時間</th></tr>'
+        for document in activity_docs[:6]:
+            status = _doc_status(document)
+            tone = "green" if status in {"正式版", "已歸檔", "已完成"} else "orange" if status in {"待審", "待確認"} else "blue"
+            content += f'<tr><td>{_doc_title(document)}</td><td>{_doc_type(document)}</td><td><span class="odf-tag {tone}">{status}</span></td><td>{_doc_updated(document)}</td></tr>'
+        content += '</table>'
+    else:
+        content += _empty_block("目前尚無活動文件", "建立活動企劃書、成果報告或社課紀錄後，這裡會自動整理。", "前往文件生成", nav_href("Generate"))
+    content += '</section>'
+    content += '<section class="odf-card pad"><h3 class="odf-section-title">工作建議</h3><div style="display:grid;gap:12px;">'
+    content += '<div class="odf-card" style="padding:16px 18px;box-shadow:none;"><strong>先補活動資料</strong><p class="odf-muted" style="margin:8px 0 0 0;">若目前活動文件偏少，建議先從活動企劃書、活動成果報告或社課紀錄開始建立。</p></div>'
+    content += '<div class="odf-card" style="padding:16px 18px;box-shadow:none;"><strong>把活動文件接回檔案庫</strong><p class="odf-muted" style="margin:8px 0 0 0;">文件建立完成後，可回到檔案庫檢查版本、狀態與後續整理。</p></div>'
+    content += '<div class="odf-card" style="padding:16px 18px;box-shadow:none;"><strong>同步評鑑準備</strong><p class="odf-muted" style="margin:8px 0 0 0;">活動結束後，記得回到社團評鑑頁確認是否仍有缺件。</p></div>'
+    content += '</div><div style="display:grid;gap:12px;margin-top:16px;"><a class="odf-btn primary full" href="' + nav_href("Generate") + '">建立活動文件</a><a class="odf-btn outline full" href="' + nav_href("Evaluation") + '">查看社團評鑑</a></div></section></div>'
+    return page_shell("Activities", content)
+
+
+def render_evaluation() -> str:
+    state = _runtime_state()
+    summary = state["summary"]
+    category_summaries = summary.get("category_summaries") or []
+    missing_requirements = summary.get("missing_requirements") or []
+    recommendations = summary.get("recommendations") or []
+    percent = int(summary.get("overall_completion_percentage") or 0)
+    content = page_header("社團評鑑", "檢查目前完成度、缺件項目與建議補件方向。", "Evaluation")
+    content += (
+        '<div class="odf-grid" style="grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:18px;">'
+        + kpi("整體準備度", f"{percent}%", "依分類權重換算", "🛡️")
+        + kpi("必要文件", str(summary.get("total_required_documents") or 0), "目前評鑑規則統計", "📚")
+        + kpi("已完成", str(summary.get("total_completed_documents") or 0), "已計入完成度", "✅", "green")
+        + kpi("缺件", str(len(missing_requirements)), "仍待補齊的必要文件", "⚠️", "orange")
+        + "</div>"
+    )
+    content += '<div class="odf-grid" style="grid-template-columns:1.08fr .92fr;gap:18px;margin-bottom:18px;">'
+    content += '<section class="odf-card pad"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">分類準備度</h3><span class="odf-chip blue">' + str(percent) + '%</span></div>'
+    if category_summaries:
+        for category in category_summaries:
+            category_name = _safe(category.get("category_name", "未分類"))
+            category_percent = int(category.get("completion_percentage") or 0)
+            completed = int(category.get("completed_count") or 0)
+            required = int(category.get("required_count") or 0)
+            content += f'<div style="padding:14px 0;border-bottom:1px solid #edf2f7;"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;"><strong style="font-size:15px;">{category_name}</strong><span class="odf-mini">{completed} / {required}</span></div><div class="odf-progress" style="margin-top:10px;"><span style="width:{category_percent}%;"></span></div><div class="odf-mini" style="margin-top:8px;">完成度 {category_percent}%</div></div>'
+    else:
+        content += _empty_block("尚未讀到評鑑資料", "建立文件後，這裡會顯示各分類的準備度與缺件。")
+    content += '</section>'
+    content += '<section class="odf-card pad"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">缺件清單</h3><a class="odf-mini" href="' + nav_href("Generate") + '" style="color:#1d6bff;text-decoration:none;">前往文件生成</a></div>'
+    if missing_requirements:
+        content += '<div style="display:grid;gap:10px;">'
+        for item in missing_requirements[:10]:
+            content += f'<div class="odf-card" style="padding:14px 16px;box-shadow:none;"><strong>{_safe(item.get("requirement_name", "未命名項目"))}</strong><p class="odf-muted" style="margin:8px 0 0 0;">{_safe(item.get("category_name", "未分類"))}</p></div>'
+        content += '</div>'
+    else:
+        content += _empty_block("目前沒有缺件", "現有資料沒有偵測到必要文件缺漏，可持續檢查最近文件與活動後續。")
+    content += '</section></div>'
+    content += '<section class="odf-card pad"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">補件建議</h3><a class="odf-mini" href="' + nav_href("Files") + '" style="color:#1d6bff;text-decoration:none;">查看最近文件</a></div>'
+    if recommendations:
+        content += '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">'
+        for recommendation in recommendations[:4]:
+            content += f'<div class="odf-card" style="padding:18px 18px 16px 18px;box-shadow:none;"><strong>{_safe(recommendation.get("category_name", "未分類"))}</strong><p class="odf-muted" style="margin:10px 0 0 0;">{_safe(recommendation.get("message", ""))}</p></div>'
+        content += '</div>'
+    else:
+        content += _empty_block("目前沒有額外補件建議", "可持續維護活動與行政文件，保持工作區資料完整。")
+    content += '</section>'
+    return page_shell("Evaluation", content)
 def kpi(title: str, value: str, desc: str, icon: str, tone: str = "blue") -> str:
     return f'<section class="odf-card pad" style="height:124px;display:flex;align-items:center;gap:18px;"><div class="odf-doc-icon {tone}" style="width:60px;height:60px;border-radius:28px;font-size:26px;">{icon}</div><div><div class="odf-mini">{title}</div><div style="font-size:30px;font-weight:920;line-height:1.05;">{value}</div><div class="odf-mini" style="color:#16a34a;margin-top:6px;">↗ {desc}</div></div></section>'
 
@@ -2084,12 +2677,12 @@ def render_dashboard() -> str:
     project_count = len(project_names)
     content = page_header("儀表板", "掌握社團工作進度、文件狀況與近期提醒。")
     content += '<div class="odf-grid" style="grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:18px;">' + kpi("目前專案", f"{project_count} 個", "依現有文件統計", "📁") + kpi("本週新增文件", f"{len(documents)} 份", "目前資料庫文件數", "▤", "green") + kpi("待補文件", f"{missing_count} 份", "依評鑑缺件統計", "⚠️", "orange") + kpi("未歸檔檔案", f"{counts['unfiled']} 份", "草稿或待確認文件", "🗃️", "purple") + '</div>'
-    content += '<div class="odf-grid" style="grid-template-columns:1.1fr 1fr;gap:18px;margin-bottom:18px;"><section class="odf-card pad" style="min-height:318px;"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">專案進度總覽</h3><span class="odf-chip">目前資料</span></div>'
+    content += '<div class="odf-grid" style="grid-template-columns:1.1fr 1fr;gap:18px;margin-bottom:18px;"><section class="odf-card pad" style="min-height:318px;"><div style="display:flex;justify-content:space-between;align-items:center;"><h3 class="odf-section-title">活動 / 專案進度總覽</h3><span class="odf-chip">目前資料</span></div>'
     if project_count:
         for idx, name in enumerate(project_names[:4]):
             pct = min(100, 25 + idx * 15)
             content += project_row(name or f"專案 {idx+1}", "進行中", pct, "blue")
-        content += '<a href="' + nav_href("Projects") + '" class="odf-btn soft full" style="margin-top:16px;">查看全部專案 →</a>'
+        content += '<a href="' + nav_href("Activities") + '" class="odf-btn soft full" style="margin-top:16px;">前往活動頁 →</a>'
     else:
         content += _empty_block("目前尚無專案", "建立文件並歸入專案後，這裡會顯示進度。", "建立文件", nav_href("Generate"))
     content += '</section>'
@@ -2300,7 +2893,7 @@ def render_files() -> str:
             tone = "green" if status in {"已完成","正式版","已歸檔"} else "orange" if status in {"待確認","待審"} else "blue"
             proj = _safe(d.get("project_id") or d.get("project_name") or "未分類")
             content += f'<tr><td style="padding-left:26px;">▤　{_doc_title(d)}</td><td><span class="odf-tag {tag}">{fmt}</span></td><td>{proj}</td><td><span class="odf-tag {tone}">{status}</span></td><td>{_doc_updated(d)}</td><td>👁　↓　↺　⋮</td></tr>'
-        content += '</table><div style="display:flex;justify-content:center;gap:10px;margin-top:16px;"><a class="odf-btn outline" style="height:36px;width:42px;padding:0;" href="#">‹</a><a class="odf-btn primary" style="height:36px;width:42px;padding:0;" href="#">1</a><a class="odf-btn outline" style="height:36px;width:42px;padding:0;" href="#">›</a></div>'
+        content += '</table><div style="display:flex;justify-content:center;gap:10px;margin-top:16px;"><span class="odf-btn outline" style="height:36px;width:42px;padding:0;color:#94a3b8!important;">‹</span><span class="odf-btn primary" style="height:36px;width:42px;padding:0;">1</span><span class="odf-btn outline" style="height:36px;width:42px;padding:0;color:#94a3b8!important;">›</span></div>'
     else:
         content += '<div style="padding:36px;">' + _empty_block("目前尚無文件", "從生成文件建立第一份文件後，這裡會顯示檔案列表、狀態與版本操作。", "建立文件", nav_href("Generate")) + '</div>'
     content += '</section></div>'
@@ -2341,7 +2934,7 @@ def render_settings() -> str:
             '<div class="odf-setting-row">'
             f'<div class="odf-setting-main"><strong>{_safe(title)}</strong><span>{_safe(desc)}</span></div>'
             f'<div class="odf-setting-value">{value_html}</div>'
-            f'<a class="odf-setting-action" href="#">{_safe(action)}</a>'
+            f'<span class="odf-setting-action static">{_safe(action)}</span>'
             '</div>'
         )
 
@@ -2357,57 +2950,57 @@ def render_settings() -> str:
 
     if section == "club":
         content += '<section class="odf-card odf-settings-card">'
-        content += row("社團名稱", "顯示於首頁、檔案庫與文件輸出資訊。", club_name, "編輯")
-        content += row("學年度", "影響評鑑年度、文件歸檔與首頁社團資訊。", f"{academic_year} 學年度", "變更")
-        content += row("校區", "目前社團所在校區，顯示於側邊欄與社團卡。", campus, "變更")
-        content += row("社團類型", "例如學術性、服務性、康樂性、自治性社團。", settings.get("club_type") or "尚未設定", "設定")
-        content += row("負責人", "主要管理 ODFlow 工作台的人員。", settings.get("president_name") or "尚未設定", "新增")
-        content += row("指導老師", "可用於活動文件、評鑑文件與核章資訊。", settings.get("advisor_name") or "尚未設定", "新增")
+        content += row("社團名稱", "顯示於首頁、檔案庫與文件輸出資訊。", club_name, "唯讀")
+        content += row("學年度", "影響評鑑年度、文件歸檔與首頁社團資訊。", f"{academic_year} 學年度", "唯讀")
+        content += row("校區", "目前社團所在校區，顯示於側邊欄與社團卡。", campus, "唯讀")
+        content += row("社團類型", "例如學術性、服務性、康樂性、自治性社團。", settings.get("club_type") or "尚未設定", "展示")
+        content += row("負責人", "主要管理 ODFlow 工作台的人員。", settings.get("president_name") or "尚未設定", "展示")
+        content += row("指導老師", "可用於活動文件、評鑑文件與核章資訊。", settings.get("advisor_name") or "尚未設定", "展示")
         content += '</section>'
     elif section == "members":
         content += '<section class="odf-card odf-settings-card">'
-        content += row("管理員", "可調整社團資料、建立文件與管理檔案庫。", "1 人", "管理")
-        content += row("幹部成員", "可協助建立文件與整理評鑑資料的人員。", "尚未設定", "新增")
-        content += row("可編輯文件的人", "控制誰可以建立、修改與儲存草稿。", "只有管理員", "設定")
-        content += row("可下載檔案的人", "控制誰可以下載 ODT / ODS / PDF。", "所有幹部", "設定")
-        content += row("權限狀態", "目前為本機展示權限，尚未接入正式登入。", "展示模式", "查看")
+        content += row("管理員", "可調整社團資料、建立文件與管理檔案庫。", "1 人", "展示")
+        content += row("幹部成員", "可協助建立文件與整理評鑑資料的人員。", "尚未設定", "展示")
+        content += row("可編輯文件的人", "控制誰可以建立、修改與儲存草稿。", "只有管理員", "展示")
+        content += row("可下載檔案的人", "控制誰可以下載 ODT / ODS / PDF。", "所有幹部", "展示")
+        content += row("權限狀態", "目前為本機展示權限，尚未接入正式登入。", "展示模式", "展示")
         content += '</section>'
     elif section == "documents":
         example = f"{club_name}_活動企劃書_20260720.odt"
         content += '<section class="odf-card odf-settings-card">'
-        content += row("文件命名規則", "設定生成文件時的預設檔名格式，適合配合學校規範。", "社團名稱_文件類型_日期", "設定")
-        content += row("命名範例", "依照目前社團與日期產生的範例檔名。", example, "查看")
-        content += row("歸檔規則", "生成文件完成後是否自動加入檔案庫。", "生成後自動歸檔", "設定")
-        content += row("預設輸出格式", "ODT / ODS 原始檔保留，PDF 作為提交與列印格式。", "原始檔 + PDF", "查看")
-        content += row("PDF 匯出", "控制是否顯示 PDF 預覽與下載入口。", "啟用", "設定")
-        content += row("檔案庫分類方式", "決定文件列表依文件類型、專案或狀態分類。", "文件類型與專案", "設定")
+        content += row("文件命名規則", "設定生成文件時的預設檔名格式，適合配合學校規範。", "社團名稱_文件類型_日期", "唯讀")
+        content += row("命名範例", "依照目前社團與日期產生的範例檔名。", example, "展示")
+        content += row("歸檔規則", "生成文件完成後是否自動加入檔案庫。", "生成後自動歸檔", "唯讀")
+        content += row("預設輸出格式", "ODT / ODS 原始檔保留，PDF 作為提交與列印格式。", "原始檔 + PDF", "展示")
+        content += row("PDF 匯出", "控制是否顯示 PDF 預覽與下載入口。", "啟用", "展示")
+        content += row("檔案庫分類方式", "決定文件列表依文件類型、專案或狀態分類。", "文件類型與專案", "展示")
         content += '</section>'
     elif section == "notifications":
         pending_total = counts["pending"] + counts["draft"]
         content += '<section class="odf-card odf-settings-card">'
-        content += row("缺件提醒", "當社團評鑑必要文件缺漏時，在首頁與通知中心提醒。", "開啟", "切換", "pill")
-        content += row("文件待確認提醒", "有草稿或待確認文件時顯示提醒。", "開啟", "切換", "pill")
-        content += row("最近文件提醒", "顯示最近使用與最近修改的文件。", "開啟", "切換", "pill")
-        content += row("通知中心", "目前通知顯示於右上角鈴鐺。", f"目前 {pending_total} 項", "查看")
+        content += row("缺件提醒", "當社團評鑑必要文件缺漏時，在首頁與通知中心提醒。", "開啟", "展示", "pill")
+        content += row("文件待確認提醒", "有草稿或待確認文件時顯示提醒。", "開啟", "展示", "pill")
+        content += row("最近文件提醒", "顯示最近使用與最近修改的文件。", "開啟", "展示", "pill")
+        content += row("通知中心", "目前通知顯示於右上角鈴鐺。", f"目前 {pending_total} 項", "展示")
         content += '</section>'
     elif section == "data":
         content += '<section class="odf-card odf-settings-card">'
-        content += row("匯出全部文件", "下載目前社團所有 ODT / ODS / PDF 文件。", f"{len(documents)} 份文件", "匯出")
-        content += row("匯出檔案庫清單", "下載文件清單 CSV / ODS，方便交接或備份。", "CSV / ODS", "匯出")
-        content += row("資料儲存位置", "目前使用本機 SQLite 儲存展示資料。", "本機 SQLite", "查看")
-        content += row("備份狀態", "目前尚未啟用雲端備份。", "未啟用", "了解")
-        content += row("清除展示資料", "移除本機測試資料，保留系統與範本。", "危險操作", "清除")
+        content += row("匯出全部文件", "下載目前社團所有 ODT / ODS / PDF 文件。", f"{len(documents)} 份文件", "資訊")
+        content += row("匯出檔案庫清單", "下載文件清單 CSV / ODS，方便交接或備份。", "CSV / ODS", "資訊")
+        content += row("資料儲存位置", "目前使用本機 SQLite 儲存展示資料。", "本機 SQLite", "唯讀")
+        content += row("備份狀態", "目前尚未啟用雲端備份。", "未啟用", "展示")
+        content += row("清除展示資料", "移除本機測試資料，保留系統與範本。", "危險操作", "未開放")
         content += '</section>'
     else:
         content += '<section class="odf-card odf-settings-card">'
-        content += row("ODFlow 版本", "目前介面與文件流程版本。", "v0.5 UIUX", "查看")
-        content += row("支援格式", "平台目前支援的文件格式。", "ODT / ODS / PDF", "查看")
-        content += row("目前環境", "現在執行環境。", "本機 Streamlit", "查看")
-        content += row("服務狀態", "檢查文件服務、範本服務與檔案庫狀態。", "正常", "重新檢查", "pill")
-        content += row("GitHub Repository", "專案原始碼與版本管理位置。", "SA_ODFlow", "開啟")
+        content += row("ODFlow 版本", "目前介面與文件流程版本。", "v0.5 UIUX", "資訊")
+        content += row("支援格式", "平台目前支援的文件格式。", "ODT / ODS / PDF", "資訊")
+        content += row("目前環境", "現在執行環境。", "本機 Streamlit", "資訊")
+        content += row("服務狀態", "檢查文件服務、範本服務與檔案庫狀態。", "正常", "展示", "pill")
+        content += row("GitHub Repository", "專案原始碼與版本管理位置。", "SA_ODFlow", "資訊")
         content += '</section>'
 
-    content += '<div class="odf-settings-note">這一頁先完成設定中心的 UI 與資訊架構。實際編輯、切換權限、匯出與清除資料，可以在下一階段接上 Streamlit form 與後端 service。</div>'
+    content += '<div class="odf-settings-note">目前設定頁提供工作區資訊、文件規則與展示狀態說明，不會假裝執行未接入的編輯、清除或外部同步操作。</div>'
     content += '</main></div>'
     return page_shell("Settings", content)
 
@@ -2420,4 +3013,3 @@ def render_placeholder(active: str, title: str, desc: str) -> str:
 def render_exact_page(html: str) -> None:
     inject_exact_styles()
     st.markdown(html, unsafe_allow_html=True)
-
